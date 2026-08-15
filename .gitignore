@@ -1,0 +1,18 @@
+﻿# Visual Studio
+.vs/
+bin/
+obj/
+
+# Python
+ocr_engine/venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# その他よくあるもの
+*.log
+*.tmp
+.env

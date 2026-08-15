@@ -1,0 +1,19 @@
+{
+  "template": {
+    "name": "縦書き本文",
+    "regions": [
+      {
+        "x": 0,
+        "y": 0,
+        "width": 2081,
+        "height": 1158
+      }
+    ]
+  },
+  "pages": {
+    "1": {
+      "use_template": true,
+      "regions": []
+    }
+  }
+}
