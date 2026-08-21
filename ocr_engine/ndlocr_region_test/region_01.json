@@ -1,0 +1,142 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            20
+          ],
+          [
+            113,
+            4
+          ],
+          [
+            113,
+            20
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "メニア、アメリ",
+        "isTextline": "true",
+        "confidence": 0.463,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            104,
+            74
+          ],
+          [
+            104,
+            437
+          ],
+          [
+            125,
+            74
+          ],
+          [
+            125,
+            437
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "抑止するために、 ウクライナ",
+        "isTextline": "true",
+        "confidence": 0.921,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            66,
+            74
+          ],
+          [
+            66,
+            437
+          ],
+          [
+            88,
+            74
+          ],
+          [
+            88,
+            437
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "と隣接する加盟国において実施されて",
+        "isTextline": "true",
+        "confidence": 0.923,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            29,
+            77
+          ],
+          [
+            29,
+            438
+          ],
+          [
+            51,
+            77
+          ],
+          [
+            51,
+            438
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "いるのが、エストニア、 ラトビア、リ",
+        "isTextline": "true",
+        "confidence": 0.923,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            0,
+            75
+          ],
+          [
+            0,
+            438
+          ],
+          [
+            13,
+            75
+          ],
+          [
+            13,
+            438
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "トアニアとボーランドへの大家見英の",
+        "isTextline": "true",
+        "confidence": 0.824,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 180,
+    "img_height": 460,
+    "img_path": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ndlocr_region_test\\region_01.png",
+    "img_name": "region_01.png"
+  }
+}

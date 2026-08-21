@@ -1,0 +1,4022 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            114,
+            44
+          ],
+          [
+            114,
+            64
+          ],
+          [
+            556,
+            44
+          ],
+          [
+            556,
+            64
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "表1加盟国東翼の防衛強化態勢(2022年10月現在)",
+        "isTextline": "true",
+        "confidence": 0.931,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            754,
+            775
+          ],
+          [
+            754,
+            1135
+          ],
+          [
+            775,
+            775
+          ],
+          [
+            775,
+            1135
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "抑止するために、ロシア、ウクライナ",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            715,
+            776
+          ],
+          [
+            715,
+            1136
+          ],
+          [
+            738,
+            776
+          ],
+          [
+            738,
+            1136
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "と隣接する加盟国において実施されて",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            679,
+            778
+          ],
+          [
+            679,
+            1137
+          ],
+          [
+            701,
+            778
+          ],
+          [
+            701,
+            1137
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "いるのが、エストニア、ラトビア、リ",
+        "isTextline": "true",
+        "confidence": 0.948,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            640,
+            776
+          ],
+          [
+            640,
+            1136
+          ],
+          [
+            662,
+            776
+          ],
+          [
+            662,
+            1136
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "トアニアとポーランドへの大隊規模の",
+        "isTextline": "true",
+        "confidence": 0.956,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            602,
+            775
+          ],
+          [
+            602,
+            1137
+          ],
+          [
+            624,
+            775
+          ],
+          [
+            624,
+            1137
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "戦闘群派遣による「強化された前方プ",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            564,
+            777
+          ],
+          [
+            564,
+            1136
+          ],
+          [
+            585,
+            777
+          ],
+          [
+            585,
+            1136
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "レゼンス(eFP)」である。2022",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            525,
+            775
+          ],
+          [
+            525,
+            1138
+          ],
+          [
+            547,
+            775
+          ],
+          [
+            547,
+            1138
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "年2月のロシア・ウクライナ戦争勃発",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            488,
+            777
+          ],
+          [
+            488,
+            1137
+          ],
+          [
+            509,
+            777
+          ],
+          [
+            509,
+            1137
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "により、新たにスロバキア、ハンガ",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            450,
+            775
+          ],
+          [
+            450,
+            1138
+          ],
+          [
+            472,
+            775
+          ],
+          [
+            472,
+            1138
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "リー、ルーマニア、ブルガリアへも戦",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            412,
+            774
+          ],
+          [
+            412,
+            1136
+          ],
+          [
+            434,
+            774
+          ],
+          [
+            434,
+            1136
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "闘群が派遣されている(表1参照)。こ",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            374,
+            775
+          ],
+          [
+            374,
+            1138
+          ],
+          [
+            396,
+            775
+          ],
+          [
+            396,
+            1138
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "れは「加盟国のあらゆる領土を防衛す",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            336,
+            775
+          ],
+          [
+            336,
+            1139
+          ],
+          [
+            358,
+            775
+          ],
+          [
+            358,
+            1139
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "る決意がある」(ストルテンベルグ事務総",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            299,
+            774
+          ],
+          [
+            299,
+            1137
+          ],
+          [
+            320,
+            774
+          ],
+          [
+            320,
+            1137
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "長)というNATOの強いメッセージ",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            263,
+            776
+          ],
+          [
+            263,
+            909
+          ],
+          [
+            284,
+            776
+          ],
+          [
+            284,
+            909
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "の表れである。",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            224,
+            802
+          ],
+          [
+            224,
+            1146
+          ],
+          [
+            246,
+            802
+          ],
+          [
+            246,
+            1146
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "一方、こうした任務や作戦のほかに、",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            185,
+            774
+          ],
+          [
+            185,
+            1138
+          ],
+          [
+            209,
+            774
+          ],
+          [
+            209,
+            1138
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "NATOは毎年、定期的に軍事演習を",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            148,
+            773
+          ],
+          [
+            148,
+            1137
+          ],
+          [
+            172,
+            773
+          ],
+          [
+            172,
+            1137
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "行っている。 冷戦期と異なり冷戦後の",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            111,
+            773
+          ],
+          [
+            111,
+            1125
+          ],
+          [
+            135,
+            773
+          ],
+          [
+            135,
+            1125
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "軍事演習は多種多様なものとなった。",
+        "isTextline": "true",
+        "confidence": 0.956,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            284,
+            79
+          ],
+          [
+            284,
+            103
+          ],
+          [
+            325,
+            79
+          ],
+          [
+            325,
+            103
+          ]
+        ],
+        "id": 19,
+        "isVertical": "false",
+        "text": "原則",
+        "isTextline": "true",
+        "confidence": 0.9,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            262,
+            290
+          ],
+          [
+            262,
+            312
+          ],
+          [
+            341,
+            290
+          ],
+          [
+            341,
+            312
+          ]
+        ],
+        "id": 20,
+        "isVertical": "false",
+        "text": "2016年~",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            118,
+            407
+          ],
+          [
+            118,
+            428
+          ],
+          [
+            253,
+            407
+          ],
+          [
+            253,
+            428
+          ]
+        ],
+        "id": 21,
+        "isVertical": "false",
+        "text": "レゼンス(eFP)",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            118,
+            426
+          ],
+          [
+            118,
+            448
+          ],
+          [
+            261,
+            426
+          ],
+          [
+            261,
+            448
+          ]
+        ],
+        "id": 22,
+        "isVertical": "false",
+        "text": "としての戦闘群展",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            117,
+            387
+          ],
+          [
+            117,
+            408
+          ],
+          [
+            260,
+            387
+          ],
+          [
+            260,
+            408
+          ]
+        ],
+        "id": 23,
+        "isVertical": "false",
+        "text": "強化された前方プ",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            116,
+            445
+          ],
+          [
+            116,
+            469
+          ],
+          [
+            138,
+            445
+          ],
+          [
+            138,
+            469
+          ]
+        ],
+        "id": 24,
+        "isVertical": "true",
+        "text": "11",
+        "isTextline": "true",
+        "confidence": 0.852,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            263,
+            603
+          ],
+          [
+            263,
+            625
+          ],
+          [
+            341,
+            603
+          ],
+          [
+            341,
+            625
+          ]
+        ],
+        "id": 25,
+        "isVertical": "false",
+        "text": "2022年~",
+        "isTextline": "true",
+        "confidence": 0.887,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            361,
+            91
+          ],
+          [
+            361,
+            114
+          ],
+          [
+            433,
+            91
+          ],
+          [
+            433,
+            114
+          ]
+        ],
+        "id": 26,
+        "isVertical": "false",
+        "text": "よび地域)",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            349,
+            73
+          ],
+          [
+            349,
+            95
+          ],
+          [
+            452,
+            73
+          ],
+          [
+            452,
+            95
+          ]
+        ],
+        "id": 27,
+        "isVertical": "false",
+        "text": "派遣先(国お",
+        "isTextline": "true",
+        "confidence": 0.897,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            350,
+            135
+          ],
+          [
+            350,
+            156
+          ],
+          [
+            437,
+            135
+          ],
+          [
+            437,
+            156
+          ]
+        ],
+        "id": 28,
+        "isVertical": "false",
+        "text": "エストニア",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            350,
+            238
+          ],
+          [
+            350,
+            260
+          ],
+          [
+            422,
+            238
+          ],
+          [
+            422,
+            260
+          ]
+        ],
+        "id": 29,
+        "isVertical": "false",
+        "text": "ラトビア",
+        "isTextline": "true",
+        "confidence": 0.908,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            351,
+            362
+          ],
+          [
+            351,
+            384
+          ],
+          [
+            438,
+            362
+          ],
+          [
+            438,
+            384
+          ]
+        ],
+        "id": 30,
+        "isVertical": "false",
+        "text": "リトアニア",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            507,
+            81
+          ],
+          [
+            507,
+            105
+          ],
+          [
+            549,
+            81
+          ],
+          [
+            549,
+            105
+          ]
+        ],
+        "id": 31,
+        "isVertical": "false",
+        "text": "目的",
+        "isTextline": "true",
+        "confidence": 0.898,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            660,
+            83
+          ],
+          [
+            660,
+            106
+          ],
+          [
+            719,
+            83
+          ],
+          [
+            719,
+            106
+          ]
+        ],
+        "id": 32,
+        "isVertical": "false",
+        "text": "参加国",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            457,
+            250
+          ],
+          [
+            457,
+            270
+          ],
+          [
+            599,
+            250
+          ],
+          [
+            599,
+            270
+          ]
+        ],
+        "id": 33,
+        "isVertical": "false",
+        "text": "ロシア周辺加盟国",
+        "isTextline": "true",
+        "confidence": 0.909,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            457,
+            269
+          ],
+          [
+            457,
+            291
+          ],
+          [
+            598,
+            269
+          ],
+          [
+            598,
+            291
+          ]
+        ],
+        "id": 34,
+        "isVertical": "false",
+        "text": "の監視防衛強化",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            605,
+            116
+          ],
+          [
+            605,
+            138
+          ],
+          [
+            758,
+            116
+          ],
+          [
+            758,
+            138
+          ]
+        ],
+        "id": 35,
+        "isVertical": "false",
+        "text": "イギリス(主導国)、",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            136
+          ],
+          [
+            604,
+            158
+          ],
+          [
+            769,
+            136
+          ],
+          [
+            769,
+            158
+          ]
+        ],
+        "id": 36,
+        "isVertical": "false",
+        "text": "デンマーク、フラン",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            156
+          ],
+          [
+            604,
+            178
+          ],
+          [
+            746,
+            156
+          ],
+          [
+            746,
+            178
+          ]
+        ],
+        "id": 37,
+        "isVertical": "false",
+        "text": "ス、アイスランド",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            605,
+            200
+          ],
+          [
+            605,
+            221
+          ],
+          [
+            760,
+            200
+          ],
+          [
+            760,
+            221
+          ]
+        ],
+        "id": 38,
+        "isVertical": "false",
+        "text": "ルパニア、チェコ、",
+        "isTextline": "true",
+        "confidence": 0.899,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            605,
+            220
+          ],
+          [
+            605,
+            241
+          ],
+          [
+            769,
+            220
+          ],
+          [
+            769,
+            241
+          ]
+        ],
+        "id": 39,
+        "isVertical": "false",
+        "text": "イタリア、モンテネ",
+        "isTextline": "true",
+        "confidence": 0.908,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            605,
+            240
+          ],
+          [
+            605,
+            261
+          ],
+          [
+            760,
+            240
+          ],
+          [
+            760,
+            261
+          ]
+        ],
+        "id": 40,
+        "isVertical": "false",
+        "text": "グロ、 北マケドニア、",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            180
+          ],
+          [
+            604,
+            201
+          ],
+          [
+            770,
+            180
+          ],
+          [
+            770,
+            201
+          ]
+        ],
+        "id": 41,
+        "isVertical": "false",
+        "text": "カナダ (主導国)、ア",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            261
+          ],
+          [
+            604,
+            281
+          ],
+          [
+            769,
+            261
+          ],
+          [
+            769,
+            281
+          ]
+        ],
+        "id": 42,
+        "isVertical": "false",
+        "text": "ポーランド、スロバ",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            281
+          ],
+          [
+            604,
+            301
+          ],
+          [
+            760,
+            281
+          ],
+          [
+            760,
+            301
+          ]
+        ],
+        "id": 43,
+        "isVertical": "false",
+        "text": "キア、スロベニア、",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            300
+          ],
+          [
+            604,
+            322
+          ],
+          [
+            677,
+            300
+          ],
+          [
+            677,
+            322
+          ]
+        ],
+        "id": 44,
+        "isVertical": "false",
+        "text": "スペイン",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            606,
+            324
+          ],
+          [
+            606,
+            345
+          ],
+          [
+            770,
+            324
+          ],
+          [
+            770,
+            345
+          ]
+        ],
+        "id": 45,
+        "isVertical": "false",
+        "text": "ドイツ(主導国)、ベ",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            344
+          ],
+          [
+            604,
+            365
+          ],
+          [
+            769,
+            344
+          ],
+          [
+            769,
+            365
+          ]
+        ],
+        "id": 46,
+        "isVertical": "false",
+        "text": "ルギー、チェコ、ア",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            364
+          ],
+          [
+            604,
+            385
+          ],
+          [
+            769,
+            364
+          ],
+          [
+            769,
+            385
+          ]
+        ],
+        "id": 47,
+        "isVertical": "false",
+        "text": "イスランド、ルクセ",
+        "isTextline": "true",
+        "confidence": 0.908,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            384
+          ],
+          [
+            604,
+            405
+          ],
+          [
+            759,
+            384
+          ],
+          [
+            759,
+            405
+          ]
+        ],
+        "id": 48,
+        "isVertical": "false",
+        "text": "ンブルク、 オランダ、",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            404
+          ],
+          [
+            604,
+            425
+          ],
+          [
+            694,
+            404
+          ],
+          [
+            694,
+            425
+          ]
+        ],
+        "id": 49,
+        "isVertical": "false",
+        "text": "ノルウェー",
+        "isTextline": "true",
+        "confidence": 0.897,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            350,
+            445
+          ],
+          [
+            350,
+            468
+          ],
+          [
+            438,
+            445
+          ],
+          [
+            438,
+            468
+          ]
+        ],
+        "id": 50,
+        "isVertical": "false",
+        "text": "ポーランド",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            349,
+            510
+          ],
+          [
+            349,
+            531
+          ],
+          [
+            437,
+            510
+          ],
+          [
+            437,
+            531
+          ]
+        ],
+        "id": 51,
+        "isVertical": "false",
+        "text": "スロバキア",
+        "isTextline": "true",
+        "confidence": 0.911,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            348,
+            573
+          ],
+          [
+            348,
+            595
+          ],
+          [
+            438,
+            573
+          ],
+          [
+            438,
+            595
+          ]
+        ],
+        "id": 52,
+        "isVertical": "false",
+        "text": "ハンガリー",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            349,
+            636
+          ],
+          [
+            349,
+            658
+          ],
+          [
+            437,
+            636
+          ],
+          [
+            437,
+            658
+          ]
+        ],
+        "id": 53,
+        "isVertical": "false",
+        "text": "ルーマニア",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            349,
+            698
+          ],
+          [
+            349,
+            721
+          ],
+          [
+            437,
+            698
+          ],
+          [
+            437,
+            721
+          ]
+        ],
+        "id": 54,
+        "isVertical": "false",
+        "text": "ブルガリア",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            457,
+            447
+          ],
+          [
+            457,
+            468
+          ],
+          [
+            600,
+            447
+          ],
+          [
+            600,
+            468
+          ]
+        ],
+        "id": 55,
+        "isVertical": "false",
+        "text": "ナ周辺加盟国の監",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            456,
+            428
+          ],
+          [
+            456,
+            448
+          ],
+          [
+            599,
+            428
+          ],
+          [
+            599,
+            448
+          ]
+        ],
+        "id": 56,
+        "isVertical": "false",
+        "text": "ロシア、ウクライ",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            455,
+            466
+          ],
+          [
+            455,
+            489
+          ],
+          [
+            564,
+            466
+          ],
+          [
+            564,
+            489
+          ]
+        ],
+        "id": 57,
+        "isVertical": "false",
+        "text": "視・防衛強化",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            428
+          ],
+          [
+            604,
+            448
+          ],
+          [
+            759,
+            428
+          ],
+          [
+            759,
+            448
+          ]
+        ],
+        "id": 58,
+        "isVertical": "false",
+        "text": "アメリカ (主導国)、",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            448
+          ],
+          [
+            604,
+            468
+          ],
+          [
+            769,
+            448
+          ],
+          [
+            769,
+            468
+          ]
+        ],
+        "id": 59,
+        "isVertical": "false",
+        "text": "クロアチア、ルーマ",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            467
+          ],
+          [
+            603,
+            488
+          ],
+          [
+            727,
+            467
+          ],
+          [
+            727,
+            488
+          ]
+        ],
+        "id": 60,
+        "isVertical": "false",
+        "text": "ニア、イギリス",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            491
+          ],
+          [
+            604,
+            512
+          ],
+          [
+            770,
+            491
+          ],
+          [
+            770,
+            512
+          ]
+        ],
+        "id": 61,
+        "isVertical": "false",
+        "text": "チェコ (主導国)、ド",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            511
+          ],
+          [
+            603,
+            532
+          ],
+          [
+            769,
+            511
+          ],
+          [
+            769,
+            532
+          ]
+        ],
+        "id": 62,
+        "isVertical": "false",
+        "text": "イツ、オランダ、ス",
+        "isTextline": "true",
+        "confidence": 0.895,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            602,
+            531
+          ],
+          [
+            602,
+            551
+          ],
+          [
+            675,
+            531
+          ],
+          [
+            675,
+            551
+          ]
+        ],
+        "id": 63,
+        "isVertical": "false",
+        "text": "ロベニア",
+        "isTextline": "true",
+        "confidence": 0.892,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            456,
+            585
+          ],
+          [
+            456,
+            606
+          ],
+          [
+            599,
+            585
+          ],
+          [
+            599,
+            606
+          ]
+        ],
+        "id": 64,
+        "isVertical": "false",
+        "text": "ウクライナ周辺加",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            456,
+            605
+          ],
+          [
+            456,
+            627
+          ],
+          [
+            599,
+            605
+          ],
+          [
+            599,
+            627
+          ]
+        ],
+        "id": 65,
+        "isVertical": "false",
+        "text": "盟国の監視・防衛",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            454,
+            624
+          ],
+          [
+            454,
+            647
+          ],
+          [
+            495,
+            624
+          ],
+          [
+            495,
+            647
+          ]
+        ],
+        "id": 66,
+        "isVertical": "false",
+        "text": "強化",
+        "isTextline": "true",
+        "confidence": 0.892,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            574
+          ],
+          [
+            604,
+            595
+          ],
+          [
+            758,
+            574
+          ],
+          [
+            758,
+            595
+          ]
+        ],
+        "id": 67,
+        "isVertical": "false",
+        "text": "クロアチア、 トルコ、",
+        "isTextline": "true",
+        "confidence": 0.9,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            554
+          ],
+          [
+            603,
+            575
+          ],
+          [
+            757,
+            554
+          ],
+          [
+            757,
+            575
+          ]
+        ],
+        "id": 68,
+        "isVertical": "false",
+        "text": "ハンガリー(主導国)、",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            594
+          ],
+          [
+            603,
+            616
+          ],
+          [
+            676,
+            594
+          ],
+          [
+            676,
+            616
+          ]
+        ],
+        "id": 69,
+        "isVertical": "false",
+        "text": "アメリカ",
+        "isTextline": "true",
+        "confidence": 0.897,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            605,
+            657
+          ],
+          [
+            605,
+            678
+          ],
+          [
+            711,
+            657
+          ],
+          [
+            711,
+            678
+          ]
+        ],
+        "id": 70,
+        "isVertical": "false",
+        "text": "ド、アメリカ",
+        "isTextline": "true",
+        "confidence": 0.906,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            618
+          ],
+          [
+            604,
+            638
+          ],
+          [
+            757,
+            618
+          ],
+          [
+            757,
+            638
+          ]
+        ],
+        "id": 71,
+        "isVertical": "false",
+        "text": "フランス (主導国)、",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            637
+          ],
+          [
+            603,
+            658
+          ],
+          [
+            769,
+            637
+          ],
+          [
+            769,
+            658
+          ]
+        ],
+        "id": 72,
+        "isVertical": "false",
+        "text": "ベルギー、ポーラン",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            604,
+            680
+          ],
+          [
+            604,
+            701
+          ],
+          [
+            758,
+            680
+          ],
+          [
+            758,
+            701
+          ]
+        ],
+        "id": 73,
+        "isVertical": "false",
+        "text": "ブルガリア(主導国)",
+        "isTextline": "true",
+        "confidence": 0.913,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            603,
+            701
+          ],
+          [
+            603,
+            721
+          ],
+          [
+            766,
+            701
+          ],
+          [
+            766,
+            721
+          ]
+        ],
+        "id": 74,
+        "isVertical": "false",
+        "text": "アルバニア、アメリ",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            602,
+            720
+          ],
+          [
+            602,
+            743
+          ],
+          [
+            623,
+            720
+          ],
+          [
+            623,
+            743
+          ]
+        ],
+        "id": 75,
+        "isVertical": "true",
+        "text": "カカ",
+        "isTextline": "true",
+        "confidence": 0.83,
+        "class_index": 1
+      }
+    ],
+    [
+      {
+        "boundingBox": [
+          [
+            606,
+            180
+          ],
+          [
+            606,
+            1134
+          ],
+          [
+            633,
+            180
+          ],
+          [
+            633,
+            1134
+          ]
+        ],
+        "id": 0,
+        "isVertical": "true",
+        "text": "一般に軍事演習は、 部隊の即応能力、 戰闘能力、 兵站能力等を検証するために実施されるが、 多国間",
+        "isTextline": "true",
+        "confidence": 0.946,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            574,
+            174
+          ],
+          [
+            574,
+            1120
+          ],
+          [
+            600,
+            174
+          ],
+          [
+            600,
+            1120
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "同盟の場合、 それらに加えて軍事的相互運用能力を向上させることで、 同盟の結束力の強さを示し、",
+        "isTextline": "true",
+        "confidence": 0.942,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            543,
+            173
+          ],
+          [
+            543,
+            651
+          ],
+          [
+            567,
+            173
+          ],
+          [
+            567,
+            651
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "脅威に対する抑止力を提供するという役割がある。",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            513,
+            195
+          ],
+          [
+            513,
+            1134
+          ],
+          [
+            534,
+            195
+          ],
+          [
+            534,
+            1134
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "NATOの軍事演習という場合、厳密にはNATO主要司令部主催の演習と、特定のNATO加盟",
+        "isTextline": "true",
+        "confidence": 0.944,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            482,
+            173
+          ],
+          [
+            482,
+            1134
+          ],
+          [
+            503,
+            173
+          ],
+          [
+            503,
+            1134
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "国主催の演習(に他の加盟国が参加する演習)とに分けることができる。さらに、これらの演習はその形",
+        "isTextline": "true",
+        "confidence": 0.941,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            451,
+            172
+          ],
+          [
+            451,
+            1120
+          ],
+          [
+            471,
+            172
+          ],
+          [
+            471,
+            1120
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "式により、LIVEXと呼ばれる部隊演習、CPX/CAXと呼ばれる指揮所・司令部演習、",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            419,
+            173
+          ],
+          [
+            419,
+            732
+          ],
+          [
+            439,
+            173
+          ],
+          [
+            439,
+            732
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "Exercise Studyと呼ばれるセミナーの3種類に分けられる。",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            387,
+            194
+          ],
+          [
+            387,
+            1135
+          ],
+          [
+            407,
+            194
+          ],
+          [
+            407,
+            1135
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "NATO司令部主催の部隊演習は、 (1",
+        "isTextline": "true",
+        "confidence": 0.944,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            355,
+            172
+          ],
+          [
+            355,
+            1135
+          ],
+          [
+            374,
+            172
+          ],
+          [
+            374,
+            1135
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "SAF)でNATOが危機管理活動に従事したことを反映して、2013年ごろまでは、演習目的は",
+        "isTextline": "true",
+        "confidence": 0.944,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            321,
+            171
+          ],
+          [
+            321,
+            1133
+          ],
+          [
+            342,
+            171
+          ],
+          [
+            342,
+            1133
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "捜索救難活動のような相互協力の確認と、 テロ対処や平和維持活動のような危機管理が中心であっ",
+        "isTextline": "true",
+        "confidence": 0.945,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            288,
+            171
+          ],
+          [
+            288,
+            1136
+          ],
+          [
+            309,
+            171
+          ],
+          [
+            309,
+            1136
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "た。集団防衛のシナリオに基づく部隊演習は、2013年1月にバルト三国とポーランドで約600",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            253,
+            171
+          ],
+          [
+            253,
+            1137
+          ],
+          [
+            274,
+            171
+          ],
+          [
+            274,
+            1137
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "0人を動員して実施されたSteadlast 2014年に1万3 2014年に1万3 その後、 2014年に1万3",
+        "isTextline": "true",
+        "confidence": 0.941,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            217,
+            170
+          ],
+          [
+            217,
+            1137
+          ],
+          [
+            238,
+            170
+          ],
+          [
+            238,
+            1137
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "000人を動員したポーランド、リトアニアでの演習(Noble 00",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            180,
+            170
+          ],
+          [
+            180,
+            1129
+          ],
+          [
+            202,
+            170
+          ],
+          [
+            202,
+            1129
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "0人を動員したエストニアでの演習 (Steadlasteadlast 1上万",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            143,
+            171
+          ],
+          [
+            143,
+            1137
+          ],
+          [
+            165,
+            171
+          ],
+          [
+            165,
+            1137
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "の演習 (Trident 20218)、20218)、20218)、2021など、NATO",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            104,
+            169
+          ],
+          [
+            104,
+            1138
+          ],
+          [
+            126,
+            169
+          ],
+          [
+            126,
+            1138
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "司令部主催の演習では、集団防衛型の演習の比重が大きくなっていた。これは、2014年のロシア",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            65,
+            171
+          ],
+          [
+            65,
+            1139
+          ],
+          [
+            88,
+            171
+          ],
+          [
+            88,
+            1139
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "によるクリミア併合やドンバス紛争など、ウクライナ危機の影響であった。なお、核共有枠組み(第",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            30,
+            170
+          ],
+          [
+            30,
+            1136
+          ],
+          [
+            52,
+            170
+          ],
+          [
+            52,
+            1136
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "口章参照)に基づく在欧戰術核の演習 (Steadlast Noon)も、20-4年以前より毎年実施されている",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      }
+    ],
+    [
+      {
+        "boundingBox": [
+          [
+            110,
+            38
+          ],
+          [
+            110,
+            58
+          ],
+          [
+            565,
+            38
+          ],
+          [
+            565,
+            58
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "表2NATO司令部別の主な演習のコードネーム一覧",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            752,
+            382
+          ],
+          [
+            752,
+            732
+          ],
+          [
+            772,
+            382
+          ],
+          [
+            772,
+            732
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "(主催司令部別のコードネームは表2参照)。",
+        "isTextline": "true",
+        "confidence": 0.932,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            714,
+            401
+          ],
+          [
+            714,
+            1125
+          ],
+          [
+            736,
+            401
+          ],
+          [
+            736,
+            1125
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "集団防衛型の演習の主な目的は、NATO即応部隊(NRF)の訓練であっ",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            677,
+            380
+          ],
+          [
+            677,
+            1130
+          ],
+          [
+            699,
+            380
+          ],
+          [
+            699,
+            1130
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "た。NRFとは、1999年の戦略概念で危機管理が正式任務となったことを",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            638,
+            379
+          ],
+          [
+            638,
+            1116
+          ],
+          [
+            661,
+            379
+          ],
+          [
+            661,
+            1116
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "受けて、2002年のプラハ首脳会議において創設された部隊で、危機管理、",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            600,
+            379
+          ],
+          [
+            600,
+            1128
+          ],
+          [
+            622,
+            379
+          ],
+          [
+            622,
+            1128
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "災害救援、加盟国住民救出などの任務が想定されていた。しかし2014年の",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            562,
+            380
+          ],
+          [
+            562,
+            1131
+          ],
+          [
+            584,
+            380
+          ],
+          [
+            584,
+            1131
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "クリミア併合を受けて、NATOはあらためて即応能力の高い戦力編成の必要",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            524,
+            379
+          ],
+          [
+            524,
+            1131
+          ],
+          [
+            546,
+            379
+          ],
+          [
+            546,
+            1131
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "性を痛感させられた。その結果、NRFは4万人に増員され、集団防衛が主任",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            486,
+            378
+          ],
+          [
+            486,
+            1131
+          ],
+          [
+            508,
+            378
+          ],
+          [
+            508,
+            1131
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "務であることが明確にされたうえで、その中核的な部隊として、高度即応統合",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            447,
+            378
+          ],
+          [
+            447,
+            1132
+          ],
+          [
+            470,
+            378
+          ],
+          [
+            470,
+            1132
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "部隊(VITF)が創設された。これは、1個旅団規模で8時間から2時間以",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            410,
+            378
+          ],
+          [
+            410,
+            1130
+          ],
+          [
+            432,
+            378
+          ],
+          [
+            432,
+            1130
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "内に展開し増援する部隊として編成されていた。またVJTFの前方展開をス",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            373,
+            380
+          ],
+          [
+            373,
+            1139
+          ],
+          [
+            394,
+            380
+          ],
+          [
+            394,
+            1139
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "ムーズに受け入れるために、エストニア、ラトビア、リトアニア、ポーランド、",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            335,
+            380
+          ],
+          [
+            335,
+            1132
+          ],
+          [
+            357,
+            380
+          ],
+          [
+            357,
+            1132
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "ルーマニア、ブルガリアなどに、約6名ずつからなるNATO部隊統合調整室",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            297,
+            380
+          ],
+          [
+            297,
+            1131
+          ],
+          [
+            320,
+            380
+          ],
+          [
+            320,
+            1131
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "(NFIU)が設置された。そうしたNRFの稼働体制、即応態勢を強化するた",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            261,
+            380
+          ],
+          [
+            261,
+            925
+          ],
+          [
+            283,
+            380
+          ],
+          [
+            283,
+            925
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "めに、集団防衛シナリオでの演習が増加したわけである。",
+        "isTextline": "true",
+        "confidence": 0.944,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            222,
+            401
+          ],
+          [
+            222,
+            1140
+          ],
+          [
+            245,
+            401
+          ],
+          [
+            245,
+            1140
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "2022年のロシア・ウクライナ戦争勃発は、加盟国の不安をさらに高めた。",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            185,
+            379
+          ],
+          [
+            185,
+            1130
+          ],
+          [
+            208,
+            379
+          ],
+          [
+            208,
+            1130
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "そのためNATOはNRFのさらなる改編に着手した。新しい戦力態勢は、2",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            150,
+            379
+          ],
+          [
+            150,
+            941
+          ],
+          [
+            171,
+            379
+          ],
+          [
+            171,
+            941
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "023年以降に整備される予定である(第3章、第5章参照)。",
+        "isTextline": "true",
+        "confidence": 0.932,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            146,
+            1036
+          ],
+          [
+            146,
+            1129
+          ],
+          [
+            167,
+            1036
+          ],
+          [
+            167,
+            1129
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "(広瀬佳一)",
+        "isTextline": "true",
+        "confidence": 0.863,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            142,
+            88
+          ],
+          [
+            142,
+            111
+          ],
+          [
+            234,
+            88
+          ],
+          [
+            234,
+            111
+          ]
+        ],
+        "id": 19,
+        "isVertical": "false",
+        "text": "最初の一語",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            128,
+            67
+          ],
+          [
+            128,
+            88
+          ],
+          [
+            249,
+            67
+          ],
+          [
+            249,
+            88
+          ]
+        ],
+        "id": 20,
+        "isVertical": "false",
+        "text": "コードネームの",
+        "isTextline": "true",
+        "confidence": 0.893,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            112,
+            113
+          ],
+          [
+            112,
+            136
+          ],
+          [
+            217,
+            113
+          ],
+          [
+            217,
+            136
+          ]
+        ],
+        "id": 21,
+        "isVertical": "false",
+        "text": "STEADFAST",
+        "isTextline": "true",
+        "confidence": 0.894,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            113,
+            140
+          ],
+          [
+            113,
+            162
+          ],
+          [
+            196,
+            140
+          ],
+          [
+            196,
+            162
+          ]
+        ],
+        "id": 22,
+        "isVertical": "false",
+        "text": "TRIDENT",
+        "isTextline": "true",
+        "confidence": 0.897,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            113,
+            167
+          ],
+          [
+            113,
+            189
+          ],
+          [
+            211,
+            167
+          ],
+          [
+            211,
+            189
+          ]
+        ],
+        "id": 23,
+        "isVertical": "false",
+        "text": "BRILLIANT",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            112,
+            193
+          ],
+          [
+            112,
+            217
+          ],
+          [
+            179,
+            193
+          ],
+          [
+            179,
+            217
+          ]
+        ],
+        "id": 24,
+        "isVertical": "false",
+        "text": "NOBLE",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            112,
+            220
+          ],
+          [
+            112,
+            243
+          ],
+          [
+            211,
+            220
+          ],
+          [
+            211,
+            243
+          ]
+        ],
+        "id": 25,
+        "isVertical": "false",
+        "text": "FORCEFUL",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            113,
+            247
+          ],
+          [
+            113,
+            270
+          ],
+          [
+            214,
+            247
+          ],
+          [
+            214,
+            270
+          ]
+        ],
+        "id": 26,
+        "isVertical": "false",
+        "text": "COMBINED",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            113,
+            274
+          ],
+          [
+            113,
+            297
+          ],
+          [
+            210,
+            274
+          ],
+          [
+            210,
+            297
+          ]
+        ],
+        "id": 27,
+        "isVertical": "false",
+        "text": "RAMSTEIN",
+        "isTextline": "true",
+        "confidence": 0.895,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            113,
+            300
+          ],
+          [
+            113,
+            324
+          ],
+          [
+            178,
+            300
+          ],
+          [
+            178,
+            324
+          ]
+        ],
+        "id": 28,
+        "isVertical": "false",
+        "text": "LOYAL",
+        "isTextline": "true",
+        "confidence": 0.892,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            116,
+            327
+          ],
+          [
+            116,
+            350
+          ],
+          [
+            204,
+            327
+          ],
+          [
+            204,
+            350
+          ]
+        ],
+        "id": 29,
+        "isVertical": "false",
+        "text": "DYNAMIC",
+        "isTextline": "true",
+        "confidence": 0.887,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            429,
+            79
+          ],
+          [
+            429,
+            101
+          ],
+          [
+            607,
+            79
+          ],
+          [
+            607,
+            101
+          ]
+        ],
+        "id": 30,
+        "isVertical": "false",
+        "text": "計画立案を行う司令部",
+        "isTextline": "true",
+        "confidence": 0.913,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            114
+          ],
+          [
+            269,
+            137
+          ],
+          [
+            745,
+            114
+          ],
+          [
+            745,
+            137
+          ]
+        ],
+        "id": 31,
+        "isVertical": "false",
+        "text": "欧州連合軍最高司令部(SHAPE) /作戦連合軍司令部(ACO)",
+        "isTextline": "true",
+        "confidence": 0.92,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            141
+          ],
+          [
+            269,
+            163
+          ],
+          [
+            467,
+            141
+          ],
+          [
+            467,
+            163
+          ]
+        ],
+        "id": 32,
+        "isVertical": "false",
+        "text": "変革連合市司令部(ACT)",
+        "isTextline": "true",
+        "confidence": 0.909,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            167
+          ],
+          [
+            269,
+            189
+          ],
+          [
+            484,
+            167
+          ],
+          [
+            484,
+            189
+          ]
+        ],
+        "id": 33,
+        "isVertical": "false",
+        "text": "統合軍司令部 (ブルンサム)",
+        "isTextline": "true",
+        "confidence": 0.91,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            194
+          ],
+          [
+            269,
+            217
+          ],
+          [
+            450,
+            194
+          ],
+          [
+            450,
+            217
+          ]
+        ],
+        "id": 34,
+        "isVertical": "false",
+        "text": "統合軍司令部 (ナポリ)",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            221
+          ],
+          [
+            269,
+            243
+          ],
+          [
+            502,
+            221
+          ],
+          [
+            502,
+            243
+          ]
+        ],
+        "id": 35,
+        "isVertical": "false",
+        "text": "統合軍司令部 (ノーフォーク)",
+        "isTextline": "true",
+        "confidence": 0.917,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            248
+          ],
+          [
+            269,
+            271
+          ],
+          [
+            443,
+            248
+          ],
+          [
+            443,
+            271
+          ]
+        ],
+        "id": 36,
+        "isVertical": "false",
+        "text": "統合支援強化司令部",
+        "isTextline": "true",
+        "confidence": 0.91,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            275
+          ],
+          [
+            269,
+            297
+          ],
+          [
+            536,
+            275
+          ],
+          [
+            536,
+            297
+          ]
+        ],
+        "id": 37,
+        "isVertical": "false",
+        "text": "連合空軍司令部 (ラムシュタイン)",
+        "isTextline": "true",
+        "confidence": 0.916,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            301
+          ],
+          [
+            269,
+            324
+          ],
+          [
+            501,
+            301
+          ],
+          [
+            501,
+            324
+          ]
+        ],
+        "id": 38,
+        "isVertical": "false",
+        "text": "連合陸軍司令部 (イズミルム)",
+        "isTextline": "true",
+        "confidence": 0.914,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            328
+          ],
+          [
+            269,
+            351
+          ],
+          [
+            519,
+            328
+          ],
+          [
+            519,
+            351
+          ]
+        ],
+        "id": 39,
+        "isVertical": "false",
+        "text": "連合海軍司令部 (ノースウッド)",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      }
+    ],
+    [
+      {
+        "boundingBox": [
+          [
+            862,
+            172
+          ],
+          [
+            862,
+            1219
+          ],
+          [
+            885,
+            172
+          ],
+          [
+            885,
+            1219
+          ]
+        ],
+        "id": 0,
+        "isVertical": "true",
+        "text": "を展開する論者は、領土問題に対してきわめて潔癖で強い嫌悪感を抱いていた米国のコーデル・ハル国務長官の一",
+        "isTextline": "true",
+        "confidence": 0.96,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            821,
+            172
+          ],
+          [
+            821,
+            1228
+          ],
+          [
+            844,
+            172
+          ],
+          [
+            844,
+            1228
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "九四二年二月の時点における次のような発言を評価する。 その要旨は、 ソ連はヨーロッパに対して大それた野望を",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            780,
+            171
+          ],
+          [
+            780,
+            1229
+          ],
+          [
+            803,
+            171
+          ],
+          [
+            803,
+            1229
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "抱いているように思われる、 米国としてはこれに対していま厳しい反対の態度を示した方があとになって反対の態",
+        "isTextline": "true",
+        "confidence": 0.959,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            739,
+            171
+          ],
+          [
+            739,
+            1227
+          ],
+          [
+            762,
+            171
+          ],
+          [
+            762,
+            1227
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "度をとるよりも好ましいと考える、 というものであった。 ただ、 早目に反対していたからといって、 のちにソ連が",
+        "isTextline": "true",
+        "confidence": 0.948,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            698,
+            171
+          ],
+          [
+            698,
+            908
+          ],
+          [
+            720,
+            171
+          ],
+          [
+            720,
+            908
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "有利な軍事状況を背景に領土拡大をはからなかったという保証は必ずしもない。",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            657,
+            191
+          ],
+          [
+            657,
+            1230
+          ],
+          [
+            680,
+            191
+          ],
+          [
+            680,
+            1230
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "それはともかく、 スターリンの一九四一年~四二年の領土提案が大戦末期から戦後にかけて現実となって姿を現",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            616,
+            172
+          ],
+          [
+            616,
+            1228
+          ],
+          [
+            639,
+            172
+          ],
+          [
+            639,
+            1228
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "したことを考えるとき、米国型の外交は無益であったばかりかむしろ有害でさえあったといえなくもない。こうし",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            575,
+            171
+          ],
+          [
+            575,
+            1229
+          ],
+          [
+            598,
+            171
+          ],
+          [
+            598,
+            1229
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "た議論を裏返していえば、英ソ型のレアルポリティークの外交が作用していたならば、のちの冷戦要因がある程度",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            535,
+            170
+          ],
+          [
+            535,
+            1229
+          ],
+          [
+            558,
+            170
+          ],
+          [
+            558,
+            1229
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "軽減ないし取り除かれていたかもしれないということになる。 しかしこの論理で歴史を振り返ってみたとき、 大戦",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            494,
+            171
+          ],
+          [
+            494,
+            1229
+          ],
+          [
+            517,
+            171
+          ],
+          [
+            517,
+            1229
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "を通して、英国の力が低落の一途を辿り、ヨーロッパにおいて単独でソ連の膨張に対抗できず、米国の協力を必要",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            454,
+            171
+          ],
+          [
+            454,
+            1227
+          ],
+          [
+            476,
+            171
+          ],
+          [
+            476,
+            1227
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "としなければならなかった、という別の問題に突き当たるのである。大戦中の米英ソ三国の外交を説明して、ある",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            413,
+            170
+          ],
+          [
+            413,
+            1155
+          ],
+          [
+            436,
+            170
+          ],
+          [
+            436,
+            1155
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "学者は、英ソのそれは「中味のある」外交で、米国のそれは「空疎な声だけの」外交であったと表現した。",
+        "isTextline": "true",
+        "confidence": 0.937,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            372,
+            190
+          ],
+          [
+            372,
+            1228
+          ],
+          [
+            394,
+            190
+          ],
+          [
+            394,
+            1228
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "米英はまたヨーロッパの軍事戦略をめぐっても立場の相違を露呈した。これはいわゆる\"第二戦線\"との関連で",
+        "isTextline": "true",
+        "confidence": 0.956,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            331,
+            170
+          ],
+          [
+            331,
+            1229
+          ],
+          [
+            354,
+            170
+          ],
+          [
+            354,
+            1229
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "重要な問題を提起することとなる。両国は「米英連合参謀本部」を作って、戦時中を通じて緊密な協力関係を保持",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            290,
+            171
+          ],
+          [
+            290,
+            1227
+          ],
+          [
+            313,
+            171
+          ],
+          [
+            313,
+            1227
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "したが、その基本戦略構想には大きな隔たりがあった。英国がドイツ打倒のために\"間接的\"\"周辺的\"アプロー",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            249,
+            171
+          ],
+          [
+            249,
+            1229
+          ],
+          [
+            272,
+            171
+          ],
+          [
+            272,
+            1229
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "チをとって遠まきにしながら目的を達しようとしたのに対して、米国は\"直接的\"アプローチをとり、英仏海峡を",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            209,
+            171
+          ],
+          [
+            209,
+            1227
+          ],
+          [
+            231,
+            171
+          ],
+          [
+            231,
+            1227
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "越えて北フランスから一気にドイツに攻め入ろうとする戦略を好んだ。たとえば一九四二年にドワイト・アイゼン",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            167,
+            174
+          ],
+          [
+            167,
+            1230
+          ],
+          [
+            190,
+            174
+          ],
+          [
+            190,
+            1230
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "ハワー准将が「スレッジハマー」作戦というヨーロッパ上陸作戦を提案したとき、チャーチルはこれが大きな犠牲",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            126,
+            171
+          ],
+          [
+            126,
+            1230
+          ],
+          [
+            149,
+            171
+          ],
+          [
+            149,
+            1230
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "を強いるものとして、猛然と反対した。チャーチルの脳裏にダンケルクからの撤退、さらには第一次大戦の塹壕戦",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      }
+    ]
+  ],
+  "pdfinfo": {
+    "pdf_path": "C:\\Users\\natur\\source\\book_ocr_pipeline\\test.pdf",
+    "pdf_name": "test.pdf",
+    "page_count": 4,
+    "render_dpi": 150.0
+  },
+  "pages": [
+    {
+      "page_index": 0,
+      "img_width": 830,
+      "img_height": 1237,
+      "img_name": "test_00001.png"
+    },
+    {
+      "page_index": 1,
+      "img_width": 815,
+      "img_height": 1236,
+      "img_name": "test_00002.png"
+    },
+    {
+      "page_index": 2,
+      "img_width": 834,
+      "img_height": 1236,
+      "img_name": "test_00003.png"
+    },
+    {
+      "page_index": 3,
+      "img_width": 967,
+      "img_height": 1369,
+      "img_name": "test_00004.png"
+    }
+  ]
+}

@@ -50,6 +50,7 @@
             numX = new NumericUpDown();
             cmbRegionType = new ComboBox();
             btnTestCrop = new Button();
+            btnAutoLayout = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             panelToolbar.SuspendLayout();
@@ -98,7 +99,8 @@
             pictureBox1.MouseUp += pictureBox1_MouseUp;
             // 
             // panelToolbar
-            // 
+            //
+            panelToolbar.Controls.Add(btnAutoLayout);
             panelToolbar.Controls.Add(btnTestCrop);
             panelToolbar.Controls.Add(btnExportWord);
             panelToolbar.Controls.Add(btnStartOcr);
@@ -128,6 +130,7 @@
             btnStartOcr.TabIndex = 3;
             btnStartOcr.Text = "OCR開始";
             btnStartOcr.UseVisualStyleBackColor = true;
+            btnStartOcr.Click += btnStartOcr_Click;
             // 
             // btnNextPage
             // 
@@ -333,5 +336,7 @@
         private ListBox lstRegions;
         private Button btnUpdateRegion;
         private Button btnTestCrop;
+
+        private Button btnAutoLayout;
     }
 }

@@ -5,10 +5,30 @@ using PdfiumViewer;
 using System.Text.Json;
 using System.Diagnostics;
 using System.IO;
-using PdfiumViewer;
+using System.Text.Json.Serialization;
 
 namespace OCR_Translator
 {
+    public class OcrResult
+    {
+        public int x { get; set; }
+        public int y { get; set; }
+        public int width { get; set; }
+        public int height { get; set; }
+        public string text { get; set; } = "";
+        public double confidence { get; set; }
+        public bool isVertical { get; set; }
+        public int id { get; set; }
+    }
+
+    public class AutoRegionsResult
+    {
+        public string image { get; set; } = "";
+        public string json { get; set; } = "";
+
+        public List<OcrResult> results { get; set; } = new();
+    }
+
     public partial class Form1 : Form
     {
         // PDF関連
@@ -34,6 +54,48 @@ namespace OCR_Translator
                 = new Dictionary<string, PageSettings>();
         }
 
+        public class AutoLayout
+        {
+            [JsonPropertyName("image")]
+            public string Image { get; set; } = "";
+
+            [JsonPropertyName("image_width")]
+            public int ImageWidth { get; set; }
+
+            [JsonPropertyName("image_height")]
+            public int ImageHeight { get; set; }
+
+            [JsonPropertyName("regions")]
+            public List<AutoLayoutRegion> Regions { get; set; }
+                = new List<AutoLayoutRegion>();
+        }
+
+        public class AutoLayoutRegion
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = "";
+
+            [JsonPropertyName("type")]
+            public string Type { get; set; } = "";
+
+            [JsonPropertyName("x")]
+            public int X { get; set; }
+
+            [JsonPropertyName("y")]
+            public int Y { get; set; }
+
+            [JsonPropertyName("width")]
+            public int Width { get; set; }
+
+            [JsonPropertyName("height")]
+            public int Height { get; set; }
+
+            [JsonPropertyName("orientation")]
+            public string Orientation { get; set; } = "";
+
+            [JsonPropertyName("ocr_count")]
+            public int OcrCount { get; set; }
+        }
         public class TemplateSettings
         {
             public string Name { get; set; } = "縦書き本文";
@@ -48,6 +110,38 @@ namespace OCR_Translator
 
             public List<OcrRegion> Regions { get; set; }
                 = new List<OcrRegion>();
+        }
+
+        private List<AutoRegion> autoRegions = new List<AutoRegion>();
+
+        private class AutoLayoutResult
+        {
+            public string? image { get; set; }
+
+            public int image_width { get; set; }
+
+            public int image_height { get; set; }
+
+            public List<AutoRegion> regions { get; set; } = new List<AutoRegion>();
+        }
+
+        private class AutoRegion
+        {
+            public string name { get; set; } = "";
+
+            public string type { get; set; } = "";
+
+            public int x { get; set; }
+
+            public int y { get; set; }
+
+            public int width { get; set; }
+
+            public int height { get; set; }
+
+            public string orientation { get; set; } = "";
+
+            public int ocr_count { get; set; }
         }
 
         private void ShowCurrentPage()
@@ -111,6 +205,8 @@ namespace OCR_Translator
             };
         }
 
+        
+
         private List<OcrRegion> regions = new List<OcrRegion>();
                 
         
@@ -146,6 +242,7 @@ namespace OCR_Translator
         public Form1()
         {
             InitializeComponent();
+            pictureBox1.Paint += pictureBox1_Paint;
         }
 
         private void btnOpenPdf_Click(object? sender, EventArgs e)
@@ -259,6 +356,91 @@ namespace OCR_Translator
             lstRegions.Items.RemoveAt(index);
         }
 
+        private void LoadAutoLayout(string jsonPath)
+        {
+            if (!File.Exists(jsonPath))
+            {
+                MessageBox.Show(
+                    "自動レイアウトJSONが見つかりません。\n\n" +
+                    jsonPath,
+                    "自動レイアウト",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+
+                return;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(
+                    jsonPath,
+                    System.Text.Encoding.UTF8);
+
+                AutoLayout? layout =
+                    JsonSerializer.Deserialize<AutoLayout>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (layout == null)
+                {
+                    MessageBox.Show(
+                        "自動レイアウトJSONを読み込めませんでした。",
+                        "自動レイアウト",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // 現在の領域をクリア
+                regions.Clear();
+                lstRegions.Items.Clear();
+
+                // 自動検出された領域を追加
+                foreach (AutoLayoutRegion autoRegion in layout.Regions)
+                {
+                    OcrRegion region = new OcrRegion
+                    {
+                        Name = autoRegion.Name,
+                        Type = autoRegion.Type,
+                        X = autoRegion.X,
+                        Y = autoRegion.Y,
+                        Width = autoRegion.Width,
+                        Height = autoRegion.Height
+                    };
+
+                    regions.Add(region);
+                    lstRegions.Items.Add(region.Name);
+                }
+
+                // 最初の領域を選択
+                if (regions.Count > 0)
+                {
+                    lstRegions.SelectedIndex = 0;
+                }
+
+                pictureBox1.Invalidate();
+
+                MessageBox.Show(
+                    $"自動レイアウトを読み込みました。\n\n" +
+                    $"領域数: {regions.Count}",
+                    "自動レイアウト",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "自動レイアウトの読み込み中にエラーが発生しました。\n\n" +
+                    ex.Message,
+                    "自動レイアウトエラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
         private void btnSaveLayout_Click(object sender, EventArgs e)
         {
             PageLayout layout = new PageLayout();
@@ -928,15 +1110,7 @@ namespace OCR_Translator
                 return;
             }
 
-            if (movingRegionIndex >= 0)
-            {
-                movingRegionIndex = -1;
-
-                pictureBox1.Invalidate();
-
-                return;
-            }
-
+            
             if (!isDrawingRegion)
                 return;
 
@@ -1213,7 +1387,25 @@ namespace OCR_Translator
                     return Color.Black;
             }
         }
-                
+
+        private bool IsPointInsideRegion(
+            OcrResult item,
+            OcrRegion region)
+        {
+            // OCR結果の中心座標を計算
+            double centerX =
+                item.x + item.width / 2.0;
+
+            double centerY =
+                item.y + item.height / 2.0;
+
+            // 領域内に中心点が入っているか確認
+            return
+                centerX >= region.X &&
+                centerX <= region.X + region.Width &&
+                centerY >= region.Y &&
+                centerY <= region.Y + region.Height;
+        }
         private int HitTestRegionNear(Point point, int tolerance)
         {
             int nearestIndex = -1;
@@ -1446,7 +1638,7 @@ namespace OCR_Translator
 
                 psi.UseShellExecute = false;
 
-                psi.CreateNoWindow = true;
+                psi.CreateNoWindow = false;
 
                 psi.RedirectStandardOutput = true;
                 psi.RedirectStandardError = true;
@@ -1538,7 +1730,454 @@ namespace OCR_Translator
                 cropRect,
                 source.PixelFormat);
         }
+        
+        private void ApplyAutoLayout(AutoLayout layout)
+        {
+            if (layout.Regions == null || layout.Regions.Count == 0)
+            {
+                MessageBox.Show(
+                    "自動領域が検出されませんでした。",
+                    "自動領域解析",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
 
+                return;
+            }
+
+            // 既存の領域をクリア
+            regions.Clear();
+
+            // ListBoxもクリア
+            lstRegions.Items.Clear();
+
+            foreach (var region in layout.Regions)
+            {
+                OcrRegion ocrRegion = new OcrRegion
+                {
+                    Name = region.Name,
+                    Type = region.Type,
+                    X = region.X,
+                    Y = region.Y,
+                    Width = region.Width,
+                    Height = region.Height
+                };
+
+                regions.Add(ocrRegion);
+
+                lstRegions.Items.Add(
+                    $"{region.Name} ({region.Orientation})");
+            }
+
+            pictureBox1.Invalidate();
+
+            if (lstRegions.Items.Count > 0)
+            {
+                lstRegions.SelectedIndex = 0;
+            }
+
+            MessageBox.Show(
+                $"自動領域を読み込みました。\n\n" +
+                $"領域数: {layout.Regions.Count}\n" +
+                $"画像サイズ: {layout.ImageWidth} × {layout.ImageHeight}",
+                "自動領域解析",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+
+        private async void btnStartOcr_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (pictureBox1.Image == null)
+                {
+                    MessageBox.Show(
+                        "先にPDFを開いてください。",
+                        "OCR",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return;
+                }
+
+                btnStartOcr.Enabled = false;
+
+                richTextBox1.Clear();
+                richTextBox1.Text = "OCRを実行しています...\r\n";
+
+                // =========================================================
+                // OCR_Translator.exe の場所から上方向に検索して
+                // ocr_engine フォルダを探す
+                // =========================================================
+
+                string? currentDir =
+                    AppDomain.CurrentDomain.BaseDirectory;
+
+                string? ocrEngineDir = null;
+
+                while (!string.IsNullOrEmpty(currentDir))
+                {
+                    string candidate =
+                        Path.Combine(currentDir, "ocr_engine");
+
+                    string candidatePython =
+                        Path.Combine(
+                            candidate,
+                            "venv",
+                            "Scripts",
+                            "python.exe");
+
+                    if (Directory.Exists(candidate) &&
+                        File.Exists(candidatePython))
+                    {
+                        ocrEngineDir = candidate;
+                        break;
+                    }
+
+                    DirectoryInfo? parent =
+                        Directory.GetParent(currentDir);
+
+                    if (parent == null)
+                        break;
+
+                    currentDir = parent.FullName;
+                }
+
+                // =========================================================
+                // OCRエンジンが見つからない場合
+                // =========================================================
+
+                if (string.IsNullOrEmpty(ocrEngineDir))
+                {
+                    MessageBox.Show(
+                        "ocr_engine フォルダと Python が見つかりません。\r\n\r\n" +
+                        "実行フォルダ:\r\n" +
+                        AppDomain.CurrentDomain.BaseDirectory,
+                        "OCRエラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // =========================================================
+                // Python
+                // =========================================================
+
+                string pythonExe =
+                    Path.Combine(
+                        ocrEngineDir,
+                        "venv",
+                        "Scripts",
+                        "python.exe");
+
+                // =========================================================
+                // NDLOCR-Lite 自動領域スクリプト
+                // =========================================================
+
+                string scriptPath =
+                    Path.Combine(
+                        ocrEngineDir,
+                        "ndlocr_auto_region.py");
+
+                // =========================================================
+                // OCR入力画像
+                // =========================================================
+
+                string imagePath =
+                    Path.Combine(
+                        ocrEngineDir,
+                        "ocr_input.png");
+
+                // =========================================================
+                // OCR出力フォルダ
+                // =========================================================
+
+                string outputDir =
+                    Path.Combine(
+                        ocrEngineDir,
+                        "auto_region_test");
+
+                // =========================================================
+                // ファイル確認
+                // =========================================================
+
+                if (!File.Exists(pythonExe))
+                {
+                    MessageBox.Show(
+                        "Pythonが見つかりません。\r\n\r\n" +
+                        pythonExe,
+                        "OCRエラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                if (!File.Exists(scriptPath))
+                {
+                    MessageBox.Show(
+                        "NDLOCRスクリプトが見つかりません。\r\n\r\n" +
+                        scriptPath,
+                        "OCRエラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // =========================================================
+                // 現在表示しているPDFページをOCR入力画像として保存
+                // =========================================================
+
+                using (Bitmap bitmap =
+                    new Bitmap(
+                        pictureBox1.Image.Width,
+                        pictureBox1.Image.Height))
+                {
+                    using (Graphics g =
+                        Graphics.FromImage(bitmap))
+                    {
+                        g.DrawImage(
+                            pictureBox1.Image,
+                            0,
+                            0,
+                            bitmap.Width,
+                            bitmap.Height);
+                    }
+
+                    bitmap.Save(
+                        imagePath,
+                        System.Drawing.Imaging.ImageFormat.Png);                    
+                    
+                }
+
+                // =========================================================
+                // 出力フォルダ作成
+                // =========================================================
+
+                Directory.CreateDirectory(outputDir);
+
+                // =========================================================
+                // Python実行
+                //
+                // python.exe ndlocr_auto_region.py
+                //          ocr_input.png
+                //          auto_region_test
+                // =========================================================
+
+                ProcessStartInfo psi =
+                    new ProcessStartInfo();
+
+                psi.FileName = pythonExe;
+
+                psi.WorkingDirectory =
+                    ocrEngineDir;
+
+                psi.UseShellExecute = false;
+
+                psi.CreateNoWindow = true;
+
+                psi.RedirectStandardOutput = true;
+
+                psi.RedirectStandardError = true;
+
+                psi.StandardOutputEncoding =
+                    System.Text.Encoding.UTF8;
+
+                psi.StandardErrorEncoding =
+                    System.Text.Encoding.UTF8;
+
+                psi.ArgumentList.Add(
+                    scriptPath);
+
+                psi.ArgumentList.Add(
+                    imagePath);
+
+                psi.ArgumentList.Add(
+                    outputDir);
+
+                using Process process =
+                    new Process();
+
+                process.StartInfo = psi;
+
+                process.Start();
+
+                string stdout =
+                    await process.StandardOutput.ReadToEndAsync();
+
+                string stderr =
+                    await process.StandardError.ReadToEndAsync();
+
+                await process.WaitForExitAsync();
+
+                // =========================================================
+                // Pythonエラー
+                // =========================================================
+
+                if (process.ExitCode != 0)
+                {
+                    richTextBox1.Text =
+                        "OCRでエラーが発生しました。\r\n\r\n" +
+                        "終了コード: " +
+                        process.ExitCode +
+                        "\r\n\r\n" +
+                        "【標準出力】\r\n" +
+                        stdout +
+                        "\r\n\r\n" +
+                        "【エラー出力】\r\n" +
+                        stderr;
+
+                    MessageBox.Show(
+                        "NDLOCR-Liteが異常終了しました。\r\n\r\n" +
+                        "終了コード: " +
+                        process.ExitCode +
+                        "\r\n\r\n" +
+                        "【エラー出力】\r\n" +
+                        stderr,
+                        "NDLOCR-Lite エラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // =========================================================
+                // 自動領域JSON
+                // =========================================================
+
+                string resultPath =
+                    Path.Combine(
+                        outputDir,
+                        "auto_regions.json");
+
+                if (!File.Exists(resultPath))
+                {
+                    MessageBox.Show(
+                        "OCR結果が見つかりません。\r\n\r\n" +
+                        resultPath +
+                        "\r\n\r\n" +
+                        "Python出力:\r\n" +
+                        stdout +
+                        "\r\n\r\n" +
+                        "エラー出力:\r\n" +
+                        stderr,
+                        "OCRエラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // =========================================================
+                // JSON読み込み
+                // =========================================================
+
+                string json =
+                    await File.ReadAllTextAsync(
+                        resultPath,
+                        System.Text.Encoding.UTF8);
+
+                AutoRegionsResult? result =
+                    JsonSerializer.Deserialize<AutoRegionsResult>(
+                        json,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                if (result == null)
+                {
+                    MessageBox.Show(
+                        "OCR結果JSONを読み込めませんでした。",
+                        "OCRエラー",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    return;
+                }
+
+                // =========================================================
+                // OCR結果表示
+                // =========================================================
+
+                richTextBox1.Clear();
+
+                foreach (OcrRegion region in regions)
+                {
+                    richTextBox1.AppendText(
+                        $"========== {region.Name} ==========\r\n");
+
+                    int count = 0;
+
+                    foreach (OcrResult item in result.results)
+                    {
+                        if (!IsPointInsideRegion(item, region))
+                            continue;
+
+                        richTextBox1.AppendText(
+                            item.text +
+                            Environment.NewLine);
+
+                        count++;
+                    }
+
+                    richTextBox1.AppendText(
+                        $"[この領域のOCR数: {count}]\r\n\r\n");
+                }
+
+                richTextBox1.AppendText(
+                    $"全OCR検出数: {result.results.Count}\r\n");
+
+                richTextBox1.AppendText(
+                    $"自動領域数: {regions.Count}\r\n");
+
+
+
+                // =========================================================
+                // 自動レイアウトJSONを読み込む
+                // =========================================================
+
+                string autoLayoutPath =
+                    Path.Combine(
+                        outputDir,
+                        "auto_layout.json");
+
+                if (File.Exists(autoLayoutPath))
+                {
+                    string autoLayoutJson =
+                        await File.ReadAllTextAsync(
+                            autoLayoutPath,
+                            System.Text.Encoding.UTF8);
+
+                    AutoLayout? autoLayout =
+                        JsonSerializer.Deserialize<AutoLayout>(
+                            autoLayoutJson,
+                            new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+
+                    if (autoLayout != null)
+                    {
+                        ApplyAutoLayout(autoLayout);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    ex.ToString(),
+                    "OCRエラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnStartOcr.Enabled = true;
+            }
+        }
 
 
     }
