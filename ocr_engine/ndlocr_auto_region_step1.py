@@ -3,6 +3,7 @@ import json
 import subprocess
 from pathlib import Path
 from PIL import Image
+from ocr_utils import find_json_file, parse_ndlocr_json
 import cv2
 import numpy as np
 
@@ -10,28 +11,6 @@ import numpy as np
 # NDLOCR-Lite JSONを探す
 # =========================================================
 
-def find_json_file(output_dir: Path, image_path: Path) -> Path:
-
-    json_files = list(output_dir.rglob("*.json"))
-
-    if not json_files:
-        raise FileNotFoundError(
-            f"NDLOCR-LiteのJSONが見つかりません。\n"
-            f"出力先: {output_dir}"
-        )
-
-    # 入力画像と同名のJSONを優先
-    stem = image_path.stem
-
-    preferred = [
-        p for p in json_files
-        if p.stem == stem
-    ]
-
-    if preferred:
-        return preferred[0]
-
-    return json_files[0]
 
 # =========================================================
 # 罫線検出テスト
@@ -1135,205 +1114,6 @@ def detect_bordered_regions(
 # NDLOCR-Lite JSONを解析
 # =========================================================
 
-def parse_ndlocr_json(json_path: Path):
-
-    with json_path.open(
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        data = json.load(f)
-
-    results = []
-
-    # -----------------------------------------------------
-    # NDLOCR-Lite形式
-    # -----------------------------------------------------
-
-    if isinstance(data, dict) and "contents" in data:
-
-        contents = data["contents"]
-
-        if isinstance(contents, list):
-
-            items = []
-
-            for page in contents:
-
-                if isinstance(page, list):
-                    items.extend(page)
-
-                elif isinstance(page, dict):
-                    items.append(page)
-
-        else:
-
-            items = []
-
-    # -----------------------------------------------------
-    # その他の形式
-    # -----------------------------------------------------
-
-    elif isinstance(data, list):
-
-        items = data
-
-    elif isinstance(data, dict):
-
-        if "results" in data:
-            items = data["results"]
-
-        elif "blocks" in data:
-            items = data["blocks"]
-
-        elif "ocr" in data:
-            items = data["ocr"]
-
-        else:
-            items = [data]
-
-    else:
-
-        items = []
-
-    # -----------------------------------------------------
-    # OCR結果解析
-    # -----------------------------------------------------
-
-    for item in items:
-
-        if not isinstance(item, dict):
-            continue
-
-        bbox = item.get("boundingBox")
-
-        if bbox is None:
-            bbox = item.get("bbox")
-
-        if bbox is None:
-            continue
-
-        try:
-
-            points = []
-
-            for point in bbox:
-
-                if len(point) >= 2:
-
-                    points.append(
-                        (
-                            float(point[0]),
-                            float(point[1])
-                        )
-                    )
-
-            if not points:
-                continue
-
-            min_x = min(
-                p[0] for p in points
-            )
-
-            max_x = max(
-                p[0] for p in points
-            )
-
-            min_y = min(
-                p[1] for p in points
-            )
-
-            max_y = max(
-                p[1] for p in points
-            )
-
-            x = int(round(min_x))
-            y = int(round(min_y))
-
-            width = int(
-                round(max_x - min_x)
-            )
-
-            height = int(
-                round(max_y - min_y)
-            )
-
-        except Exception:
-
-            continue
-
-        if width <= 0 or height <= 0:
-            continue
-
-        # -------------------------------------------------
-        # text
-        # -------------------------------------------------
-
-        text = str(
-            item.get(
-                "text",
-                ""
-            )
-        )
-
-        # -------------------------------------------------
-        # confidence
-        # -------------------------------------------------
-
-        try:
-
-            confidence = float(
-                item.get(
-                    "confidence",
-                    item.get(
-                        "score",
-                        0.0
-                    )
-                )
-            )
-
-        except Exception:
-
-            confidence = 0.0
-
-        # -------------------------------------------------
-        # 縦書き判定
-        # -------------------------------------------------
-
-        is_vertical = item.get(
-            "isVertical",
-            False
-        )
-
-        if isinstance(
-            is_vertical,
-            str
-        ):
-
-            is_vertical = (
-                is_vertical.lower()
-                == "true"
-            )
-
-        results.append(
-            {
-                "x": x,
-                "y": y,
-                "width": width,
-                "height": height,
-                "text": text,
-                "confidence": confidence,
-                "isVertical": bool(
-                    is_vertical
-                ),
-                "id": item.get(
-                    "id",
-                    len(results)
-                )
-            }
-        )
-
-    return results
 
 # =========================================================
 # 線分から罫線領域を生成
@@ -2216,221 +1996,9 @@ def assign_ocr_to_cell_candidates(
     return analyzed_regions
 
 # =========================================================
-# 罫線領域が「表」として成立しているか判定
+# 自動レイアウト領域生成
 # =========================================================
 
-def classify_bordered_regions(
-    analyzed_cell_regions
-):
-    """
-    罫線領域を解析し、
-
-        table
-        non_table
-
-    に分類する。
-
-    現段階では、以下を表判定条件とする。
-
-    1. 2行以上
-    2. 2列以上
-    3. セルが規則的に生成されている
-    4. 複数セルにOCRが存在する
-
-    罫線領域そのものを検出する処理とは分離する。
-    """
-
-    print()
-    print(
-        "========== 罫線領域の表判定開始 ==========",
-        flush=True
-    )
-
-    table_regions = []
-    non_table_regions = []
-
-    for region_index, region in enumerate(
-        analyzed_cell_regions,
-        start=1
-    ):
-
-        cells = region.get(
-            "cells",
-            []
-        )
-
-        # -------------------------------------------------
-        # 行数・列数
-        # -------------------------------------------------
-
-        rows = sorted(
-            set(
-                cell["row"]
-                for cell in cells
-            )
-        )
-
-        columns = sorted(
-            set(
-                cell["column"]
-                for cell in cells
-            )
-        )
-
-        row_count = len(rows)
-        column_count = len(columns)
-
-        # -------------------------------------------------
-        # OCRを持つセル数
-        # -------------------------------------------------
-
-        cells_with_ocr = [
-            cell
-            for cell in cells
-            if cell.get(
-                "ocr_count",
-                0
-            ) > 0
-        ]
-
-        ocr_cell_count = len(
-            cells_with_ocr
-        )
-
-        # -------------------------------------------------
-        # セル総数
-        # -------------------------------------------------
-
-        expected_cell_count = (
-            row_count * column_count
-        )
-
-        actual_cell_count = len(
-            cells
-        )
-
-        # -------------------------------------------------
-        # 規則的なセル構造か
-        # -------------------------------------------------
-
-        regular_structure = (
-            row_count >= 2
-            and column_count >= 2
-            and actual_cell_count
-                == expected_cell_count
-        )
-
-        # -------------------------------------------------
-        # OCRが複数セルに存在するか
-        # -------------------------------------------------
-
-        has_multiple_ocr_cells = (
-            ocr_cell_count >= 2
-        )
-
-        # -------------------------------------------------
-        # 表判定
-        # -------------------------------------------------
-
-        is_table = (
-            regular_structure
-            and has_multiple_ocr_cells
-        )
-
-        print()
-        print(
-            f"B{region_index}: "
-            f"rows={row_count}, "
-            f"columns={column_count}, "
-            f"cells={actual_cell_count}, "
-            f"expected={expected_cell_count}, "
-            f"OCRセル={ocr_cell_count}",
-            flush=True
-        )
-
-        print(
-            f"  規則的セル構造: "
-            f"{regular_structure}",
-            flush=True
-        )
-
-        print(
-            f"  複数OCRセル: "
-            f"{has_multiple_ocr_cells}",
-            flush=True
-        )
-
-        if is_table:
-
-            table_region = dict(
-                region
-            )
-
-            table_region["classification"] = (
-                "table"
-            )
-
-            table_region["rows"] = (
-                row_count
-            )
-
-            table_region["columns"] = (
-                column_count
-            )
-
-            table_regions.append(
-                table_region
-            )
-
-            print(
-                "  判定結果: TABLE",
-                flush=True
-            )
-
-        else:
-
-            non_table_region = dict(
-                region
-            )
-
-            non_table_region[
-                "classification"
-            ] = "non_table"
-
-            non_table_region[
-                "rows"
-            ] = row_count
-
-            non_table_region[
-                "columns"
-            ] = column_count
-
-            non_table_regions.append(
-                non_table_region
-            )
-
-            print(
-                "  判定結果: NON-TABLE",
-                flush=True
-            )
-
-    print()
-    print(
-        f"表判定結果: "
-        f"table={len(table_regions)}, "
-        f"non_table={len(non_table_regions)}",
-        flush=True
-    )
-
-    print(
-        "========== 罫線領域の表判定終了 ==========",
-        flush=True
-    )
-
-    return (
-        table_regions,
-        non_table_regions
-    )
 
 
 # =========================================================
@@ -2441,8 +2009,7 @@ def create_table_regions_from_cells(
     analyzed_cell_regions
 ):
     """
-    表と判定された罫線領域と
-    セルOCR結果から
+    罫線領域とセルOCR結果から
     auto_layout.json用の表regionを生成する。
     """
 
@@ -2460,18 +2027,12 @@ def create_table_regions_from_cells(
             []
         ):
 
-            ocr_items = cell.get(
-                "ocr",
-                []
-            )
-
             texts = [
-
                 ocr["text"]
-
-                for ocr in ocr_items
-
-                if ocr.get("text")
+                for ocr in cell.get(
+                    "ocr",
+                    []
+                )
             ]
 
             text = " ".join(
@@ -2480,84 +2041,48 @@ def create_table_regions_from_cells(
 
             cells.append(
                 {
-                    "row":
-                        cell["row"],
+                    "row": cell["row"],
+                    "column": cell["column"],
 
-                    "column":
-                        cell["column"],
+                    "x": cell["x"],
+                    "y": cell["y"],
+                    "width": cell["width"],
+                    "height": cell["height"],
 
-                    "x":
-                        cell["x"],
+                    "text": text,
 
-                    "y":
-                        cell["y"],
-
-                    "width":
-                        cell["width"],
-
-                    "height":
-                        cell["height"],
-
-                    "text":
-                        text,
-
-                    "ocr_count":
-                        cell.get(
-                            "ocr_count",
-                            0
-                        ),
-
-                    # ---------------------------------
-                    # 表セルOCRを保持
-                    # ---------------------------------
-
-                    "ocr":
-                        ocr_items
+                    "ocr_count": cell.get(
+                        "ocr_count",
+                        0
+                    )
                 }
             )
 
-        rows = len(
-            set(
-                cell["row"]
-                for cell in cells
-            )
-        )
-
-        columns = len(
-            set(
-                cell["column"]
-                for cell in cells
-            )
-        )
-
         regions.append(
             {
-                "name":
-                    f"表{table_index}",
+                "name": f"表{table_index}",
+                "type": "table",
 
-                "type":
-                    "table",
+                "x": table["x"],
+                "y": table["y"],
+                "width": table["width"],
+                "height": table["height"],
 
-                "x":
-                    table["x"],
+                "rows": len(
+                    set(
+                        cell["row"]
+                        for cell in cells
+                    )
+                ),
 
-                "y":
-                    table["y"],
+                "columns": len(
+                    set(
+                        cell["column"]
+                        for cell in cells
+                    )
+                ),
 
-                "width":
-                    table["width"],
-
-                "height":
-                    table["height"],
-
-                "rows":
-                    rows,
-
-                "columns":
-                    columns,
-
-                "cells":
-                    cells
+                "cells": cells
             }
         )
 
@@ -2571,16 +2096,16 @@ def create_table_regions_from_cells(
 
 def remove_table_ocr(
     results,
-    table_regions
+    analyzed_cell_regions
 ):
     """
-    表として判定されたセルに割り当てられたOCRだけを
+    表セルに割り当てられたOCRを
     本文領域の判定対象から除外する。
     """
 
     table_ocr_ids = set()
 
-    for region in table_regions:
+    for region in analyzed_cell_regions:
 
         for cell in region.get(
             "cells",
@@ -2602,247 +2127,235 @@ def remove_table_ocr(
 
         for ocr in results
 
-        if id(ocr)
-        not in table_ocr_ids
+        if id(ocr) not in table_ocr_ids
     ]
 
     return body_results
-
-
-
 
 # =========================================================
 # 表以外のOCRから本文領域を生成
 # =========================================================
 
-def create_body_regions(body_results, body_orientation="vertical"):
+def create_body_regions(
+    body_results
+):
     """
-    表セルに割り当てられていないOCR結果から本文領域を生成する。
+    表セルに割り当てられていないOCR結果から
+    本文候補領域を生成する。
 
-    body_orientation:
-        vertical   : 縦書き本文のみを対象
-        horizontal : 横書き本文のみを対象
-
-    本文方向はOCRの自動判定ではなく、ユーザー設定を優先する。
-    表セルOCRと表見出しは呼び出し側ですでに除外されている前提。
+    縦書き・横書きの両方に対応する。
     """
+
     if not body_results:
         return []
 
-    if body_orientation not in ("vertical", "horizontal"):
-        raise ValueError(
-            "body_orientation は 'vertical' または 'horizontal' を指定してください。"
+    # -----------------------------------------------------
+    # OCR結果を縦書き・横書きに分離
+    # -----------------------------------------------------
+
+    vertical_results = [
+        r
+        for r in body_results
+        if r.get("isVertical", False)
+    ]
+
+    horizontal_results = [
+        r
+        for r in body_results
+        if not r.get("isVertical", False)
+    ]
+
+    regions = []
+
+    # -----------------------------------------------------
+    # 縦書き本文
+    # -----------------------------------------------------
+
+    if vertical_results:
+
+        vertical_results.sort(
+            key=lambda r: r["x"]
         )
 
-    if body_orientation == "vertical":
-        candidates = [
-            r for r in body_results
-            if r.get("isVertical", False)
-        ]
+        groups = []
 
-        if not candidates:
-            return []
+        current_group = []
 
-        # 縦書きではX座標が同一または近いOCRを同一本文グループとする。
-        candidates.sort(key=lambda r: r["x"])
-        position_key = "x"
-        gap_limit = 30
-    else:
-        candidates = [
-            r for r in body_results
-            if not r.get("isVertical", False)
-        ]
+        column_gap = 30
 
-        if not candidates:
-            return []
+        for r in vertical_results:
 
-        # 横書きではY座標が同一または近いOCRを同一本文グループとする。
-        candidates.sort(key=lambda r: r["y"])
-        position_key = "y"
-        gap_limit = 20
+            if not current_group:
 
-    # ---------------------------------------------------------
-    # OCRを位置間隔でグループ化
-    # ---------------------------------------------------------
-    groups = []
-    current_group = []
+                current_group.append(r)
 
-    for item in candidates:
-        if not current_group:
-            current_group.append(item)
-            continue
-
-        previous = current_group[-1]
-        gap = abs(item[position_key] - previous[position_key])
-
-        if gap <= gap_limit:
-            current_group.append(item)
-        else:
-            groups.append(current_group)
-            current_group = [item]
-
-    if current_group:
-        groups.append(current_group)
-
-    if not groups:
-        return []
-
-    # ---------------------------------------------------------
-    # 最大グループを本文候補とする
-    # ---------------------------------------------------------
-    groups.sort(key=len, reverse=True)
-    main_group = groups[0]
-
-    min_x = min(r["x"] for r in main_group)
-    min_y = min(r["y"] for r in main_group)
-    max_x = max(r["x"] + r["width"] for r in main_group)
-    max_y = max(r["y"] + r["height"] for r in main_group)
-
-    return [{
-        "name": "本文",
-        "type": "body",
-        "x": int(min_x),
-        "y": int(min_y),
-        "width": int(max_x - min_x),
-        "height": int(max_y - min_y),
-        "orientation": body_orientation,
-        "ocr_count": len(main_group),
-        "ocr": main_group
-    }]
-
-def extract_table_captions(
-    body_results,
-    table_regions
-):
-    """
-    表領域の直上にあるOCRを表見出し候補として抽出する。
-
-    判定条件:
-      - 横書きOCR
-      - 表領域より上にある
-      - OCRと表領域がX方向で重なる
-      - 表領域から一定距離以内
-      - 複数候補がある場合は表に最も近いものを採用
-    """
-
-    table_captions = []
-
-    # ---------------------------------------------------------
-    # 表ごとに調査
-    # ---------------------------------------------------------
-
-    for table_index, table in enumerate(
-        table_regions,
-        start=1
-    ):
-
-        table_x = table["x"]
-        table_y = table["y"]
-        table_width = table["width"]
-
-        table_right = (
-            table_x +
-            table_width
-        )
-
-        candidates = []
-
-        # -----------------------------------------------------
-        # 表の上側にあるOCRを調べる
-        # -----------------------------------------------------
-
-        for ocr in body_results:
-
-            # 横書きだけを対象にする
-            if ocr.get("isVertical", False):
                 continue
 
-            ocr_x = ocr["x"]
-            ocr_y = ocr["y"]
-            ocr_width = ocr["width"]
-            ocr_height = ocr["height"]
+            previous = current_group[-1]
 
-            ocr_right = (
-                ocr_x +
-                ocr_width
+            gap = abs(
+                r["x"] - previous["x"]
             )
 
-            ocr_bottom = (
-                ocr_y +
-                ocr_height
-            )
+            if gap <= column_gap:
 
-            # -------------------------------------------------
-            # 1. OCRが表より上にあること
-            # -------------------------------------------------
+                current_group.append(r)
 
-            if ocr_bottom > table_y:
-                continue
+            else:
 
-            # -------------------------------------------------
-            # 2. X方向で表と重なっていること
-            # -------------------------------------------------
-
-            overlap_x = (
-                min(
-                    ocr_right,
-                    table_right
+                groups.append(
+                    current_group
                 )
-                -
-                max(
-                    ocr_x,
-                    table_x
-                )
+
+                current_group = [r]
+
+        if current_group:
+
+            groups.append(
+                current_group
             )
 
-            if overlap_x <= 0:
-                continue
+        # -------------------------------------------------
+        # 最大グループを本文候補とする
+        # -------------------------------------------------
 
-            # -------------------------------------------------
-            # 3. 表から近いこと
-            # -------------------------------------------------
+        if groups:
 
-            distance = (
-                table_y -
-                ocr_bottom
+            groups.sort(
+                key=lambda g: len(g),
+                reverse=True
             )
 
-            max_caption_distance = 40
+            main_group = groups[0]
 
-            if distance > max_caption_distance:
-                continue
-
-            # -------------------------------------------------
-            # 候補として登録
-            # -------------------------------------------------
-
-            candidates.append(
-                (
-                    distance,
-                    ocr
-                )
+            min_x = min(
+                r["x"]
+                for r in main_group
             )
 
-        # -----------------------------------------------------
-        # 最も表に近いOCRを採用
-        # -----------------------------------------------------
-
-        if candidates:
-
-            candidates.sort(
-                key=lambda item: item[0]
+            min_y = min(
+                r["y"]
+                for r in main_group
             )
 
-            nearest_caption = candidates[0][1]
+            max_x = max(
+                r["x"] + r["width"]
+                for r in main_group
+            )
 
-            table_captions.append(
+            max_y = max(
+                r["y"] + r["height"]
+                for r in main_group
+            )
+
+            regions.append(
                 {
-                    "table_index": table_index,
-                    "ocr": nearest_caption
+                    "name": "本文",
+                    "type": "body",
+                    "x": int(min_x),
+                    "y": int(min_y),
+                    "width": int(max_x - min_x),
+                    "height": int(max_y - min_y),
+                    "orientation": "vertical",
+                    "ocr_count": len(main_group)
                 }
             )
 
-    return table_captions
+    # -----------------------------------------------------
+    # 横書き本文
+    # -----------------------------------------------------
+
+    if horizontal_results:
+
+        horizontal_results.sort(
+            key=lambda r: r["y"]
+        )
+
+        groups = []
+
+        current_group = []
+
+        line_gap = 20
+
+        for r in horizontal_results:
+
+            if not current_group:
+
+                current_group.append(r)
+
+                continue
+
+            previous = current_group[-1]
+
+            gap = abs(
+                r["y"] - previous["y"]
+            )
+
+            if gap <= line_gap:
+
+                current_group.append(r)
+
+            else:
+
+                groups.append(
+                    current_group
+                )
+
+                current_group = [r]
+
+        if current_group:
+
+            groups.append(
+                current_group
+            )
+
+        # -------------------------------------------------
+        # 横書きOCRがまとまっている場合
+        # -------------------------------------------------
+
+        if groups:
+
+            groups.sort(
+                key=lambda g: len(g),
+                reverse=True
+            )
+
+            main_group = groups[0]
+
+            min_x = min(
+                r["x"]
+                for r in main_group
+            )
+
+            min_y = min(
+                r["y"]
+                for r in main_group
+            )
+
+            max_x = max(
+                r["x"] + r["width"]
+                for r in main_group
+            )
+
+            max_y = max(
+                r["y"] + r["height"]
+                for r in main_group
+            )
+
+            regions.append(
+                {
+                    "name": "本文横",
+                    "type": "body",
+                    "x": int(min_x),
+                    "y": int(min_y),
+                    "width": int(max_x - min_x),
+                    "height": int(max_y - min_y),
+                    "orientation": "horizontal",
+                    "ocr_count": len(main_group)
+                }
+            )
+
+    return regions
 
 # =========================================================
 # メイン処理
@@ -2859,7 +2372,7 @@ def main():
         print(
             "Usage: "
             "ndlocr_auto_region.py "
-            "<image> <output_dir> [vertical|horizontal]"
+            "<image> <output_dir>"
         )
 
         sys.exit(1)
@@ -2881,33 +2394,6 @@ def main():
     ).resolve()
 
     # -----------------------------------------------------
-    # 本文方向
-    #
-    # ユーザー設定を優先する。
-    # 省略時は従来テストとの互換性のため縦書き。
-    # -----------------------------------------------------
-
-    body_orientation = (
-        sys.argv[3].strip().lower()
-        if len(sys.argv) >= 4
-        else "vertical"
-    )
-
-    if body_orientation not in (
-        "vertical",
-        "horizontal"
-    ):
-
-        print(
-            "本文方向は "
-            "vertical または horizontal "
-            "を指定してください。",
-            file=sys.stderr
-        )
-
-        sys.exit(1)
-
-    # -----------------------------------------------------
     # 入力画像確認
     # -----------------------------------------------------
 
@@ -2925,110 +2411,10 @@ def main():
         exist_ok=True
     )
 
-    # =====================================================
-    # 画像サイズ取得
-    # =====================================================
-
-    try:
-
-        with Image.open(
-            image_path
-        ) as img:
-
-            image_width, image_height = img.size
-
-    except Exception as e:
-
-        print(
-            f"画像サイズ取得エラー: {e}",
-            file=sys.stderr
-        )
-
-        sys.exit(1)
-
-    print(
-        f"実画像サイズ: "
-        f"{image_width}×{image_height}",
-        flush=True
-    )
-
-    # =====================================================
-    # 罫線検出
-    #
-    # ★領域判定の最初に実行する
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 1 : 罫線検出"
-    )
-    print(
-        "##################################################"
-    )
-
-    line_result = detect_lines(
-        image_path,
-        output_dir
-    )
-
-    # =====================================================
-    # 罫線座標解析
-    # =====================================================
-
-    line_data = analyze_detected_lines(
-        image_path,
-        output_dir
-    )
-
-    horizontal_count = len(
-        line_data.get(
-            "horizontal_lines",
-            []
-        )
-    )
-
-    vertical_count = len(
-        line_data.get(
-            "vertical_lines",
-            []
-        )
-    )
-
-    print()
-    print(
-        "罫線候補:"
-    )
-
-    print(
-        f"  横線: {horizontal_count}"
-    )
-
-    print(
-        f"  縦線: {vertical_count}"
-    )
-
-    # =====================================================
-    # NDLOCR-Lite実行
-    #
-    # 罫線検出とは独立してOCRを取得する。
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 2 : NDLOCR-Lite"
-    )
-    print(
-        "##################################################"
-    )
-
     # -----------------------------------------------------
     # Python実行ファイル
+    #
+    # ★ここが重要
     # -----------------------------------------------------
 
     python_exe = Path(
@@ -3090,8 +2476,20 @@ def main():
     )
 
     print(
+        "入力画像存在:",
+        image_path.exists(),
+        flush=True
+    )
+
+    print(
         "出力フォルダ:",
         output_dir,
+        flush=True
+    )
+
+    print(
+        "出力フォルダ存在:",
+        output_dir.exists(),
         flush=True
     )
 
@@ -3172,9 +2570,9 @@ def main():
             process.returncode
         )
 
-    # =====================================================
+    # -----------------------------------------------------
     # JSON検索
-    # =====================================================
+    # -----------------------------------------------------
 
     json_path = find_json_file(
         output_dir,
@@ -3186,19 +2584,20 @@ def main():
         flush=True
     )
 
-    # =====================================================
+    # -----------------------------------------------------
     # JSON解析
-    # =====================================================
+    # -----------------------------------------------------
 
     results = parse_ndlocr_json(
         json_path
     )
 
-    # =====================================================
+    # -----------------------------------------------------
     # OCR結果表示
-    # =====================================================
+    # -----------------------------------------------------
 
     print()
+
     print(
         "========== OCR検出結果 =========="
     )
@@ -3221,199 +2620,165 @@ def main():
 
     print()
 
+    # -----------------------------------------------------
+    # 画像サイズ取得
+    #
+    # NDLOCRのimginfoが0でも、
+    # 実際の画像から取得する
+    # -----------------------------------------------------
+
+    try:
+
+        with Image.open(
+            image_path
+        ) as img:
+
+            image_width, image_height = (
+                img.size
+            )
+
+    except Exception as e:
+
+        print(
+            f"画像サイズ取得エラー: {e}",
+            file=sys.stderr
+        )
+
+        image_width = 0
+        image_height = 0
+
     print(
-        f"検出数: {len(results)}",
+        f"実画像サイズ: "
+        f"{image_width}×{image_height}",
         flush=True
     )
 
-    # =====================================================
-    # STEP 3
-    #
-    # 罫線の有無による最初の分岐
-    # =====================================================
+    # -----------------------------------------------------
+    # C#用OCR JSON
+    # -----------------------------------------------------
+
+    result = {
+
+        "image": str(
+            image_path
+        ),
+
+        "json": str(
+            json_path
+        ),
+
+        "results": results
+    }
+
+    output_json = (
+        output_dir
+        / "auto_regions.json"
+    )
+
+    with output_json.open(
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            result,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    print(
+        f"自動領域JSON: "
+        f"{output_json}",
+        flush=True
+    )
+
+    print(
+        f"検出数: "
+        f"{len(results)}",
+        flush=True
+    )
+
+    # -----------------------------------------------------
+    # 罫線検出テスト
+    # -----------------------------------------------------
+
+    line_result = detect_lines(
+        image_path,
+        output_dir
+    )
+
+    # -----------------------------------------------------
+    # 罫線座標解析
+    # -----------------------------------------------------
+
+    line_data = analyze_detected_lines(
+        image_path,
+        output_dir
+    )
+
+    # -----------------------------------------------------
+    # 罫線領域生成
+    # -----------------------------------------------------
+
+    bordered_regions = create_bordered_regions_from_lines(
+        line_data,
+        image_width,
+        image_height
+    )
+
+    # -----------------------------------------------------
+    # 罫線領域内部の解析
+    # -----------------------------------------------------
+
+    analyzed_bordered_regions = analyze_bordered_region_lines(
+        line_data,
+        bordered_regions
+    )
+
+    # -----------------------------------------------------
+    # セル候補生成
+    # -----------------------------------------------------
+
+    cell_candidate_regions = create_cell_candidates(
+        analyzed_bordered_regions
+    )
+
+    # -----------------------------------------------------
+    # セル候補へのOCR割り当て
+    # -----------------------------------------------------
+
+    analyzed_cell_regions = assign_ocr_to_cell_candidates(
+        cell_candidate_regions,
+        results
+    )
+
+    # -----------------------------------------------------
+    # セルOCR結果から表領域を生成
+    # -----------------------------------------------------
+
+    table_regions = create_table_regions_from_cells(
+        analyzed_cell_regions
+    )
 
     print()
     print(
-        "##################################################"
-    )
-    print(
-        "# STEP 3 : 罫線領域判定"
-    )
-    print(
-        "##################################################"
-    )
-
-    bordered_regions = []
-
-    if (
-        horizontal_count > 0
-        and vertical_count > 0
-    ):
-
-        print(
-            "横罫線・縦罫線の両方を検出しました。",
-            flush=True
-        )
-
-        print(
-            "→ 罫線領域の解析へ進みます。",
-            flush=True
-        )
-
-        # -------------------------------------------------
-        # 罫線領域生成
-        # -------------------------------------------------
-
-        bordered_regions = (
-            create_bordered_regions_from_lines(
-                line_data,
-                image_width,
-                image_height
-            )
-        )
-
-    else:
-
-        print(
-            "閉じた領域を構成するための"
-            "横罫線・縦罫線が不足しています。",
-            flush=True
-        )
-
-        print(
-            "→ 表・罫線領域の解析をスキップします。",
-            flush=True
-        )
-
-    # =====================================================
-    # STEP 4
-    #
-    # 罫線領域が存在する場合のみ
-    # セル解析を実行
-    # =====================================================
-
-    analyzed_cell_regions = []
-
-    classified_table_regions = []
-
-    non_table_regions = []
-
-    table_regions = []
-
-    if bordered_regions:
-
-        print()
-        print(
-            "##################################################"
-        )
-        print(
-            "# STEP 4 : 罫線領域 → セル解析"
-        )
-        print(
-            "##################################################"
-        )
-
-        # -------------------------------------------------
-        # 罫線領域内部の解析
-        # -------------------------------------------------
-
-        analyzed_bordered_regions = (
-            analyze_bordered_region_lines(
-                line_data,
-                bordered_regions
-            )
-        )
-
-        # -------------------------------------------------
-        # セル候補生成
-        # -------------------------------------------------
-
-        cell_candidate_regions = (
-            create_cell_candidates(
-                analyzed_bordered_regions
-            )
-        )
-
-        # -------------------------------------------------
-        # OCR割り当て
-        # -------------------------------------------------
-
-        analyzed_cell_regions = (
-            assign_ocr_to_cell_candidates(
-                cell_candidate_regions,
-                results
-            )
-        )
-
-        # -------------------------------------------------
-        # 表判定
-        # -------------------------------------------------
-
-        (
-            classified_table_regions,
-            non_table_regions
-        ) = classify_bordered_regions(
-            analyzed_cell_regions
-        )
-
-        # -------------------------------------------------
-        # 表領域生成
-        #
-        # ★tableだけを変換する
-        # -------------------------------------------------
-
-        table_regions = (
-            create_table_regions_from_cells(
-                classified_table_regions
-            )
-        )
-
-    else:
-
-        print()
-        print(
-            "罫線領域が存在しないため、"
-            "セル解析・表判定をスキップします。",
-            flush=True
-        )
-
-    # =====================================================
-    # 表判定結果
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# 表判定結果"
-    )
-    print(
-        "##################################################"
-    )
-
-    print(
-        f"罫線領域: {len(bordered_regions)}",
+        "========== 表領域生成開始 ==========",
         flush=True
     )
 
     print(
-        f"表: {len(table_regions)}",
+        f"検出表数: {len(table_regions)}",
         flush=True
     )
 
-    print(
-        f"非表罫線領域: {len(non_table_regions)}",
-        flush=True
-    )
-
-    for i, table in enumerate(
+    for table_index, table in enumerate(
         table_regions,
         start=1
     ):
 
         print(
-            f"  表{i}: "
+            f"  表{table_index}: "
             f"x={table['x']}, "
             f"y={table['y']}, "
             f"width={table['width']}, "
@@ -3423,35 +2788,25 @@ def main():
             flush=True
         )
 
-    # =====================================================
-    # STEP 5
-    #
-    # 表セルOCRを本文候補から除外
-    # =====================================================
+    print(
+        "========== 表領域生成終了 ==========",
+        flush=True
+    )
+
+    # -----------------------------------------------------
+    # 表セル内のOCRを本文判定から除外
+    # -----------------------------------------------------
+
+    body_results = remove_table_ocr(
+        results,
+        analyzed_cell_regions
+    )
 
     print()
     print(
-        "##################################################"
+        "========== 本文OCR候補作成 ==========",
+        flush=True
     )
-    print(
-        "# STEP 5 : 表OCR除外"
-    )
-    print(
-        "##################################################"
-    )
-
-    if analyzed_cell_regions:
-
-        body_results = remove_table_ocr(
-            results,
-            classified_table_regions
-        )
-
-    else:
-
-        body_results = list(
-            results
-        )
 
     print(
         f"全OCR数: {len(results)}",
@@ -3459,16 +2814,82 @@ def main():
     )
 
     print(
-        f"表セルOCR除外後: "
-        f"{len(body_results)}",
+        f"表セル内OCR除外後: {len(body_results)}",
         flush=True
     )
 
-    # =====================================================
-    # STEP 6
+    # -----------------------------------------------------
+    # 表見出しを抽出
     #
-    # 表見出し抽出
-    # =====================================================
+    # 表の直上にあるOCRだけを表見出し候補とする。
+    # 表の下にあるOCRは表へ取り込まず、本文候補として残す。
+    # -----------------------------------------------------
+
+    def extract_table_captions(
+        body_results,
+        table_regions
+    ):
+        captions = []
+
+        caption_max_gap = 40
+
+        for table_index, table in enumerate(
+            table_regions,
+            start=1
+        ):
+            tx1 = table["x"]
+            ty1 = table["y"]
+            tx2 = tx1 + table["width"]
+
+            candidates = []
+
+            for ocr in body_results:
+                ox1 = ocr["x"]
+                oy1 = ocr["y"]
+                ox2 = ox1 + ocr["width"]
+                oy2 = oy1 + ocr["height"]
+
+                # 表より上にあるOCRだけを対象にする
+                if oy2 > ty1:
+                    continue
+
+                gap = ty1 - oy2
+
+                if gap > caption_max_gap:
+                    continue
+
+                # 表と横方向に重なっているか確認
+                overlap_x1 = max(ox1, tx1)
+                overlap_x2 = min(ox2, tx2)
+
+                if overlap_x2 <= overlap_x1:
+                    continue
+
+                overlap_width = overlap_x2 - overlap_x1
+                ocr_width = max(1, ox2 - ox1)
+                overlap_ratio = overlap_width / ocr_width
+
+                if overlap_ratio < 0.30:
+                    continue
+
+                candidates.append(ocr)
+
+            if candidates:
+                candidates.sort(
+                    key=lambda r: (
+                        ty1 - (r["y"] + r["height"]),
+                        r["x"]
+                    )
+                )
+
+                captions.append(
+                    {
+                        "table_index": table_index,
+                        "ocr": candidates[0]
+                    }
+                )
+
+        return captions
 
     table_captions = extract_table_captions(
         body_results,
@@ -3477,30 +2898,17 @@ def main():
 
     print()
     print(
-        "##################################################"
-    )
-    print(
-        "# STEP 6 : 表見出し判定"
-    )
-    print(
-        "##################################################"
+        "========== 表見出し判定 ==========",
+        flush=True
     )
 
     caption_ids = set()
 
     for item in table_captions:
+        table_index = item["table_index"]
+        caption = item["ocr"]
 
-        table_index = item[
-            "table_index"
-        ]
-
-        caption = item[
-            "ocr"
-        ]
-
-        caption_ids.add(
-            id(caption)
-        )
+        caption_ids.add(id(caption))
 
         print(
             f"表{table_index} 見出し候補: "
@@ -3510,25 +2918,16 @@ def main():
             flush=True
         )
 
-    if not table_captions:
-
-        print(
-            "表見出し候補はありません。",
-            flush=True
-        )
-
-    # =====================================================
-    # 表見出しを本文候補から除外
-    # =====================================================
+    # -----------------------------------------------------
+    # 表見出しを除いた本文候補
+    #
+    # 表の下にある本文OCRはここに残る。
+    # -----------------------------------------------------
 
     body_results_without_captions = [
-
         ocr
-
         for ocr in body_results
-
-        if id(ocr)
-        not in caption_ids
+        if id(ocr) not in caption_ids
     ]
 
     print(
@@ -3537,100 +2936,48 @@ def main():
         flush=True
     )
 
-    # =====================================================
-    # STEP 7
-    #
-    # 本文領域生成
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 7 : 本文領域生成"
-    )
-    print(
-        "##################################################"
-    )
-
-    print(
-        f"本文方向設定: "
-        f"{body_orientation}",
-        flush=True
-    )
+    # -----------------------------------------------------
+    # 表以外のOCRから本文領域を生成
+    # -----------------------------------------------------
 
     body_regions = create_body_regions(
-        body_results_without_captions,
-        body_orientation
+        body_results_without_captions
     )
 
     print(
-        f"本文領域数: "
-        f"{len(body_regions)}",
+        f"本文領域数: {len(body_regions)}",
         flush=True
     )
 
     for region in body_regions:
-
         print(
             f"  {region['name']}: "
             f"x={region['x']}, "
             f"y={region['y']}, "
             f"width={region['width']}, "
             f"height={region['height']}, "
-            f"orientation="
-            f"{region.get('orientation')}, "
-            f"ocr_count="
-            f"{region.get('ocr_count')}",
+            f"orientation={region.get('orientation')}, "
+            f"ocr_count={region.get('ocr_count')}",
             flush=True
         )
 
-    # =====================================================
-    # STEP 8
-    #
-    # 最終領域
-    # =====================================================
+    print(
+        "========== 本文OCR候補作成終了 ==========",
+        flush=True
+    )
 
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 8 : 最終自動領域"
-    )
-    print(
-        "##################################################"
-    )
+    # -----------------------------------------------------
+    # 表領域 + 本文領域
+    # -----------------------------------------------------
 
     regions = (
         table_regions
         + body_regions
     )
 
-    print(
-        f"最終領域数: "
-        f"{len(regions)}",
-        flush=True
-    )
-
-    for region in regions:
-
-        print(
-            f"  {region['name']}: "
-            f"x={region['x']}, "
-            f"y={region['y']}, "
-            f"width={region['width']}, "
-            f"height={region['height']}, "
-            f"type={region['type']}",
-            flush=True
-        )
-
-    # =====================================================
-    # STEP 9
-    #
+    # -----------------------------------------------------
     # auto_layout.json
-    # =====================================================
+    # -----------------------------------------------------
 
     layout_result = {
 
@@ -3638,22 +2985,15 @@ def main():
             image_path
         ),
 
-        "image_width": int(
-            image_width
-        ),
+        "image_width": image_width,
 
-        "image_height": int(
-            image_height
-        ),
+        "image_height": image_height,
 
-        "body_orientation":
-            body_orientation,
-
-        "regions":
-            regions
+        "regions": regions
     }
 
     layout_json = (
+
         output_dir
         / "auto_layout.json"
     )
@@ -3664,16 +3004,15 @@ def main():
     ) as f:
 
         json.dump(
+
             layout_result,
+
             f,
+
             ensure_ascii=False,
+
             indent=2
         )
-
-    print()
-    print(
-        "##################################################"
-    )
 
     print(
         f"自動レイアウトJSON: "
@@ -3687,144 +3026,29 @@ def main():
         flush=True
     )
 
-    print(
-        "##################################################"
-    )
+    # -----------------------------------------------------
+    # 領域表示
+    # -----------------------------------------------------
 
-    print()
-    print(
-        "========== 自動領域解析完了 ==========",
-        flush=True
-    )
+    for region in regions:
+
+        print(
+
+            f"  {region['name']}: "
+
+            f"x={region['x']}, "
+
+            f"y={region['y']}, "
+
+            f"width={region['width']}, "
+
+            f"height={region['height']}, "
+
+            f"type={region['type']}",
+
+            flush=True
+        )
     
-    # =====================================================
-    # STEP 10
-    #
-    # 最終OCR所属確定
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 10 : 最終OCR所属確定"
-    )
-    print(
-        "##################################################"
-    )
-
-    # -----------------------------------------------------
-    # 表見出し
-    # -----------------------------------------------------
-
-    final_table_captions = []
-
-    for item in table_captions:
-
-        ocr = item.get("ocr")
-
-        if ocr is not None:
-
-            final_table_captions.append({
-                "table_index":
-                    item["table_index"],
-                "ocr":
-                    ocr
-            })
-
-    # -----------------------------------------------------
-    # 本文OCR
-    # -----------------------------------------------------
-
-    final_body_ocr = list(
-        body_results_without_captions
-    )
-
-    # -----------------------------------------------------
-    # 表セルOCR
-    #
-    # table_regions の各セルには、すでに
-    # OCRが格納されている。
-    # -----------------------------------------------------
-
-    final_table_cells = []
-
-    assigned_ocr_ids = set()
-
-    for table in table_regions:
-
-        for cell in table.get("cells", []):
-
-            for ocr in cell.get("ocr", []):
-
-                ocr_id = ocr.get("id")
-
-                # -----------------------------------------
-                # 同じOCRを二重登録しない
-                # -----------------------------------------
-
-                if ocr_id is not None:
-
-                    if ocr_id in assigned_ocr_ids:
-                        continue
-
-                    assigned_ocr_ids.add(
-                        ocr_id
-                    )
-
-                final_table_cells.append({
-
-                    "table_name":
-                        table["name"],
-
-                    "row":
-                        cell["row"],
-
-                    "column":
-                        cell["column"],
-
-                    "ocr":
-                        ocr
-                })
-
-    # -----------------------------------------------------
-    # 最終結果
-    # -----------------------------------------------------
-
-    final_ocr_result = {
-
-        "table_cells":
-            final_table_cells,
-
-        "table_captions":
-            final_table_captions,
-
-        "body":
-            final_body_ocr
-    }
-
-    # -----------------------------------------------------
-    # 確認表示
-    # -----------------------------------------------------
-
-    print(
-        f"表セルOCR数: "
-        f"{len(final_table_cells)}",
-        flush=True
-    )
-
-    print(
-        f"表見出しOCR数: "
-        f"{len(final_table_captions)}",
-        flush=True
-    )
-
-    print(
-        f"本文OCR数: "
-        f"{len(final_body_ocr)}",
-        flush=True
-    )
 
 # =========================================================
 # プログラム開始
