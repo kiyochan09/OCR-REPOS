@@ -2052,3 +2052,41 @@ def create_table_regions_from_cells(
 
     return regions
 
+# =========================================================
+# 表セル内のOCRを本文判定から除外
+# =========================================================
+
+def remove_table_ocr(
+    results,
+    analyzed_cell_regions
+):
+    """
+    表セルに割り当てられたOCRを
+    本文領域の判定対象から除外する。
+    """
+
+    table_ocr_ids = set()
+
+    for region in analyzed_cell_regions:
+
+        for cell in region.get(
+            "cells",
+            []
+        ):
+
+            for ocr in cell.get(
+                "ocr",
+                []
+            ):
+
+                table_ocr_ids.add(
+                    id(ocr)
+                )
+
+    body_results = [
+        ocr
+        for ocr in results
+        if id(ocr) not in table_ocr_ids
+    ]
+
+    return body_results

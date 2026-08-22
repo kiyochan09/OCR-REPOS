@@ -3,2846 +3,77 @@ import json
 import subprocess
 from pathlib import Path
 from PIL import Image
-import cv2
-import numpy as np
+from ocr_utils import find_json_file, parse_ndlocr_json
+from caption_detection import extract_table_captions
+from body_region import create_body_regions
+from table_detection import (
+    detect_lines,
+    analyze_detected_lines,
+    create_bordered_regions_from_lines,
+    analyze_bordered_region_lines,
+    create_cell_candidates,
+    assign_ocr_to_cell_candidates,
+    create_table_regions_from_cells,
+    remove_table_ocr,
+)
 
 # =========================================================
 # NDLOCR-Lite JSONを探す
 # =========================================================
 
-def find_json_file(output_dir: Path, image_path: Path) -> Path:
-
-    json_files = list(output_dir.rglob("*.json"))
-
-    if not json_files:
-        raise FileNotFoundError(
-            f"NDLOCR-LiteのJSONが見つかりません。\n"
-            f"出力先: {output_dir}"
-        )
-
-    # 入力画像と同名のJSONを優先
-    stem = image_path.stem
-
-    preferred = [
-        p for p in json_files
-        if p.stem == stem
-    ]
-
-    if preferred:
-        return preferred[0]
-
-    return json_files[0]
 
 # =========================================================
 # 罫線検出テスト
 # =========================================================
 
-def detect_lines(
-    image_path: Path,
-    output_dir: Path
-):
-    """
-    元画像から横罫線・縦罫線を検出する。
-
-    現段階では、
-    「表」「コラム」「図」などの分類は行わない。
-
-    あくまで、
-    画像上の直線を正しく検出できるかを確認する。
-    """
-
-    print()
-    print("========== 罫線検出開始 ==========")
-
-    # -----------------------------------------------------
-    # 画像読み込み
-    # -----------------------------------------------------
-
-    image = cv2.imread(
-        str(image_path)
-    )
-
-    if image is None:
-
-        raise RuntimeError(
-            f"画像を読み込めません: {image_path}"
-        )
-
-    height, width = image.shape[:2]
-
-    print(
-        f"罫線検出画像サイズ: "
-        f"{width}×{height}",
-        flush=True
-    )
-
-    # -----------------------------------------------------
-    # グレースケール
-    # -----------------------------------------------------
-
-    gray = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2GRAY
-    )
-
-    gray_path = (
-        output_dir
-        / "line_gray.png"
-    )
-
-    cv2.imwrite(
-        str(gray_path),
-        gray
-    )
-
-    # -----------------------------------------------------
-    # 二値化
-    #
-    # 白背景 → 0
-    # 黒い文字・罫線 → 255
-    # -----------------------------------------------------
-
-    binary = cv2.adaptiveThreshold(
-
-        gray,
-
-        255,
-
-        cv2.ADAPTIVE_THRESH_MEAN_C,
-
-        cv2.THRESH_BINARY_INV,
-
-        15,
-
-        10
-    )
-
-    binary_path = (
-        output_dir
-        / "line_binary.png"
-    )
-
-    cv2.imwrite(
-        str(binary_path),
-        binary
-    )
-
-    # -----------------------------------------------------
-    # 横罫線検出
-    # -----------------------------------------------------
-
-    horizontal_kernel_length = max(
-        10,
-        width // 20
-    )
-
-    horizontal_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            horizontal_kernel_length,
-            1
-        )
-    )
-
-    horizontal_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        horizontal_kernel
-    )
-
-    horizontal_path = (
-        output_dir
-        / "horizontal_lines.png"
-    )
-
-    cv2.imwrite(
-        str(horizontal_path),
-        horizontal_lines
-    )
-
-    # -----------------------------------------------------
-    # 縦罫線検出
-    # -----------------------------------------------------
-
-    vertical_kernel_length = max(
-        10,
-        height // 20
-    )
-
-    vertical_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            1,
-            vertical_kernel_length
-        )
-    )
-
-    vertical_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        vertical_kernel
-    )
-
-    vertical_path = (
-        output_dir
-        / "vertical_lines.png"
-    )
-
-    cv2.imwrite(
-        str(vertical_path),
-        vertical_lines
-    )
-
-    # -----------------------------------------------------
-    # 横＋縦
-    # -----------------------------------------------------
-
-    detected_lines = cv2.bitwise_or(
-
-        horizontal_lines,
-
-        vertical_lines
-    )
-
-    detected_path = (
-        output_dir
-        / "detected_lines.png"
-    )
-
-    cv2.imwrite(
-        str(detected_path),
-        detected_lines
-    )
-
-    # -----------------------------------------------------
-    # 元画像に罫線を重ねる
-    # -----------------------------------------------------
-
-    overlay = image.copy()
-
-    # 検出された横線
-    overlay[horizontal_lines > 0] = (
-        0,
-        0,
-        255
-    )
-
-    # 検出された縦線
-    overlay[vertical_lines > 0] = (
-        255,
-        0,
-        0
-    )
-
-    overlay_path = (
-        output_dir
-        / "detected_lines_overlay.png"
-    )
-
-    cv2.imwrite(
-        str(overlay_path),
-        overlay
-    )
-
-    # -----------------------------------------------------
-    # 検出数を計算
-    # -----------------------------------------------------
-
-    horizontal_pixels = int(
-        cv2.countNonZero(
-            horizontal_lines
-        )
-    )
-
-    vertical_pixels = int(
-        cv2.countNonZero(
-            vertical_lines
-        )
-    )
-
-    total_pixels = int(
-        cv2.countNonZero(
-            detected_lines
-        )
-    )
-
-    print(
-        f"横罫線画素数: "
-        f"{horizontal_pixels}",
-        flush=True
-    )
-
-    print(
-        f"縦罫線画素数: "
-        f"{vertical_pixels}",
-        flush=True
-    )
-
-    print(
-        f"罫線総画素数: "
-        f"{total_pixels}",
-        flush=True
-    )
-
-    print(
-        f"横罫線画像: "
-        f"{horizontal_path}",
-        flush=True
-    )
-
-    print(
-        f"縦罫線画像: "
-        f"{vertical_path}",
-        flush=True
-    )
-
-    print(
-        f"重ね合わせ画像: "
-        f"{overlay_path}",
-        flush=True
-    )
-
-    print(
-        "========== 罫線検出終了 ==========",
-        flush=True
-    )
-
-    return {
-        "horizontal_pixels": horizontal_pixels,
-        "vertical_pixels": vertical_pixels,
-        "total_pixels": total_pixels,
-        "horizontal_image": str(horizontal_path),
-        "vertical_image": str(vertical_path),
-        "overlay_image": str(overlay_path)
-    }
 
 # =========================================================
 # 検出した罫線の座標解析
 # =========================================================
 
-def analyze_detected_lines(
-    image_path: Path,
-    output_dir: Path
-):
-    """
-    横罫線・縦罫線を線分として解析する。
-
-    現段階では矩形判定を行わない。
-    検出された線の位置・長さを取得し、
-    次段階の矩形生成に利用する。
-    """
-
-    print()
-    print("========== 罫線座標解析開始 ==========")
-
-    # -----------------------------------------------------
-    # 画像読み込み
-    # -----------------------------------------------------
-
-    image = cv2.imread(
-        str(image_path)
-    )
-
-    if image is None:
-
-        raise RuntimeError(
-            f"画像を読み込めません: {image_path}"
-        )
-
-    image_height, image_width = image.shape[:2]
-
-    # -----------------------------------------------------
-    # グレースケール
-    # -----------------------------------------------------
-
-    gray = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2GRAY
-    )
-
-    # -----------------------------------------------------
-    # 二値化
-    # -----------------------------------------------------
-
-    binary = cv2.adaptiveThreshold(
-
-        gray,
-
-        255,
-
-        cv2.ADAPTIVE_THRESH_MEAN_C,
-
-        cv2.THRESH_BINARY_INV,
-
-        15,
-
-        10
-    )
-
-    # -----------------------------------------------------
-    # 横罫線検出
-    # -----------------------------------------------------
-
-    horizontal_kernel_length = max(
-        10,
-        image_width // 20
-    )
-
-    horizontal_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            horizontal_kernel_length,
-            1
-        )
-    )
-
-    horizontal_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        horizontal_kernel
-    )
-
-    # -----------------------------------------------------
-    # 縦罫線検出
-    # -----------------------------------------------------
-
-    vertical_kernel_length = max(
-        10,
-        image_height // 20
-    )
-
-    vertical_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            1,
-            vertical_kernel_length
-        )
-    )
-
-    vertical_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        vertical_kernel
-    )
-
-    # =====================================================
-    # 横線の線分抽出
-    # =====================================================
-
-    horizontal_contours, _ = cv2.findContours(
-
-        horizontal_lines,
-
-        cv2.RETR_EXTERNAL,
-
-        cv2.CHAIN_APPROX_SIMPLE
-    )
-
-    horizontal_segments = []
-
-    for contour in horizontal_contours:
-
-        x, y, w, h = cv2.boundingRect(
-            contour
-        )
-
-        # 短すぎる線は除外
-        if w < 10:
-            continue
-
-        horizontal_segments.append(
-
-            {
-                "x1": int(x),
-                "y": int(y),
-                "x2": int(x + w - 1),
-                "y2": int(y),
-                "length": int(w),
-                "thickness": int(h)
-            }
-        )
-
-    # Y座標 → X座標順
-    horizontal_segments.sort(
-
-        key=lambda line: (
-            line["y"],
-            line["x1"]
-        )
-    )
-
-    # =====================================================
-    # 縦線の線分抽出
-    # =====================================================
-
-    vertical_contours, _ = cv2.findContours(
-
-        vertical_lines,
-
-        cv2.RETR_EXTERNAL,
-
-        cv2.CHAIN_APPROX_SIMPLE
-    )
-
-    vertical_segments = []
-
-    for contour in vertical_contours:
-
-        x, y, w, h = cv2.boundingRect(
-            contour
-        )
-
-        # 短すぎる線は除外
-        if h < 10:
-            continue
-
-        vertical_segments.append(
-
-            {
-                "x": int(x),
-                "y1": int(y),
-                "x2": int(x),
-                "y2": int(y + h - 1),
-                "length": int(h),
-                "thickness": int(w)
-            }
-        )
-
-    # X座標 → Y座標順
-    vertical_segments.sort(
-
-        key=lambda line: (
-            line["x"],
-            line["y1"]
-        )
-    )
-
-    # =====================================================
-    # 結果表示
-    # =====================================================
-
-    print()
-    print(
-        f"横線候補数: "
-        f"{len(horizontal_segments)}"
-    )
-
-    for i, line in enumerate(
-        horizontal_segments
-    ):
-
-        print(
-
-            f"  H{i + 1}: "
-
-            f"X={line['x1']}～{line['x2']}, "
-
-            f"Y={line['y']}, "
-
-            f"長さ={line['length']}",
-
-            flush=True
-        )
-
-    print()
-
-    print(
-        f"縦線候補数: "
-        f"{len(vertical_segments)}"
-    )
-
-    for i, line in enumerate(
-        vertical_segments
-    ):
-
-        print(
-
-            f"  V{i + 1}: "
-
-            f"X={line['x']}, "
-
-            f"Y={line['y1']}～{line['y2']}, "
-
-            f"長さ={line['length']}",
-
-            flush=True
-        )
-
-    # =====================================================
-    # JSON保存
-    # =====================================================
-
-    result = {
-
-        "image": str(
-            image_path
-        ),
-
-        "image_width": int(
-            image_width
-        ),
-
-        "image_height": int(
-            image_height
-        ),
-
-        "horizontal_lines":
-            horizontal_segments,
-
-        "vertical_lines":
-            vertical_segments
-    }
-
-    output_json = (
-        output_dir
-        / "detected_line_segments.json"
-    )
-
-    with output_json.open(
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-
-            result,
-
-            f,
-
-            ensure_ascii=False,
-
-            indent=2
-        )
-
-    # =====================================================
-    # 確認画像
-    # =====================================================
-
-    overlay = image.copy()
-
-    # -----------------------------------------------------
-    # 横線：赤
-    # -----------------------------------------------------
-
-    for line in horizontal_segments:
-
-        cv2.line(
-
-            overlay,
-
-            (
-                line["x1"],
-                line["y"]
-            ),
-
-            (
-                line["x2"],
-                line["y2"]
-            ),
-
-            (0, 0, 255),
-
-            2
-        )
-
-    # -----------------------------------------------------
-    # 縦線：青
-    # -----------------------------------------------------
-
-    for line in vertical_segments:
-
-        cv2.line(
-
-            overlay,
-
-            (
-                line["x"],
-                line["y1"]
-            ),
-
-            (
-                line["x2"],
-                line["y2"]
-            ),
-
-            (255, 0, 0),
-
-            2
-        )
-
-    overlay_path = (
-        output_dir
-        / "line_segments_overlay.png"
-    )
-
-    cv2.imwrite(
-
-        str(overlay_path),
-
-        overlay
-    )
-
-    print()
-    print(
-        f"線分JSON: "
-        f"{output_json}"
-    )
-
-    print(
-        f"線分確認画像: "
-        f"{overlay_path}"
-    )
-
-    print(
-        "========== 罫線座標解析終了 ==========",
-        flush=True
-    )
-
-    return result
 
 # =========================================================
 # 罫線から矩形領域を検出
 # =========================================================
 
-def detect_bordered_regions(
-    image_path: Path,
-    output_dir: Path
-):
-    """
-    横罫線・縦罫線から閉じた矩形領域を検出する。
-
-    現段階では「表」とは判定しない。
-    あくまで「罫線によって囲まれた領域」を検出する。
-    """
-
-    print()
-    print("========== 罫線領域検出開始 ==========")
-
-    # -----------------------------------------------------
-    # 画像読み込み
-    # -----------------------------------------------------
-
-    image = cv2.imread(
-        str(image_path)
-    )
-
-    if image is None:
-
-        raise RuntimeError(
-            f"画像を読み込めません: {image_path}"
-        )
-
-    image_height, image_width = image.shape[:2]
-
-    # -----------------------------------------------------
-    # グレースケール
-    # -----------------------------------------------------
-
-    gray = cv2.cvtColor(
-        image,
-        cv2.COLOR_BGR2GRAY
-    )
-
-    # -----------------------------------------------------
-    # 二値化
-    # -----------------------------------------------------
-
-    binary = cv2.adaptiveThreshold(
-
-        gray,
-
-        255,
-
-        cv2.ADAPTIVE_THRESH_MEAN_C,
-
-        cv2.THRESH_BINARY_INV,
-
-        15,
-
-        10
-    )
-
-    # -----------------------------------------------------
-    # 横罫線
-    # -----------------------------------------------------
-
-    horizontal_kernel_length = max(
-        10,
-        image_width // 20
-    )
-
-    horizontal_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            horizontal_kernel_length,
-            1
-        )
-    )
-
-    horizontal_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        horizontal_kernel
-    )
-
-    # -----------------------------------------------------
-    # 縦罫線
-    # -----------------------------------------------------
-
-    vertical_kernel_length = max(
-        10,
-        image_height // 20
-    )
-
-    vertical_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (
-            1,
-            vertical_kernel_length
-        )
-    )
-
-    vertical_lines = cv2.morphologyEx(
-
-        binary,
-
-        cv2.MORPH_OPEN,
-
-        vertical_kernel
-    )
-
-    # -----------------------------------------------------
-    # 横＋縦
-    # -----------------------------------------------------
-
-    line_image = cv2.bitwise_or(
-
-        horizontal_lines,
-
-        vertical_lines
-    )
-
-    # -----------------------------------------------------
-    # 線を少し太くする
-    #
-    # 交差部分を確実につなげるため
-    # -----------------------------------------------------
-
-    connect_kernel = cv2.getStructuringElement(
-
-        cv2.MORPH_RECT,
-
-        (3, 3)
-    )
-
-    connected_lines = cv2.dilate(
-
-        line_image,
-
-        connect_kernel,
-
-        iterations=1
-    )
-
-    # -----------------------------------------------------
-    # 輪郭検出
-    # -----------------------------------------------------
-
-    contours, hierarchy = cv2.findContours(
-
-        connected_lines,
-
-        cv2.RETR_LIST,
-
-        cv2.CHAIN_APPROX_SIMPLE
-    )
-
-    regions = []
-
-    # -----------------------------------------------------
-    # 矩形候補を取得
-    # -----------------------------------------------------
-
-    for contour in contours:
-
-        x, y, w, h = cv2.boundingRect(
-            contour
-        )
-
-        # ---------------------------------------------
-        # 小さすぎる領域を除外
-        # ---------------------------------------------
-
-        if w < 30 or h < 20:
-            continue
-
-        # ---------------------------------------------
-        # 画像全体に近いものを除外
-        #
-        # ページ全体を囲むような輪郭を
-        # 罫線領域として扱わない
-        # ---------------------------------------------
-
-        area_ratio = (
-            (w * h)
-            /
-            (image_width * image_height)
-        )
-
-        if area_ratio > 0.90:
-            continue
-
-        # ---------------------------------------------
-        # 横線・縦線が実際に存在するか確認
-        # ---------------------------------------------
-
-        roi_horizontal = horizontal_lines[
-            y:min(y + h, image_height),
-            x:min(x + w, image_width)
-        ]
-
-        roi_vertical = vertical_lines[
-            y:min(y + h, image_height),
-            x:min(x + w, image_width)
-        ]
-
-        horizontal_pixels = cv2.countNonZero(
-            roi_horizontal
-        )
-
-        vertical_pixels = cv2.countNonZero(
-            roi_vertical
-        )
-
-        # ---------------------------------------------
-        # 横線と縦線の両方が存在する領域だけ採用
-        # ---------------------------------------------
-
-        if horizontal_pixels == 0:
-            continue
-
-        if vertical_pixels == 0:
-            continue
-
-        # ---------------------------------------------
-        # 重複チェック用
-        # ---------------------------------------------
-
-        regions.append(
-            {
-                "x": int(x),
-                "y": int(y),
-                "width": int(w),
-                "height": int(h),
-                "area": int(w * h),
-                "horizontal_pixels": int(
-                    horizontal_pixels
-                ),
-                "vertical_pixels": int(
-                    vertical_pixels
-                )
-            }
-        )
-
-    # -----------------------------------------------------
-    # 小さい矩形を内包する大きな矩形がある場合、
-    # まずはすべて保存する。
-    #
-    # 後段で「表全体」に統合する。
-    # -----------------------------------------------------
-
-    regions.sort(
-        key=lambda r: (
-            r["y"],
-            r["x"],
-            -r["area"]
-        )
-    )
-
-    # -----------------------------------------------------
-    # JSON保存
-    # -----------------------------------------------------
-
-    bordered_result = {
-
-        "image": str(
-            image_path
-        ),
-
-        "image_width": int(
-            image_width
-        ),
-
-        "image_height": int(
-            image_height
-        ),
-
-        "regions": regions
-    }
-
-    bordered_json = (
-        output_dir
-        / "bordered_regions.json"
-    )
-
-    with bordered_json.open(
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-
-            bordered_result,
-
-            f,
-
-            ensure_ascii=False,
-
-            indent=2
-        )
-
-    # -----------------------------------------------------
-    # 確認用画像
-    # -----------------------------------------------------
-
-    overlay = image.copy()
-
-    for i, region in enumerate(regions):
-
-        x = region["x"]
-        y = region["y"]
-        w = region["width"]
-        h = region["height"]
-
-        cv2.rectangle(
-
-            overlay,
-
-            (x, y),
-
-            (x + w, y + h),
-
-            (0, 255, 0),
-
-            2
-        )
-
-        cv2.putText(
-
-            overlay,
-
-            f"R{i + 1}",
-
-            (x, max(15, y - 5)),
-
-            cv2.FONT_HERSHEY_SIMPLEX,
-
-            0.5,
-
-            (0, 255, 0),
-
-            1,
-
-            cv2.LINE_AA
-        )
-
-    overlay_path = (
-        output_dir
-        / "bordered_regions_overlay.png"
-    )
-
-    cv2.imwrite(
-
-        str(overlay_path),
-
-        overlay
-    )
-
-    # -----------------------------------------------------
-    # 結果表示
-    # -----------------------------------------------------
-
-    print(
-        f"罫線矩形候補数: "
-        f"{len(regions)}",
-        flush=True
-    )
-
-    print(
-        f"罫線領域JSON: "
-        f"{bordered_json}",
-        flush=True
-    )
-
-    print(
-        f"罫線領域確認画像: "
-        f"{overlay_path}",
-        flush=True
-    )
-
-    for i, region in enumerate(regions):
-
-        print(
-
-            f"  R{i + 1}: "
-
-            f"x={region['x']}, "
-
-            f"y={region['y']}, "
-
-            f"width={region['width']}, "
-
-            f"height={region['height']}",
-
-            flush=True
-        )
-
-    print(
-        "========== 罫線領域検出終了 ==========",
-        flush=True
-    )
-
-    return regions
 
 # =========================================================
 # NDLOCR-Lite JSONを解析
 # =========================================================
 
-def parse_ndlocr_json(json_path: Path):
-
-    with json_path.open(
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        data = json.load(f)
-
-    results = []
-
-    # -----------------------------------------------------
-    # NDLOCR-Lite形式
-    # -----------------------------------------------------
-
-    if isinstance(data, dict) and "contents" in data:
-
-        contents = data["contents"]
-
-        if isinstance(contents, list):
-
-            items = []
-
-            for page in contents:
-
-                if isinstance(page, list):
-                    items.extend(page)
-
-                elif isinstance(page, dict):
-                    items.append(page)
-
-        else:
-
-            items = []
-
-    # -----------------------------------------------------
-    # その他の形式
-    # -----------------------------------------------------
-
-    elif isinstance(data, list):
-
-        items = data
-
-    elif isinstance(data, dict):
-
-        if "results" in data:
-            items = data["results"]
-
-        elif "blocks" in data:
-            items = data["blocks"]
-
-        elif "ocr" in data:
-            items = data["ocr"]
-
-        else:
-            items = [data]
-
-    else:
-
-        items = []
-
-    # -----------------------------------------------------
-    # OCR結果解析
-    # -----------------------------------------------------
-
-    for item in items:
-
-        if not isinstance(item, dict):
-            continue
-
-        bbox = item.get("boundingBox")
-
-        if bbox is None:
-            bbox = item.get("bbox")
-
-        if bbox is None:
-            continue
-
-        try:
-
-            points = []
-
-            for point in bbox:
-
-                if len(point) >= 2:
-
-                    points.append(
-                        (
-                            float(point[0]),
-                            float(point[1])
-                        )
-                    )
-
-            if not points:
-                continue
-
-            min_x = min(
-                p[0] for p in points
-            )
-
-            max_x = max(
-                p[0] for p in points
-            )
-
-            min_y = min(
-                p[1] for p in points
-            )
-
-            max_y = max(
-                p[1] for p in points
-            )
-
-            x = int(round(min_x))
-            y = int(round(min_y))
-
-            width = int(
-                round(max_x - min_x)
-            )
-
-            height = int(
-                round(max_y - min_y)
-            )
-
-        except Exception:
-
-            continue
-
-        if width <= 0 or height <= 0:
-            continue
-
-        # -------------------------------------------------
-        # text
-        # -------------------------------------------------
-
-        text = str(
-            item.get(
-                "text",
-                ""
-            )
-        )
-
-        # -------------------------------------------------
-        # confidence
-        # -------------------------------------------------
-
-        try:
-
-            confidence = float(
-                item.get(
-                    "confidence",
-                    item.get(
-                        "score",
-                        0.0
-                    )
-                )
-            )
-
-        except Exception:
-
-            confidence = 0.0
-
-        # -------------------------------------------------
-        # 縦書き判定
-        # -------------------------------------------------
-
-        is_vertical = item.get(
-            "isVertical",
-            False
-        )
-
-        if isinstance(
-            is_vertical,
-            str
-        ):
-
-            is_vertical = (
-                is_vertical.lower()
-                == "true"
-            )
-
-        results.append(
-            {
-                "x": x,
-                "y": y,
-                "width": width,
-                "height": height,
-                "text": text,
-                "confidence": confidence,
-                "isVertical": bool(
-                    is_vertical
-                ),
-                "id": item.get(
-                    "id",
-                    len(results)
-                )
-            }
-        )
-
-    return results
 
 # =========================================================
 # 線分から罫線領域を生成
 # =========================================================
 
-def create_bordered_regions_from_lines(
-    line_data,
-    image_width,
-    image_height
-):
-    """
-    検出された横線・縦線から
-    罫線で囲まれた大きな領域を生成する。
-
-    現段階では「表」とは判定しない。
-    type は bordered とする。
-    """
-
-    horizontal_lines = (
-        line_data["horizontal_lines"]
-    )
-
-    vertical_lines = (
-        line_data["vertical_lines"]
-    )
-
-    # -----------------------------------------------------
-    # 十分に長い横線
-    #
-    # ページ幅の60%以上を対象とする
-    # -----------------------------------------------------
-
-    horizontal_candidates = [
-
-        line
-
-        for line in horizontal_lines
-
-        if line["length"]
-        >= image_width * 0.60
-    ]
-
-    # -----------------------------------------------------
-    # 十分に長い縦線
-    #
-    # ページ高さの40%以上を対象とする
-    # -----------------------------------------------------
-
-    vertical_candidates = [
-
-        line
-
-        for line in vertical_lines
-
-        if line["length"]
-        >= image_height * 0.40
-    ]
-
-    print()
-    print(
-        "========== 罫線領域生成 =========="
-    )
-
-    print(
-        f"長い横線候補: "
-        f"{len(horizontal_candidates)}"
-    )
-
-    for line in horizontal_candidates:
-
-        print(
-
-            f"  H: "
-            f"X={line['x1']}～{line['x2']}, "
-            f"Y={line['y']}, "
-            f"L={line['length']}"
-        )
-
-    print(
-        f"長い縦線候補: "
-        f"{len(vertical_candidates)}"
-    )
-
-    for line in vertical_candidates:
-
-        print(
-
-            f"  V: "
-            f"X={line['x']}, "
-            f"Y={line['y1']}～{line['y2']}, "
-            f"L={line['length']}"
-        )
-
-    regions = []
-
-    # -----------------------------------------------------
-    # 横線2本の組み合わせ
-    # -----------------------------------------------------
-
-    for i in range(
-        len(horizontal_candidates)
-    ):
-
-        top = horizontal_candidates[i]
-
-        for j in range(
-            i + 1,
-            len(horizontal_candidates)
-        ):
-
-            bottom = horizontal_candidates[j]
-
-            # 上下関係
-            if bottom["y"] <= top["y"]:
-                continue
-
-            # -------------------------------------------------
-            # 上線と下線の間隔
-            # -------------------------------------------------
-
-            region_height = (
-                bottom["y"]
-                - top["y"]
-            )
-
-            if region_height < 30:
-                continue
-
-            # -------------------------------------------------
-            # 横線の共通範囲
-            # -------------------------------------------------
-
-            common_x1 = max(
-                top["x1"],
-                bottom["x1"]
-            )
-
-            common_x2 = min(
-                top["x2"],
-                bottom["x2"]
-            )
-
-            if common_x2 <= common_x1:
-                continue
-
-            # -------------------------------------------------
-            # この上下線をつなぐ縦線を探す
-            # -------------------------------------------------
-
-            left_vertical = None
-            right_vertical = None
-
-            for vertical in vertical_candidates:
-
-                x = vertical["x"]
-
-                # 縦線が上下の横線の範囲内にあるか
-                if x < common_x1:
-                    continue
-
-                if x > common_x2:
-                    continue
-
-                # 縦線が上下の横線を十分につないでいるか
-                if vertical["y1"] > top["y"] + 5:
-                    continue
-
-                if vertical["y2"] < bottom["y"] - 5:
-                    continue
-
-                # 左端候補
-                if left_vertical is None:
-
-                    left_vertical = vertical
-
-                elif x < left_vertical["x"]:
-
-                    left_vertical = vertical
-
-            # -------------------------------------------------
-            # 右端の縦線
-            # -------------------------------------------------
-
-            for vertical in vertical_candidates:
-
-                x = vertical["x"]
-
-                if x < common_x1:
-                    continue
-
-                if x > common_x2:
-                    continue
-
-                if vertical["y1"] > top["y"] + 5:
-                    continue
-
-                if vertical["y2"] < bottom["y"] - 5:
-                    continue
-
-                if right_vertical is None:
-
-                    right_vertical = vertical
-
-                elif x > right_vertical["x"]:
-
-                    right_vertical = vertical
-
-            # -------------------------------------------------
-            # 左右の縦線が存在するか
-            # -------------------------------------------------
-
-            if (
-                left_vertical is None
-                or right_vertical is None
-            ):
-                continue
-
-            # 同じ縦線なら無効
-            if (
-                left_vertical["x"]
-                >= right_vertical["x"]
-            ):
-                continue
-
-            # -------------------------------------------------
-            # 矩形
-            # -------------------------------------------------
-
-            x1 = left_vertical["x"]
-            x2 = right_vertical["x"]
-
-            y1 = top["y"]
-            y2 = bottom["y"]
-
-            width = x2 - x1
-            height = y2 - y1
-
-            if width < 30 or height < 30:
-                continue
-
-            regions.append(
-
-                {
-                    "name": "罫線領域",
-                    "type": "bordered",
-                    "x": int(x1),
-                    "y": int(y1),
-                    "width": int(width),
-                    "height": int(height)
-                }
-            )
-
-    # -----------------------------------------------------
-    # 重複・内包領域を整理
-    #
-    # 現段階では最大の罫線領域を採用
-    # -----------------------------------------------------
-
-    if regions:
-
-        regions.sort(
-
-            key=lambda r:
-                r["width"] * r["height"],
-
-            reverse=True
-        )
-
-        regions = [
-            regions[0]
-        ]
-
-    # -----------------------------------------------------
-    # 結果
-    # -----------------------------------------------------
-
-    print(
-        f"生成された罫線領域数: "
-        f"{len(regions)}"
-    )
-
-    for i, region in enumerate(
-        regions
-    ):
-
-        print(
-
-            f"  B{i + 1}: "
-
-            f"x={region['x']}, "
-
-            f"y={region['y']}, "
-
-            f"width={region['width']}, "
-
-            f"height={region['height']}"
-        )
-
-    print(
-        "===================================="
-    )
-
-    return regions
 
 # =========================================================
 # 罫線領域内部の罫線座標を解析
 # =========================================================
 
-def analyze_bordered_region_lines(
-    line_data,
-    bordered_regions
-):
-    """
-    罫線領域の内部に存在する
-    縦罫線・横罫線を整理する。
-
-    現段階ではセル生成や表判定は行わない。
-    """
-
-    print()
-    print(
-        "========== 内部罫線解析開始 =========="
-    )
-
-    analyzed_regions = []
-
-    horizontal_lines = line_data.get(
-        "horizontal_lines",
-        []
-    )
-
-    vertical_lines = line_data.get(
-        "vertical_lines",
-        []
-    )
-
-    for region_index, region in enumerate(
-        bordered_regions
-    ):
-
-        rx1 = region["x"]
-        ry1 = region["y"]
-
-        rx2 = (
-            rx1
-            + region["width"]
-        )
-
-        ry2 = (
-            ry1
-            + region["height"]
-        )
-
-        print()
-        print(
-            f"--- 罫線領域 B{region_index + 1} ---"
-        )
-
-        print(
-            f"領域: "
-            f"X={rx1}～{rx2}, "
-            f"Y={ry1}～{ry2}"
-        )
-
-        # =================================================
-        # 領域内部の横罫線
-        # =================================================
-
-        region_horizontal = []
-
-        for line in horizontal_lines:
-
-            y = line["y"]
-
-            if y < ry1 - 3:
-                continue
-
-            if y > ry2 + 3:
-                continue
-
-            # 横線と領域のX範囲が重なっているか
-            overlap_x1 = max(
-                line["x1"],
-                rx1
-            )
-
-            overlap_x2 = min(
-                line["x2"],
-                rx2
-            )
-
-            if overlap_x2 <= overlap_x1:
-                continue
-
-            region_horizontal.append(
-                {
-                    "y": int(y),
-                    "x1": int(overlap_x1),
-                    "x2": int(overlap_x2),
-                    "length": int(
-                        overlap_x2
-                        - overlap_x1
-                        + 1
-                    )
-                }
-            )
-
-        # -------------------------------------------------
-        # Y座標の近い線を統合
-        # -------------------------------------------------
-
-        region_horizontal.sort(
-            key=lambda line: line["y"]
-        )
-
-        horizontal_positions = []
-
-        for line in region_horizontal:
-
-            if not horizontal_positions:
-
-                horizontal_positions.append(
-                    line["y"]
-                )
-
-                continue
-
-            previous_y = (
-                horizontal_positions[-1]
-            )
-
-            if abs(
-                line["y"]
-                - previous_y
-            ) <= 2:
-
-                # 平均位置
-                horizontal_positions[-1] = int(
-                    round(
-                        (
-                            previous_y
-                            + line["y"]
-                        )
-                        / 2
-                    )
-                )
-
-            else:
-
-                horizontal_positions.append(
-                    line["y"]
-                )
-
-        # =================================================
-        # 領域内部の縦罫線
-        # =================================================
-
-        region_vertical = []
-
-        for line in vertical_lines:
-
-            x = line["x"]
-
-            if x < rx1 - 3:
-                continue
-
-            if x > rx2 + 3:
-                continue
-
-            # 縦線と領域のY範囲が重なっているか
-            overlap_y1 = max(
-                line["y1"],
-                ry1
-            )
-
-            overlap_y2 = min(
-                line["y2"],
-                ry2
-            )
-
-            if overlap_y2 <= overlap_y1:
-                continue
-
-            region_vertical.append(
-                {
-                    "x": int(x),
-                    "y1": int(overlap_y1),
-                    "y2": int(overlap_y2),
-                    "length": int(
-                        overlap_y2
-                        - overlap_y1
-                        + 1
-                    )
-                }
-            )
-
-        # -------------------------------------------------
-        # X座標の近い線を統合
-        # -------------------------------------------------
-
-        region_vertical.sort(
-            key=lambda line: line["x"]
-        )
-
-        vertical_positions = []
-
-        for line in region_vertical:
-
-            if not vertical_positions:
-
-                vertical_positions.append(
-                    line["x"]
-                )
-
-                continue
-
-            previous_x = (
-                vertical_positions[-1]
-            )
-
-            if abs(
-                line["x"]
-                - previous_x
-            ) <= 2:
-
-                vertical_positions[-1] = int(
-                    round(
-                        (
-                            previous_x
-                            + line["x"]
-                        )
-                        / 2
-                    )
-                )
-
-            else:
-
-                vertical_positions.append(
-                    line["x"]
-                )
-
-        # =================================================
-        # 結果表示
-        # =================================================
-
-        print()
-        print(
-            "横罫線Y座標:"
-        )
-
-        print(
-            horizontal_positions
-        )
-
-        print()
-        print(
-            "縦罫線X座標:"
-        )
-
-        print(
-            vertical_positions
-        )
-
-        # =================================================
-        # 結果保存
-        # =================================================
-
-        analyzed_regions.append(
-            {
-                "name": region["name"],
-                "type": region["type"],
-                "x": rx1,
-                "y": ry1,
-                "width": region["width"],
-                "height": region["height"],
-                "horizontal_positions":
-                    horizontal_positions,
-                "vertical_positions":
-                    vertical_positions
-            }
-        )
-
-    print()
-    print(
-        "========== 内部罫線解析終了 ==========",
-        flush=True
-    )
-
-    return analyzed_regions
 
 # =========================================================
 # 罫線領域からセル候補を生成
 # =========================================================
 
-def create_cell_candidates(
-    analyzed_regions
-):
-    """
-    罫線領域のX/Y座標から
-    セル候補を生成する。
-
-    現段階ではセルを確定しない。
-    あくまで矩形候補として扱う。
-    """
-
-    print()
-    print(
-        "========== セル候補生成開始 =========="
-    )
-
-    all_regions = []
-
-    for region_index, region in enumerate(
-        analyzed_regions
-    ):
-
-        x_positions = region.get(
-            "vertical_positions",
-            []
-        )
-
-        y_positions = region.get(
-            "horizontal_positions",
-            []
-        )
-
-        if len(x_positions) < 2:
-            continue
-
-        if len(y_positions) < 2:
-            continue
-
-        print()
-        print(
-            f"--- 罫線領域 B{region_index + 1} ---"
-        )
-
-        print(
-            f"列数候補: "
-            f"{len(x_positions) - 1}"
-        )
-
-        print(
-            f"行数候補: "
-            f"{len(y_positions) - 1}"
-        )
-
-        cells = []
-
-        # -------------------------------------------------
-        # Y方向
-        # -------------------------------------------------
-
-        for row in range(
-            len(y_positions) - 1
-        ):
-
-            y1 = y_positions[row]
-            y2 = y_positions[row + 1]
-
-            # -------------------------------------------------
-            # X方向
-            # -------------------------------------------------
-
-            for column in range(
-                len(x_positions) - 1
-            ):
-
-                x1 = x_positions[column]
-                x2 = x_positions[column + 1]
-
-                width = x2 - x1
-                height = y2 - y1
-
-                if width <= 0:
-                    continue
-
-                if height <= 0:
-                    continue
-
-                cells.append(
-                    {
-                        "row": row + 1,
-                        "column": column + 1,
-                        "x": x1,
-                        "y": y1,
-                        "width": width,
-                        "height": height,
-
-                        # OCR割り当て用
-                        "text": "",
-                        "ocr_count": 0
-                    }
-                )                
-
-        # -------------------------------------------------
-        # 結果表示
-        # -------------------------------------------------
-
-        print(
-            f"生成セル候補数: "
-            f"{len(cells)}"
-        )
-
-        for cell in cells:
-
-            print(
-                f"  "
-                f"R{cell['row']}C{cell['column']}: "
-                f"x={cell['x']}, "
-                f"y={cell['y']}, "
-                f"w={cell['width']}, "
-                f"h={cell['height']}"
-            )
-
-        all_regions.append(
-            {
-                "name": region["name"],
-                "type": region["type"],
-                "x": region["x"],
-                "y": region["y"],
-                "width": region["width"],
-                "height": region["height"],
-                "cells": cells
-            }
-        )
-
-    print()
-    print(
-        "========== セル候補生成終了 ==========",
-        flush=True
-    )
-
-    return all_regions
 
 # =========================================================
 # セル候補にOCR結果を割り当てる
 # =========================================================
 
-def assign_ocr_to_cell_candidates(
-    cell_candidate_regions,
-    results
-):
-    """
-    各セル候補にOCR結果を割り当てる。
-
-    OCRの中心点がセル内にある場合、
-    そのOCRをセルに所属させる。
-
-    現段階では「表セル」とは判定しない。
-    """
-
-    print()
-    print(
-        "========== セルOCR割り当て開始 =========="
-    )
-
-    analyzed_regions = []
-
-    for region_index, region in enumerate(
-        cell_candidate_regions
-    ):
-
-        print()
-        print(
-            f"--- 罫線領域 B{region_index + 1} ---"
-        )
-
-        analyzed_cells = []
-
-        for cell in region.get(
-            "cells",
-            []
-        ):
-
-            cell_x1 = cell["x"]
-            cell_y1 = cell["y"]
-
-            cell_x2 = (
-                cell_x1
-                + cell["width"]
-            )
-
-            cell_y2 = (
-                cell_y1
-                + cell["height"]
-            )
-
-            cell_ocr = []
-
-            for ocr in results:
-
-                center_x = (
-                    ocr["x"]
-                    + ocr["width"] / 2.0
-                )
-
-                center_y = (
-                    ocr["y"]
-                    + ocr["height"] / 2.0
-                )
-
-                if (
-                    center_x >= cell_x1
-                    and center_x <= cell_x2
-                    and center_y >= cell_y1
-                    and center_y <= cell_y2
-                ):
-
-                    cell_ocr.append(
-                        ocr
-                    )
-
-            analyzed_cell = dict(
-                cell
-            )
-
-            analyzed_cell["ocr_count"] = len(cell_ocr)
-
-            analyzed_cell["ocr"] = cell_ocr
-
-            # -------------------------------------------------
-            # OCR文字列
-            # -------------------------------------------------
-            texts = [
-                ocr["text"]
-                for ocr in cell_ocr
-                if ocr.get("text")
-            ]
-
-            analyzed_cell["text"] = " ".join(texts)
-
-            analyzed_cells.append(
-                analyzed_cell
-            )
-
-        analyzed_regions.append(
-            {
-                "name": region["name"],
-                "type": region["type"],
-                "x": region["x"],
-                "y": region["y"],
-                "width": region["width"],
-                "height": region["height"],
-                "cells": analyzed_cells
-            }
-        )
-
-        # -------------------------------------------------
-        # 表示
-        # -------------------------------------------------
-
-        for cell in analyzed_cells:
-
-            if cell["ocr_count"] == 0:
-                continue
-
-            texts = [
-                ocr["text"]
-                for ocr in cell["ocr"]
-            ]
-
-            text = " ".join(
-                texts
-            )
-
-            print(
-                f"  "
-                f"R{cell['row']}C{cell['column']}: "
-                f"OCR={cell['ocr_count']}, "
-                f"text={text}"
-            )
-
-    print()
-    print(
-        "========== セルOCR割り当て終了 ==========",
-        flush=True
-    )
-
-    return analyzed_regions
 
 # =========================================================
-# 罫線領域が「表」として成立しているか判定
+# 自動レイアウト領域生成
 # =========================================================
 
-def classify_bordered_regions(
-    analyzed_cell_regions
-):
-    """
-    罫線領域を解析し、
-
-        table
-        non_table
-
-    に分類する。
-
-    現段階では、以下を表判定条件とする。
-
-    1. 2行以上
-    2. 2列以上
-    3. セルが規則的に生成されている
-    4. 複数セルにOCRが存在する
-
-    罫線領域そのものを検出する処理とは分離する。
-    """
-
-    print()
-    print(
-        "========== 罫線領域の表判定開始 ==========",
-        flush=True
-    )
-
-    table_regions = []
-    non_table_regions = []
-
-    for region_index, region in enumerate(
-        analyzed_cell_regions,
-        start=1
-    ):
-
-        cells = region.get(
-            "cells",
-            []
-        )
-
-        # -------------------------------------------------
-        # 行数・列数
-        # -------------------------------------------------
-
-        rows = sorted(
-            set(
-                cell["row"]
-                for cell in cells
-            )
-        )
-
-        columns = sorted(
-            set(
-                cell["column"]
-                for cell in cells
-            )
-        )
-
-        row_count = len(rows)
-        column_count = len(columns)
-
-        # -------------------------------------------------
-        # OCRを持つセル数
-        # -------------------------------------------------
-
-        cells_with_ocr = [
-            cell
-            for cell in cells
-            if cell.get(
-                "ocr_count",
-                0
-            ) > 0
-        ]
-
-        ocr_cell_count = len(
-            cells_with_ocr
-        )
-
-        # -------------------------------------------------
-        # セル総数
-        # -------------------------------------------------
-
-        expected_cell_count = (
-            row_count * column_count
-        )
-
-        actual_cell_count = len(
-            cells
-        )
-
-        # -------------------------------------------------
-        # 規則的なセル構造か
-        # -------------------------------------------------
-
-        regular_structure = (
-            row_count >= 2
-            and column_count >= 2
-            and actual_cell_count
-                == expected_cell_count
-        )
-
-        # -------------------------------------------------
-        # OCRが複数セルに存在するか
-        # -------------------------------------------------
-
-        has_multiple_ocr_cells = (
-            ocr_cell_count >= 2
-        )
-
-        # -------------------------------------------------
-        # 表判定
-        # -------------------------------------------------
-
-        is_table = (
-            regular_structure
-            and has_multiple_ocr_cells
-        )
-
-        print()
-        print(
-            f"B{region_index}: "
-            f"rows={row_count}, "
-            f"columns={column_count}, "
-            f"cells={actual_cell_count}, "
-            f"expected={expected_cell_count}, "
-            f"OCRセル={ocr_cell_count}",
-            flush=True
-        )
-
-        print(
-            f"  規則的セル構造: "
-            f"{regular_structure}",
-            flush=True
-        )
-
-        print(
-            f"  複数OCRセル: "
-            f"{has_multiple_ocr_cells}",
-            flush=True
-        )
-
-        if is_table:
-
-            table_region = dict(
-                region
-            )
-
-            table_region["classification"] = (
-                "table"
-            )
-
-            table_region["rows"] = (
-                row_count
-            )
-
-            table_region["columns"] = (
-                column_count
-            )
-
-            table_regions.append(
-                table_region
-            )
-
-            print(
-                "  判定結果: TABLE",
-                flush=True
-            )
-
-        else:
-
-            non_table_region = dict(
-                region
-            )
-
-            non_table_region[
-                "classification"
-            ] = "non_table"
-
-            non_table_region[
-                "rows"
-            ] = row_count
-
-            non_table_region[
-                "columns"
-            ] = column_count
-
-            non_table_regions.append(
-                non_table_region
-            )
-
-            print(
-                "  判定結果: NON-TABLE",
-                flush=True
-            )
-
-    print()
-    print(
-        f"表判定結果: "
-        f"table={len(table_regions)}, "
-        f"non_table={len(non_table_regions)}",
-        flush=True
-    )
-
-    print(
-        "========== 罫線領域の表判定終了 ==========",
-        flush=True
-    )
-
-    return (
-        table_regions,
-        non_table_regions
-    )
 
 
 # =========================================================
 # 罫線領域＋セルOCR結果を表領域に変換
 # =========================================================
 
-def create_table_regions_from_cells(
-    analyzed_cell_regions
-):
-    """
-    表と判定された罫線領域と
-    セルOCR結果から
-    auto_layout.json用の表regionを生成する。
-    """
 
-    regions = []
 
-    for table_index, table in enumerate(
-        analyzed_cell_regions,
-        start=1
-    ):
-
-        cells = []
-
-        for cell in table.get(
-            "cells",
-            []
-        ):
-
-            ocr_items = cell.get(
-                "ocr",
-                []
-            )
-
-            texts = [
-
-                ocr["text"]
-
-                for ocr in ocr_items
-
-                if ocr.get("text")
-            ]
-
-            text = " ".join(
-                texts
-            )
-
-            cells.append(
-                {
-                    "row":
-                        cell["row"],
-
-                    "column":
-                        cell["column"],
-
-                    "x":
-                        cell["x"],
-
-                    "y":
-                        cell["y"],
-
-                    "width":
-                        cell["width"],
-
-                    "height":
-                        cell["height"],
-
-                    "text":
-                        text,
-
-                    "ocr_count":
-                        cell.get(
-                            "ocr_count",
-                            0
-                        ),
-
-                    # ---------------------------------
-                    # 表セルOCRを保持
-                    # ---------------------------------
-
-                    "ocr":
-                        ocr_items
-                }
-            )
-
-        rows = len(
-            set(
-                cell["row"]
-                for cell in cells
-            )
-        )
-
-        columns = len(
-            set(
-                cell["column"]
-                for cell in cells
-            )
-        )
-
-        regions.append(
-            {
-                "name":
-                    f"表{table_index}",
-
-                "type":
-                    "table",
-
-                "x":
-                    table["x"],
-
-                "y":
-                    table["y"],
-
-                "width":
-                    table["width"],
-
-                "height":
-                    table["height"],
-
-                "rows":
-                    rows,
-
-                "columns":
-                    columns,
-
-                "cells":
-                    cells
-            }
-        )
-
-    return regions
-
-
-
-# =========================================================
-# 表セル内のOCRを本文判定から除外
-# =========================================================
-
-def remove_table_ocr(
-    results,
-    table_regions
-):
-    """
-    表として判定されたセルに割り当てられたOCRだけを
-    本文領域の判定対象から除外する。
-    """
-
-    table_ocr_ids = set()
-
-    for region in table_regions:
-
-        for cell in region.get(
-            "cells",
-            []
-        ):
-
-            for ocr in cell.get(
-                "ocr",
-                []
-            ):
-
-                table_ocr_ids.add(
-                    id(ocr)
-                )
-
-    body_results = [
-
-        ocr
-
-        for ocr in results
-
-        if id(ocr)
-        not in table_ocr_ids
-    ]
-
-    return body_results
-
-
-
-
-# =========================================================
-# 表以外のOCRから本文領域を生成
-# =========================================================
-
-def create_body_regions(body_results, body_orientation="vertical"):
-    """
-    表セルに割り当てられていないOCR結果から本文領域を生成する。
-
-    body_orientation:
-        vertical   : 縦書き本文のみを対象
-        horizontal : 横書き本文のみを対象
-
-    本文方向はOCRの自動判定ではなく、ユーザー設定を優先する。
-    表セルOCRと表見出しは呼び出し側ですでに除外されている前提。
-    """
-    if not body_results:
-        return []
-
-    if body_orientation not in ("vertical", "horizontal"):
-        raise ValueError(
-            "body_orientation は 'vertical' または 'horizontal' を指定してください。"
-        )
-
-    if body_orientation == "vertical":
-        candidates = [
-            r for r in body_results
-            if r.get("isVertical", False)
-        ]
-
-        if not candidates:
-            return []
-
-        # 縦書きではX座標が同一または近いOCRを同一本文グループとする。
-        candidates.sort(key=lambda r: r["x"])
-        position_key = "x"
-        gap_limit = 30
-    else:
-        candidates = [
-            r for r in body_results
-            if not r.get("isVertical", False)
-        ]
-
-        if not candidates:
-            return []
-
-        # 横書きではY座標が同一または近いOCRを同一本文グループとする。
-        candidates.sort(key=lambda r: r["y"])
-        position_key = "y"
-        gap_limit = 20
-
-    # ---------------------------------------------------------
-    # OCRを位置間隔でグループ化
-    # ---------------------------------------------------------
-    groups = []
-    current_group = []
-
-    for item in candidates:
-        if not current_group:
-            current_group.append(item)
-            continue
-
-        previous = current_group[-1]
-        gap = abs(item[position_key] - previous[position_key])
-
-        if gap <= gap_limit:
-            current_group.append(item)
-        else:
-            groups.append(current_group)
-            current_group = [item]
-
-    if current_group:
-        groups.append(current_group)
-
-    if not groups:
-        return []
-
-    # ---------------------------------------------------------
-    # 最大グループを本文候補とする
-    # ---------------------------------------------------------
-    groups.sort(key=len, reverse=True)
-    main_group = groups[0]
-
-    min_x = min(r["x"] for r in main_group)
-    min_y = min(r["y"] for r in main_group)
-    max_x = max(r["x"] + r["width"] for r in main_group)
-    max_y = max(r["y"] + r["height"] for r in main_group)
-
-    return [{
-        "name": "本文",
-        "type": "body",
-        "x": int(min_x),
-        "y": int(min_y),
-        "width": int(max_x - min_x),
-        "height": int(max_y - min_y),
-        "orientation": body_orientation,
-        "ocr_count": len(main_group),
-        "ocr": main_group
-    }]
-
-def extract_table_captions(
-    body_results,
-    table_regions
-):
-    """
-    表領域の直上にあるOCRを表見出し候補として抽出する。
-
-    判定条件:
-      - 横書きOCR
-      - 表領域より上にある
-      - OCRと表領域がX方向で重なる
-      - 表領域から一定距離以内
-      - 複数候補がある場合は表に最も近いものを採用
-    """
-
-    table_captions = []
-
-    # ---------------------------------------------------------
-    # 表ごとに調査
-    # ---------------------------------------------------------
-
-    for table_index, table in enumerate(
-        table_regions,
-        start=1
-    ):
-
-        table_x = table["x"]
-        table_y = table["y"]
-        table_width = table["width"]
-
-        table_right = (
-            table_x +
-            table_width
-        )
-
-        candidates = []
-
-        # -----------------------------------------------------
-        # 表の上側にあるOCRを調べる
-        # -----------------------------------------------------
-
-        for ocr in body_results:
-
-            # 横書きだけを対象にする
-            if ocr.get("isVertical", False):
-                continue
-
-            ocr_x = ocr["x"]
-            ocr_y = ocr["y"]
-            ocr_width = ocr["width"]
-            ocr_height = ocr["height"]
-
-            ocr_right = (
-                ocr_x +
-                ocr_width
-            )
-
-            ocr_bottom = (
-                ocr_y +
-                ocr_height
-            )
-
-            # -------------------------------------------------
-            # 1. OCRが表より上にあること
-            # -------------------------------------------------
-
-            if ocr_bottom > table_y:
-                continue
-
-            # -------------------------------------------------
-            # 2. X方向で表と重なっていること
-            # -------------------------------------------------
-
-            overlap_x = (
-                min(
-                    ocr_right,
-                    table_right
-                )
-                -
-                max(
-                    ocr_x,
-                    table_x
-                )
-            )
-
-            if overlap_x <= 0:
-                continue
-
-            # -------------------------------------------------
-            # 3. 表から近いこと
-            # -------------------------------------------------
-
-            distance = (
-                table_y -
-                ocr_bottom
-            )
-
-            max_caption_distance = 40
-
-            if distance > max_caption_distance:
-                continue
-
-            # -------------------------------------------------
-            # 候補として登録
-            # -------------------------------------------------
-
-            candidates.append(
-                (
-                    distance,
-                    ocr
-                )
-            )
-
-        # -----------------------------------------------------
-        # 最も表に近いOCRを採用
-        # -----------------------------------------------------
-
-        if candidates:
-
-            candidates.sort(
-                key=lambda item: item[0]
-            )
-
-            nearest_caption = candidates[0][1]
-
-            table_captions.append(
-                {
-                    "table_index": table_index,
-                    "ocr": nearest_caption
-                }
-            )
-
-    return table_captions
 
 # =========================================================
 # メイン処理
@@ -2859,7 +90,7 @@ def main():
         print(
             "Usage: "
             "ndlocr_auto_region.py "
-            "<image> <output_dir> [vertical|horizontal]"
+            "<image> <output_dir>"
         )
 
         sys.exit(1)
@@ -2881,33 +112,6 @@ def main():
     ).resolve()
 
     # -----------------------------------------------------
-    # 本文方向
-    #
-    # ユーザー設定を優先する。
-    # 省略時は従来テストとの互換性のため縦書き。
-    # -----------------------------------------------------
-
-    body_orientation = (
-        sys.argv[3].strip().lower()
-        if len(sys.argv) >= 4
-        else "vertical"
-    )
-
-    if body_orientation not in (
-        "vertical",
-        "horizontal"
-    ):
-
-        print(
-            "本文方向は "
-            "vertical または horizontal "
-            "を指定してください。",
-            file=sys.stderr
-        )
-
-        sys.exit(1)
-
-    # -----------------------------------------------------
     # 入力画像確認
     # -----------------------------------------------------
 
@@ -2925,115 +129,28 @@ def main():
         exist_ok=True
     )
 
-    # =====================================================
-    # 画像サイズ取得
-    # =====================================================
-
-    try:
-
-        with Image.open(
-            image_path
-        ) as img:
-
-            image_width, image_height = img.size
-
-    except Exception as e:
-
-        print(
-            f"画像サイズ取得エラー: {e}",
-            file=sys.stderr
-        )
-
-        sys.exit(1)
-
-    print(
-        f"実画像サイズ: "
-        f"{image_width}×{image_height}",
-        flush=True
-    )
-
-    # =====================================================
-    # 罫線検出
-    #
-    # ★領域判定の最初に実行する
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 1 : 罫線検出"
-    )
-    print(
-        "##################################################"
-    )
-
-    line_result = detect_lines(
-        image_path,
-        output_dir
-    )
-
-    # =====================================================
-    # 罫線座標解析
-    # =====================================================
-
-    line_data = analyze_detected_lines(
-        image_path,
-        output_dir
-    )
-
-    horizontal_count = len(
-        line_data.get(
-            "horizontal_lines",
-            []
-        )
-    )
-
-    vertical_count = len(
-        line_data.get(
-            "vertical_lines",
-            []
-        )
-    )
-
-    print()
-    print(
-        "罫線候補:"
-    )
-
-    print(
-        f"  横線: {horizontal_count}"
-    )
-
-    print(
-        f"  縦線: {vertical_count}"
-    )
-
-    # =====================================================
-    # NDLOCR-Lite実行
-    #
-    # 罫線検出とは独立してOCRを取得する。
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 2 : NDLOCR-Lite"
-    )
-    print(
-        "##################################################"
-    )
-
     # -----------------------------------------------------
     # Python実行ファイル
+    #
+    # ★ここが重要
     # -----------------------------------------------------
 
-    python_exe = Path(
-        sys.executable
+    project_dir = Path(__file__).resolve().parent
+
+    python_exe = (
+        project_dir
+        / "venv"
+        / "Scripts"
+        / "python.exe"
     )
+
+    if not python_exe.exists():
+        print(
+            f"NDLOCR-Lite用Pythonが見つかりません: {python_exe}",
+            file=sys.stderr,
+            flush=True
+        )
+        sys.exit(1)
 
     # -----------------------------------------------------
     # NDLOCR-Liteコマンド
@@ -3090,8 +207,20 @@ def main():
     )
 
     print(
+        "入力画像存在:",
+        image_path.exists(),
+        flush=True
+    )
+
+    print(
         "出力フォルダ:",
         output_dir,
+        flush=True
+    )
+
+    print(
+        "出力フォルダ存在:",
+        output_dir.exists(),
         flush=True
     )
 
@@ -3108,6 +237,8 @@ def main():
     process = subprocess.run(
 
         command,
+
+        cwd=str(project_dir),
 
         stdout=subprocess.PIPE,
 
@@ -3172,9 +303,9 @@ def main():
             process.returncode
         )
 
-    # =====================================================
+    # -----------------------------------------------------
     # JSON検索
-    # =====================================================
+    # -----------------------------------------------------
 
     json_path = find_json_file(
         output_dir,
@@ -3186,19 +317,20 @@ def main():
         flush=True
     )
 
-    # =====================================================
+    # -----------------------------------------------------
     # JSON解析
-    # =====================================================
+    # -----------------------------------------------------
 
     results = parse_ndlocr_json(
         json_path
     )
 
-    # =====================================================
+    # -----------------------------------------------------
     # OCR結果表示
-    # =====================================================
+    # -----------------------------------------------------
 
     print()
+
     print(
         "========== OCR検出結果 =========="
     )
@@ -3221,199 +353,165 @@ def main():
 
     print()
 
+    # -----------------------------------------------------
+    # 画像サイズ取得
+    #
+    # NDLOCRのimginfoが0でも、
+    # 実際の画像から取得する
+    # -----------------------------------------------------
+
+    try:
+
+        with Image.open(
+            image_path
+        ) as img:
+
+            image_width, image_height = (
+                img.size
+            )
+
+    except Exception as e:
+
+        print(
+            f"画像サイズ取得エラー: {e}",
+            file=sys.stderr
+        )
+
+        image_width = 0
+        image_height = 0
+
     print(
-        f"検出数: {len(results)}",
+        f"実画像サイズ: "
+        f"{image_width}×{image_height}",
         flush=True
     )
 
-    # =====================================================
-    # STEP 3
-    #
-    # 罫線の有無による最初の分岐
-    # =====================================================
+    # -----------------------------------------------------
+    # C#用OCR JSON
+    # -----------------------------------------------------
+
+    result = {
+
+        "image": str(
+            image_path
+        ),
+
+        "json": str(
+            json_path
+        ),
+
+        "results": results
+    }
+
+    output_json = (
+        output_dir
+        / "auto_regions.json"
+    )
+
+    with output_json.open(
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            result,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    print(
+        f"自動領域JSON: "
+        f"{output_json}",
+        flush=True
+    )
+
+    print(
+        f"検出数: "
+        f"{len(results)}",
+        flush=True
+    )
+
+    # -----------------------------------------------------
+    # 罫線検出テスト
+    # -----------------------------------------------------
+
+    line_result = detect_lines(
+        image_path,
+        output_dir
+    )
+
+    # -----------------------------------------------------
+    # 罫線座標解析
+    # -----------------------------------------------------
+
+    line_data = analyze_detected_lines(
+        image_path,
+        output_dir
+    )
+
+    # -----------------------------------------------------
+    # 罫線領域生成
+    # -----------------------------------------------------
+
+    bordered_regions = create_bordered_regions_from_lines(
+        line_data,
+        image_width,
+        image_height
+    )
+
+    # -----------------------------------------------------
+    # 罫線領域内部の解析
+    # -----------------------------------------------------
+
+    analyzed_bordered_regions = analyze_bordered_region_lines(
+        line_data,
+        bordered_regions
+    )
+
+    # -----------------------------------------------------
+    # セル候補生成
+    # -----------------------------------------------------
+
+    cell_candidate_regions = create_cell_candidates(
+        analyzed_bordered_regions
+    )
+
+    # -----------------------------------------------------
+    # セル候補へのOCR割り当て
+    # -----------------------------------------------------
+
+    analyzed_cell_regions = assign_ocr_to_cell_candidates(
+        cell_candidate_regions,
+        results
+    )
+
+    # -----------------------------------------------------
+    # セルOCR結果から表領域を生成
+    # -----------------------------------------------------
+
+    table_regions = create_table_regions_from_cells(
+        analyzed_cell_regions
+    )
 
     print()
     print(
-        "##################################################"
-    )
-    print(
-        "# STEP 3 : 罫線領域判定"
-    )
-    print(
-        "##################################################"
-    )
-
-    bordered_regions = []
-
-    if (
-        horizontal_count > 0
-        and vertical_count > 0
-    ):
-
-        print(
-            "横罫線・縦罫線の両方を検出しました。",
-            flush=True
-        )
-
-        print(
-            "→ 罫線領域の解析へ進みます。",
-            flush=True
-        )
-
-        # -------------------------------------------------
-        # 罫線領域生成
-        # -------------------------------------------------
-
-        bordered_regions = (
-            create_bordered_regions_from_lines(
-                line_data,
-                image_width,
-                image_height
-            )
-        )
-
-    else:
-
-        print(
-            "閉じた領域を構成するための"
-            "横罫線・縦罫線が不足しています。",
-            flush=True
-        )
-
-        print(
-            "→ 表・罫線領域の解析をスキップします。",
-            flush=True
-        )
-
-    # =====================================================
-    # STEP 4
-    #
-    # 罫線領域が存在する場合のみ
-    # セル解析を実行
-    # =====================================================
-
-    analyzed_cell_regions = []
-
-    classified_table_regions = []
-
-    non_table_regions = []
-
-    table_regions = []
-
-    if bordered_regions:
-
-        print()
-        print(
-            "##################################################"
-        )
-        print(
-            "# STEP 4 : 罫線領域 → セル解析"
-        )
-        print(
-            "##################################################"
-        )
-
-        # -------------------------------------------------
-        # 罫線領域内部の解析
-        # -------------------------------------------------
-
-        analyzed_bordered_regions = (
-            analyze_bordered_region_lines(
-                line_data,
-                bordered_regions
-            )
-        )
-
-        # -------------------------------------------------
-        # セル候補生成
-        # -------------------------------------------------
-
-        cell_candidate_regions = (
-            create_cell_candidates(
-                analyzed_bordered_regions
-            )
-        )
-
-        # -------------------------------------------------
-        # OCR割り当て
-        # -------------------------------------------------
-
-        analyzed_cell_regions = (
-            assign_ocr_to_cell_candidates(
-                cell_candidate_regions,
-                results
-            )
-        )
-
-        # -------------------------------------------------
-        # 表判定
-        # -------------------------------------------------
-
-        (
-            classified_table_regions,
-            non_table_regions
-        ) = classify_bordered_regions(
-            analyzed_cell_regions
-        )
-
-        # -------------------------------------------------
-        # 表領域生成
-        #
-        # ★tableだけを変換する
-        # -------------------------------------------------
-
-        table_regions = (
-            create_table_regions_from_cells(
-                classified_table_regions
-            )
-        )
-
-    else:
-
-        print()
-        print(
-            "罫線領域が存在しないため、"
-            "セル解析・表判定をスキップします。",
-            flush=True
-        )
-
-    # =====================================================
-    # 表判定結果
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# 表判定結果"
-    )
-    print(
-        "##################################################"
-    )
-
-    print(
-        f"罫線領域: {len(bordered_regions)}",
+        "========== 表領域生成開始 ==========",
         flush=True
     )
 
     print(
-        f"表: {len(table_regions)}",
+        f"検出表数: {len(table_regions)}",
         flush=True
     )
 
-    print(
-        f"非表罫線領域: {len(non_table_regions)}",
-        flush=True
-    )
-
-    for i, table in enumerate(
+    for table_index, table in enumerate(
         table_regions,
         start=1
     ):
 
         print(
-            f"  表{i}: "
+            f"  表{table_index}: "
             f"x={table['x']}, "
             f"y={table['y']}, "
             f"width={table['width']}, "
@@ -3423,35 +521,25 @@ def main():
             flush=True
         )
 
-    # =====================================================
-    # STEP 5
-    #
-    # 表セルOCRを本文候補から除外
-    # =====================================================
+    print(
+        "========== 表領域生成終了 ==========",
+        flush=True
+    )
+
+    # -----------------------------------------------------
+    # 表セル内のOCRを本文判定から除外
+    # -----------------------------------------------------
+
+    body_results = remove_table_ocr(
+        results,
+        analyzed_cell_regions
+    )
 
     print()
     print(
-        "##################################################"
+        "========== 本文OCR候補作成 ==========",
+        flush=True
     )
-    print(
-        "# STEP 5 : 表OCR除外"
-    )
-    print(
-        "##################################################"
-    )
-
-    if analyzed_cell_regions:
-
-        body_results = remove_table_ocr(
-            results,
-            classified_table_regions
-        )
-
-    else:
-
-        body_results = list(
-            results
-        )
 
     print(
         f"全OCR数: {len(results)}",
@@ -3459,16 +547,16 @@ def main():
     )
 
     print(
-        f"表セルOCR除外後: "
-        f"{len(body_results)}",
+        f"表セル内OCR除外後: {len(body_results)}",
         flush=True
     )
 
-    # =====================================================
-    # STEP 6
+    # -----------------------------------------------------
+    # 表見出しを抽出
     #
-    # 表見出し抽出
-    # =====================================================
+    # 表の直上にあるOCRだけを表見出し候補とする。
+    # 表の下にあるOCRは表へ取り込まず、本文候補として残す。
+    # -----------------------------------------------------
 
     table_captions = extract_table_captions(
         body_results,
@@ -3477,30 +565,17 @@ def main():
 
     print()
     print(
-        "##################################################"
-    )
-    print(
-        "# STEP 6 : 表見出し判定"
-    )
-    print(
-        "##################################################"
+        "========== 表見出し判定 ==========",
+        flush=True
     )
 
     caption_ids = set()
 
     for item in table_captions:
+        table_index = item["table_index"]
+        caption = item["ocr"]
 
-        table_index = item[
-            "table_index"
-        ]
-
-        caption = item[
-            "ocr"
-        ]
-
-        caption_ids.add(
-            id(caption)
-        )
+        caption_ids.add(id(caption))
 
         print(
             f"表{table_index} 見出し候補: "
@@ -3510,25 +585,16 @@ def main():
             flush=True
         )
 
-    if not table_captions:
-
-        print(
-            "表見出し候補はありません。",
-            flush=True
-        )
-
-    # =====================================================
-    # 表見出しを本文候補から除外
-    # =====================================================
+    # -----------------------------------------------------
+    # 表見出しを除いた本文候補
+    #
+    # 表の下にある本文OCRはここに残る。
+    # -----------------------------------------------------
 
     body_results_without_captions = [
-
         ocr
-
         for ocr in body_results
-
-        if id(ocr)
-        not in caption_ids
+        if id(ocr) not in caption_ids
     ]
 
     print(
@@ -3537,100 +603,48 @@ def main():
         flush=True
     )
 
-    # =====================================================
-    # STEP 7
-    #
-    # 本文領域生成
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 7 : 本文領域生成"
-    )
-    print(
-        "##################################################"
-    )
-
-    print(
-        f"本文方向設定: "
-        f"{body_orientation}",
-        flush=True
-    )
+    # -----------------------------------------------------
+    # 表以外のOCRから本文領域を生成
+    # -----------------------------------------------------
 
     body_regions = create_body_regions(
-        body_results_without_captions,
-        body_orientation
+        body_results_without_captions
     )
 
     print(
-        f"本文領域数: "
-        f"{len(body_regions)}",
+        f"本文領域数: {len(body_regions)}",
         flush=True
     )
 
     for region in body_regions:
-
         print(
             f"  {region['name']}: "
             f"x={region['x']}, "
             f"y={region['y']}, "
             f"width={region['width']}, "
             f"height={region['height']}, "
-            f"orientation="
-            f"{region.get('orientation')}, "
-            f"ocr_count="
-            f"{region.get('ocr_count')}",
+            f"orientation={region.get('orientation')}, "
+            f"ocr_count={region.get('ocr_count')}",
             flush=True
         )
 
-    # =====================================================
-    # STEP 8
-    #
-    # 最終領域
-    # =====================================================
+    print(
+        "========== 本文OCR候補作成終了 ==========",
+        flush=True
+    )
 
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 8 : 最終自動領域"
-    )
-    print(
-        "##################################################"
-    )
+    # -----------------------------------------------------
+    # 表領域 + 本文領域
+    # -----------------------------------------------------
 
     regions = (
         table_regions
         + body_regions
     )
 
-    print(
-        f"最終領域数: "
-        f"{len(regions)}",
-        flush=True
-    )
-
-    for region in regions:
-
-        print(
-            f"  {region['name']}: "
-            f"x={region['x']}, "
-            f"y={region['y']}, "
-            f"width={region['width']}, "
-            f"height={region['height']}, "
-            f"type={region['type']}",
-            flush=True
-        )
-
-    # =====================================================
-    # STEP 9
-    #
+    # -----------------------------------------------------
     # auto_layout.json
-    # =====================================================
+    # -----------------------------------------------------
 
     layout_result = {
 
@@ -3638,22 +652,15 @@ def main():
             image_path
         ),
 
-        "image_width": int(
-            image_width
-        ),
+        "image_width": image_width,
 
-        "image_height": int(
-            image_height
-        ),
+        "image_height": image_height,
 
-        "body_orientation":
-            body_orientation,
-
-        "regions":
-            regions
+        "regions": regions
     }
 
     layout_json = (
+
         output_dir
         / "auto_layout.json"
     )
@@ -3664,16 +671,15 @@ def main():
     ) as f:
 
         json.dump(
+
             layout_result,
+
             f,
+
             ensure_ascii=False,
+
             indent=2
         )
-
-    print()
-    print(
-        "##################################################"
-    )
 
     print(
         f"自動レイアウトJSON: "
@@ -3687,144 +693,29 @@ def main():
         flush=True
     )
 
-    print(
-        "##################################################"
-    )
+    # -----------------------------------------------------
+    # 領域表示
+    # -----------------------------------------------------
 
-    print()
-    print(
-        "========== 自動領域解析完了 ==========",
-        flush=True
-    )
+    for region in regions:
+
+        print(
+
+            f"  {region['name']}: "
+
+            f"x={region['x']}, "
+
+            f"y={region['y']}, "
+
+            f"width={region['width']}, "
+
+            f"height={region['height']}, "
+
+            f"type={region['type']}",
+
+            flush=True
+        )
     
-    # =====================================================
-    # STEP 10
-    #
-    # 最終OCR所属確定
-    # =====================================================
-
-    print()
-    print(
-        "##################################################"
-    )
-    print(
-        "# STEP 10 : 最終OCR所属確定"
-    )
-    print(
-        "##################################################"
-    )
-
-    # -----------------------------------------------------
-    # 表見出し
-    # -----------------------------------------------------
-
-    final_table_captions = []
-
-    for item in table_captions:
-
-        ocr = item.get("ocr")
-
-        if ocr is not None:
-
-            final_table_captions.append({
-                "table_index":
-                    item["table_index"],
-                "ocr":
-                    ocr
-            })
-
-    # -----------------------------------------------------
-    # 本文OCR
-    # -----------------------------------------------------
-
-    final_body_ocr = list(
-        body_results_without_captions
-    )
-
-    # -----------------------------------------------------
-    # 表セルOCR
-    #
-    # table_regions の各セルには、すでに
-    # OCRが格納されている。
-    # -----------------------------------------------------
-
-    final_table_cells = []
-
-    assigned_ocr_ids = set()
-
-    for table in table_regions:
-
-        for cell in table.get("cells", []):
-
-            for ocr in cell.get("ocr", []):
-
-                ocr_id = ocr.get("id")
-
-                # -----------------------------------------
-                # 同じOCRを二重登録しない
-                # -----------------------------------------
-
-                if ocr_id is not None:
-
-                    if ocr_id in assigned_ocr_ids:
-                        continue
-
-                    assigned_ocr_ids.add(
-                        ocr_id
-                    )
-
-                final_table_cells.append({
-
-                    "table_name":
-                        table["name"],
-
-                    "row":
-                        cell["row"],
-
-                    "column":
-                        cell["column"],
-
-                    "ocr":
-                        ocr
-                })
-
-    # -----------------------------------------------------
-    # 最終結果
-    # -----------------------------------------------------
-
-    final_ocr_result = {
-
-        "table_cells":
-            final_table_cells,
-
-        "table_captions":
-            final_table_captions,
-
-        "body":
-            final_body_ocr
-    }
-
-    # -----------------------------------------------------
-    # 確認表示
-    # -----------------------------------------------------
-
-    print(
-        f"表セルOCR数: "
-        f"{len(final_table_cells)}",
-        flush=True
-    )
-
-    print(
-        f"表見出しOCR数: "
-        f"{len(final_table_captions)}",
-        flush=True
-    )
-
-    print(
-        f"本文OCR数: "
-        f"{len(final_body_ocr)}",
-        flush=True
-    )
 
 # =========================================================
 # プログラム開始
