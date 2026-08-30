@@ -1,13 +1,14 @@
+﻿using PdfiumViewer;
 using System;
-using System.Drawing;
-using System.Windows.Forms;
-using PdfiumViewer;
-using System.Text.Json;
-using System.Diagnostics;
-using System.IO;
 using System.Collections.Generic;
-using PdfiumViewer;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace OCR_Translator
 {
@@ -16,8 +17,12 @@ namespace OCR_Translator
         // PDF関連
         private PdfDocument? pdfDocument;
         private int currentPage = 0;
-        private string? currentPdfPath;     
+        private string? currentPdfPath;
 
+        private DataGridView? dgvOcrTable;
+        private TabControl? tabOcrResult;
+        private TabPage? tabOcrText;
+        private TabPage? tabOcrTable;
         public class OcrRegion
         {
             public string Name { get; set; } = "本文";
@@ -84,11 +89,17 @@ namespace OCR_Translator
 
                 oldImage?.Dispose();
                                 
-            }
+            
+                UpdatePageDisplayTitle();
+                pictureBox1.Invalidate();
+}
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "ページを表示できませんでした。\n\n" + ex.Message,
+                    "ページを表示できませんでした。"
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + ex.Message,
                     "PDF表示エラー",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
@@ -113,14 +124,21 @@ namespace OCR_Translator
             };
         }
 
+        // 現在表示しているページの領域
         private List<OcrRegion> regions = new List<OcrRegion>();
-        
-        // ページごとのOCR領域
-        // キーは0始まりのPDFページ番号
+
+        // ページごとの領域設定
+        // キーは PDF のページ番号（0始まり）
         private Dictionary<int, List<OcrRegion>> pageRegions =
             new Dictionary<int, List<OcrRegion>>();
 
-        private bool isDrawingRegion = false;
+        // 自動領域判定結果（ページ単位）
+        // ユーザーが補正したページ設定 pageRegions を最優先し、
+        // 未補正ページではこの自動判定結果を表示する。
+        private Dictionary<int, List<OcrRegion>> autoPageRegions =
+            new Dictionary<int, List<OcrRegion>>();
+
+private bool isDrawingRegion = false;
         private Point regionStartPoint;
         private Rectangle regionPreviewRectangle;
 
@@ -149,9 +167,24 @@ namespace OCR_Translator
 
         private const int ResizeHandleSize = 8;
 
+        private bool isUpdatingRegionTypeCombo = false;
+
+
+
         public Form1()
         {
             InitializeComponent();
+            InitializeOcrResultView();
+
+            cmbRegionType.SelectedIndexChanged += cmbRegionType_SelectedIndexChanged;
+
+            // Designer.cs のイベント接続状態に依存しないよう明示的に接続
+            btnStartOcr.Click -= btnStartOcr_Click;
+            btnStartOcr.Click += btnStartOcr_Click;
+
+            // 全ページの自動領域判定
+            btnAutoLayout.Click -= btnAutoLayout_Click;
+            btnAutoLayout.Click += btnAutoLayout_Click;
         }
 
         // =========================================================
@@ -171,74 +204,128 @@ namespace OCR_Translator
             };
         }
 
-        private List<OcrRegion> CloneRegions(
-            IEnumerable<OcrRegion> source)
+        private List<OcrRegion> CloneRegions(IEnumerable<OcrRegion> source)
         {
-            return source
-                .Select(CloneRegion)
-                .ToList();
+            return source.Select(CloneRegion).ToList();
         }
 
-
-        // 現在ページの領域を保存
         private void SaveCurrentPageRegions()
         {
             if (pdfDocument == null)
                 return;
 
-            pageRegions[currentPage] =
-                CloneRegions(regions);
+            // すでにユーザー補正済みとして保存されているページは、
+            // 現在の regions をそのまま保存する。
+            if (pageRegions.ContainsKey(currentPage))
+            {
+                pageRegions[currentPage] = CloneRegions(regions);
+                return;
+            }
+
+            // 自動判定結果が存在する場合は、
+            // 現在の regions と自動判定結果を比較する。
+            // 同一なら、まだユーザー補正されていないと判断して保存しない。
+            if (autoPageRegions.TryGetValue(
+                currentPage,
+                out List<OcrRegion>? autoRegions))
+            {
+                if (AreRegionsEqual(regions, autoRegions))
+                {
+                    return;
+                }
+            }
+
+            // 自動判定結果と異なる場合は、
+            // ユーザーが補正したものとして保存する。
+            pageRegions[currentPage] = CloneRegions(regions);
         }
 
+        private bool AreRegionsEqual(
+            List<OcrRegion> regions1,
+            List<OcrRegion> regions2)
+        {
+            if (regions1.Count != regions2.Count)
+                return false;
 
-        // 指定ページの領域を画面へ復元
+            for (int i = 0; i < regions1.Count; i++)
+            {
+                OcrRegion a = regions1[i];
+                OcrRegion b = regions2[i];
+
+                if (a.X != b.X ||
+                    a.Y != b.Y ||
+                    a.Width != b.Width ||
+                    a.Height != b.Height ||
+                    a.Type != b.Type)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         private void LoadCurrentPageRegions()
         {
             regions.Clear();
-            lstRegions.Items.Clear();
 
+            // ユーザーが保存・補正した領域を最優先する。
             if (pageRegions.TryGetValue(
                 currentPage,
                 out List<OcrRegion>? savedRegions))
             {
-                regions.AddRange(
-                    CloneRegions(savedRegions));
+                regions.AddRange(CloneRegions(savedRegions));
+            }
+            // ユーザー設定がないページは自動判定結果を表示する。
+            else if (autoPageRegions.TryGetValue(
+                currentPage,
+                out List<OcrRegion>? autoRegions))
+            {
+                regions.AddRange(CloneRegions(autoRegions));
+            }
 
-                foreach (OcrRegion region in regions)
-                {
-                    lstRegions.Items.Add(region.Name);
-                }
+            RefreshRegionList();
+        }
 
-                if (regions.Count > 0)
-                {
-                    lstRegions.SelectedIndex = 0;
-                }
+        private void RefreshRegionList()
+        {
+            lstRegions.Items.Clear();
+
+            foreach (OcrRegion region in regions)
+            {
+                lstRegions.Items.Add(region.Name);
+            }
+
+            if (regions.Count > 0)
+            {
+                lstRegions.SelectedIndex = 0;
             }
 
             pictureBox1.Invalidate();
         }
 
+        private void UpdatePageDisplayTitle()
+        {
+            if (pdfDocument == null)
+                return;
 
-        // ページ移動
+            Text =
+                $"OCR Translator - {currentPage + 1}/{pdfDocument.PageCount}";
+        }
+
         private void SwitchToPage(int pageIndex)
         {
             if (pdfDocument == null)
                 return;
 
-            if (pageIndex < 0 ||
-                pageIndex >= pdfDocument.PageCount)
+            if (pageIndex < 0 || pageIndex >= pdfDocument.PageCount)
                 return;
 
-            // 現在ページの編集内容を保存
             SaveCurrentPageRegions();
 
-            // ページ変更
             currentPage = pageIndex;
 
-            // 移動先ページの領域を復元
             LoadCurrentPageRegions();
 
-            // ページ画像を表示
             ShowCurrentPage();
         }
 
@@ -268,8 +355,9 @@ namespace OCR_Translator
 
                 currentPdfPath = dialog.FileName;
 
-                // 新しいPDFなので、前のPDFのページ設定を破棄
+                // 新しいPDFなので、前のPDFのページ別設定を破棄
                 pageRegions.Clear();
+                autoPageRegions.Clear();
                 regions.Clear();
                 lstRegions.Items.Clear();
 
@@ -279,7 +367,7 @@ namespace OCR_Translator
                 // 最初のページ
                 currentPage = 0;
 
-                // 1ページ目の領域を復元
+                // 最初のページの領域を読み込む
                 LoadCurrentPageRegions();
 
                 // ページを表示
@@ -288,8 +376,11 @@ namespace OCR_Translator
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "PDFを開けませんでした。\n\n" + ex.Message,
-                    "PDFエラー",
+                    "ページを表示できませんでした。"
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + ex.Message,
+                    "PDF表示エラー",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
@@ -331,6 +422,60 @@ namespace OCR_Translator
             }
         }
 
+        private void InitializeOcrResultView()
+        {
+            // 右側OCR表示領域をタブ化する。
+            tabOcrResult = new TabControl
+            {
+                Dock = DockStyle.Fill
+            };
+
+            tabOcrText = new TabPage("OCR結果");
+            tabOcrTable = new TabPage("表");
+
+            // 現在のRichTextBoxをOCR結果タブへ移動する。
+            tableLayoutPanel1.Controls.Remove(richTextBox1);
+
+            richTextBox1.Dock = DockStyle.Fill;
+
+            tabOcrText.Controls.Add(richTextBox1);
+
+            // 表表示用DataGridView
+            dgvOcrTable = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AllowUserToResizeRows = true,
+                RowHeadersVisible = false,
+                AutoSizeRowsMode =
+                    DataGridViewAutoSizeRowsMode.AllCells,
+                AutoSizeColumnsMode =
+                    DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode =
+                    DataGridViewSelectionMode.CellSelect,
+                MultiSelect = false
+            };
+
+            dgvOcrTable.DefaultCellStyle.WrapMode =
+                DataGridViewTriState.True;
+
+            tabOcrTable.Controls.Add(dgvOcrTable);
+
+            tabOcrResult.TabPages.Add(tabOcrText);
+            tabOcrResult.TabPages.Add(tabOcrTable);
+
+            // 右側セルにTabControlを1つだけ配置する。
+            tableLayoutPanel1.Controls.Add(
+                tabOcrResult,
+                1,
+                0);
+        }
+
+        // 
+        // btnRegionSettings
+        // 
         private void btnAddRegion_Click(object sender, EventArgs e)
         {
             OcrRegion region = new OcrRegion
@@ -354,59 +499,74 @@ namespace OCR_Translator
         {
             int index = lstRegions.SelectedIndex;
 
-            if (index < 0)
-                return;
+            if (index < 0 || index >= regions.Count)
+            {
+                MessageBox.Show(
+                    "削除する領域を選択してください。",
+                    "領域未選択",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
 
+                return;
+            }
+
+            // 現在選択されている領域を削除
             regions.RemoveAt(index);
             lstRegions.Items.RemoveAt(index);
+
+            // 現在ページの領域情報を更新
+            pageRegions[currentPage] = CloneRegions(regions);
+
+            // 選択状態を解除
+            lstRegions.ClearSelected();
+
+            // 数値入力欄をクリア
+            numX.Value = 0;
+            numY.Value = 0;
+            numWidth.Value = 0;
+            numHeight.Value = 0;
+
+            // 画像を再描画
+            pictureBox1.Invalidate();
         }
 
-        private void btnSaveLayout_Click(
-    object sender,
-    EventArgs e)
+        private void btnSaveLayout_Click(object sender, EventArgs e)
         {
-            // 現在ページの最新状態を保存
             SaveCurrentPageRegions();
 
             PageLayout layout = new PageLayout();
 
             layout.Template.Name = "縦書き本文";
+            layout.Template.Regions = new List<OcrRegion>();
 
-            // 全ページの領域を保存
-            foreach (KeyValuePair<int, List<OcrRegion>> pair
-                     in pageRegions)
+            foreach (KeyValuePair<int, List<OcrRegion>> pair in pageRegions)
             {
-                string pageKey =
-                    (pair.Key + 1).ToString();
+                string pageKey = (pair.Key + 1).ToString();
 
-                layout.Pages[pageKey] =
-                    new PageSettings
-                    {
-                        UseTemplate = false,
-                        Regions =
-                            CloneRegions(pair.Value)
-                    };
+                layout.Pages[pageKey] = new PageSettings
+                {
+                    UseTemplate = false,
+                    Regions = CloneRegions(pair.Value)
+                };
             }
 
-            string json =
-                JsonSerializer.Serialize(
-                    layout,
-                    new JsonSerializerOptions
-                    {
-                        WriteIndented = true
-                    });
+            string json = JsonSerializer.Serialize(
+                layout,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
 
-            string path =
-                Path.Combine(
-                    Application.StartupPath,
-                    "page_layout.json");
+            string path = Path.Combine(
+                Application.StartupPath,
+                "page_layout.json");
 
             File.WriteAllText(path, json);
 
             MessageBox.Show(
                 $"ページ単位の設定を保存しました。\n\n" +
-                $"保存ページ数: {pageRegions.Count}\n\n" +
-                $"ファイル:\n{path}",
+                $"保存ページ数: {pageRegions.Count}\n" +
+                $"ファイル: {path}",
                 "保存完了",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -440,6 +600,8 @@ namespace OCR_Translator
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            SaveCurrentPageRegions();
+
             pdfDocument?.Dispose();
             pdfDocument = null;
 
@@ -464,8 +626,44 @@ namespace OCR_Translator
 
             if (cmbRegionType.Items.Contains(displayName))
             {
-                cmbRegionType.SelectedItem = displayName;
+                isUpdatingRegionTypeCombo = true;
+
+                try
+                {
+                    cmbRegionType.SelectedItem = displayName;
+                }
+                finally
+                {
+                    isUpdatingRegionTypeCombo = false;
+                }
             }
+        }
+
+        private void cmbRegionType_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (isUpdatingRegionTypeCombo)
+                return;
+
+            int index = lstRegions.SelectedIndex;
+
+            if (index < 0 || index >= regions.Count)
+                return;
+
+            string newName = cmbRegionType.Text;
+
+            if (string.IsNullOrWhiteSpace(newName))
+                return;
+
+            OcrRegion region = regions[index];
+
+            region.Name = newName;
+            region.Type = GetRegionType();
+
+            lstRegions.Items[index] = newName;
+
+            pageRegions[currentPage] = CloneRegions(regions);
+
+            pictureBox1.Invalidate();
         }
 
         private void btnUpdateRegion_Click(object sender, EventArgs e)
@@ -495,6 +693,10 @@ namespace OCR_Translator
             lstRegions.Items[index] = region.Name;
 
             lstRegions.SelectedIndex = index;
+
+            // ユーザーが自動判定結果を補正したので、
+            // 現在の領域をユーザー設定として保存する。
+            pageRegions[currentPage] = CloneRegions(regions);
 
             pictureBox1.Invalidate();
         }
@@ -1387,42 +1589,1514 @@ namespace OCR_Translator
             return nearestIndex;
         }
 
-        // =========================================================
-        // OCR開始
-        // =========================================================
-        // 現段階ではGUIからのNDLOCR-Lite本実行はまだ統合しない。
-        // Designerから参照されているイベントをここで受け、
-        // 後のNDLOCR-Lite統合時にこの処理を置き換える。
-        private void btnStartOcr_Click(object? sender, EventArgs e)
+        private sealed class OcrDisplayItem
         {
-            if (pdfDocument == null)
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Width { get; set; }
+            public int Height { get; set; }
+            public bool IsVertical { get; set; }
+            public string Text { get; set; } = "";
+        }
+
+        private sealed class AutoLayoutRegion
+        {
+            public string Name { get; set; } = "";
+            public string Type { get; set; } = "";
+
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Width { get; set; }
+            public int Height { get; set; }
+
+            public int Rows { get; set; }
+            public int Columns { get; set; }
+
+            public List<AutoLayoutCell> Cells { get; set; }
+                = new List<AutoLayoutCell>();
+        }
+        private sealed class AutoLayoutCell
+        {
+            public int Row { get; set; }
+            public int Column { get; set; }
+
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Width { get; set; }
+            public int Height { get; set; }
+
+            public string Text { get; set; } = "";
+            public int OcrCount { get; set; }
+        }
+
+        // =========================================================
+        // 本文読み順
+        //
+        // 縦書き:
+        //   1. OCRを縦列にグループ化
+        //   2. 列を右 → 左
+        //   3. 各列を上 → 下
+        //
+        // 横書き:
+        //   1. 上 → 下
+        //   2. 同じ位置なら左 → 右
+        // =========================================================
+
+        private List<OcrDisplayItem> SortBodyReadingOrder(
+            List<OcrDisplayItem> items)
+        {
+            if (items.Count <= 1)
+                return new List<OcrDisplayItem>(items);
+
+            int verticalCount =
+                items.Count(item => item.IsVertical);
+
+            bool isVertical =
+                verticalCount * 2 >= items.Count;
+
+            // ---------------------------------------------------------
+            // 横書き本文
+            // ---------------------------------------------------------
+            if (!isVertical)
+            {
+                return items
+                    .OrderBy(item => item.Y)
+                    .ThenBy(item => item.X)
+                    .ToList();
+            }
+
+            // ---------------------------------------------------------
+            // 縦書き本文
+            //
+            // OCRの中心Xを基準に縦列を作る。
+            // ---------------------------------------------------------
+
+            var columns =
+                new List<List<OcrDisplayItem>>();
+
+            foreach (OcrDisplayItem item in
+                items.OrderByDescending(
+                    item => item.X + item.Width / 2))
+            {
+                double centerX =
+                    item.X + item.Width / 2.0;
+
+                List<OcrDisplayItem>? targetColumn = null;
+                double bestDistance = double.MaxValue;
+
+                foreach (List<OcrDisplayItem> column in columns)
+                {
+                    double columnCenterX =
+                        column.Average(
+                            x => x.X + x.Width / 2.0);
+
+                    double distance =
+                        Math.Abs(centerX - columnCenterX);
+
+                    double averageWidth =
+                        column.Average(x => x.Width);
+
+                    double tolerance =
+                        Math.Max(
+                            8.0,
+                            Math.Max(
+                                item.Width,
+                                averageWidth) * 1.5);
+
+                    if (distance <= tolerance &&
+                        distance < bestDistance)
+                    {
+                        targetColumn = column;
+                        bestDistance = distance;
+                    }
+                }
+
+                if (targetColumn == null)
+                {
+                    targetColumn =
+                        new List<OcrDisplayItem>();
+
+                    columns.Add(targetColumn);
+                }
+
+                targetColumn.Add(item);
+            }
+
+            // ---------------------------------------------------------
+            // 各縦列は上 → 下
+            // ---------------------------------------------------------
+
+            foreach (List<OcrDisplayItem> column in columns)
+            {
+                column.Sort(
+                    (a, b) =>
+                    {
+                        int result =
+                            a.Y.CompareTo(b.Y);
+
+                        if (result != 0)
+                            return result;
+
+                        return a.X.CompareTo(b.X);
+                    });
+            }
+
+            // ---------------------------------------------------------
+            // 縦列そのものは右 → 左
+            // ---------------------------------------------------------
+
+            columns.Sort(
+                (a, b) =>
+                {
+                    double aX =
+                        a.Average(
+                            x => x.X + x.Width / 2.0);
+
+                    double bX =
+                        b.Average(
+                            x => x.X + x.Width / 2.0);
+
+                    return bX.CompareTo(aX);
+                });
+
+            return columns
+                .SelectMany(column => column)
+                .ToList();
+        }
+
+        // =========================================================
+        // OCR結果表示用の表内部読み順
+        //
+        // ユーザー指定の「表」領域に属するOCRだけを対象とする。
+        // 本文・脚注など、表以外の項目の順序は変更しない。
+        //
+        // 表では単純な Y 座標による「行」判定を行わない。
+        // OCRの文字列ブロックが複数段に分かれた場合でも、
+        // X方向の位置関係を基準に表内部のまとまりを作る。
+        //
+        // ※文字列内容による特別扱いは行わない。
+        // =========================================================
+        private List<OcrDisplayItem> SortTableItemsForDisplay(
+            List<OcrDisplayItem> items,
+            List<OcrRegion> userRegions,
+            bool useUserRegions,
+            List<AutoLayoutRegion> autoRegions)
+        {
+            if (items.Count <= 1)
+                return new List<OcrDisplayItem>(items);
+
+            string GetTypeForItem(OcrDisplayItem item)
+            {
+                return useUserRegions
+                    ? FindUserRegionType(item, userRegions)
+                    : FindAutoLayoutRegionType(item, autoRegions);
+            }
+
+            // ---------------------------------------------------------
+            // 表OCRだけを抽出
+            // ---------------------------------------------------------
+
+            List<OcrDisplayItem> tableItems = items
+                .Where(item => GetTypeForItem(item) == "table")
+                .ToList();
+
+            if (tableItems.Count <= 1)
+                return new List<OcrDisplayItem>(items);
+
+            // ---------------------------------------------------------
+            // 表内部のX方向グループを作る
+            //
+            // OCRボックスの中心Xを基準にする。
+            // ただし、固定の座標値には依存しない。
+            // ---------------------------------------------------------
+
+            var columns = new List<List<OcrDisplayItem>>();
+
+            foreach (OcrDisplayItem item in tableItems
+                .OrderBy(item => item.X + item.Width / 2.0)
+                .ThenBy(item => item.Y))
+            {
+                double itemCenterX =
+                    item.X + item.Width / 2.0;
+
+                List<OcrDisplayItem>? targetColumn = null;
+                double bestDistance = double.MaxValue;
+
+                foreach (List<OcrDisplayItem> column in columns)
+                {
+                    double columnCenterX =
+                        column.Average(
+                            x => x.X + x.Width / 2.0);
+
+                    double averageWidth =
+                        column.Count == 0
+                            ? Math.Max(1, item.Width)
+                            : column.Average(
+                                x => Math.Max(1, x.Width));
+
+                    // OCRボックス幅を基準にした相対許容値
+                    double tolerance =
+                        Math.Max(4.0, averageWidth * 0.8);
+
+                    double distance =
+                        Math.Abs(itemCenterX - columnCenterX);
+
+                    if (distance <= tolerance &&
+                        distance < bestDistance)
+                    {
+                        targetColumn = column;
+                        bestDistance = distance;
+                    }
+                }
+
+                if (targetColumn == null)
+                {
+                    targetColumn =
+                        new List<OcrDisplayItem>();
+
+                    columns.Add(targetColumn);
+                }
+
+                targetColumn.Add(item);
+            }
+
+            // ---------------------------------------------------------
+            // 各X列の内部は上→下
+            // ---------------------------------------------------------
+
+            foreach (List<OcrDisplayItem> column in columns)
+            {
+                column.Sort((a, b) =>
+                {
+                    int result =
+                        a.Y.CompareTo(b.Y);
+
+                    if (result != 0)
+                        return result;
+
+                    return a.X.CompareTo(b.X);
+                });
+            }
+
+            // ---------------------------------------------------------
+            // X列を左→右に並べる
+            //
+            // 表が通常の横書き表の場合はこちら。
+            // ---------------------------------------------------------
+
+            columns.Sort((a, b) =>
+            {
+                double ax =
+                    a.Average(
+                        x => x.X + x.Width / 2.0);
+
+                double bx =
+                    b.Average(
+                        x => x.X + x.Width / 2.0);
+
+                return ax.CompareTo(bx);
+            });
+
+            // ---------------------------------------------------------
+            // 表項目を完成
+            // ---------------------------------------------------------
+
+            List<OcrDisplayItem> sortedTableItems =
+                columns
+                    .SelectMany(column => column)
+                    .ToList();
+
+            // ---------------------------------------------------------
+            // 元のOCRリストでは、表項目の位置だけを置換。
+            // 本文など他の領域の順序は変更しない。
+            // ---------------------------------------------------------
+
+            List<OcrDisplayItem> result =
+                new List<OcrDisplayItem>(items);
+
+            int tableIndex = 0;
+
+            for (int i = 0; i < result.Count; i++)
+            {
+                if (GetTypeForItem(result[i]) == "table")
+                {
+                    result[i] =
+                        sortedTableItems[tableIndex];
+
+                    tableIndex++;
+                }
+            }
+
+            return result;
+        }
+
+        private void CreateOcrTableView()
+        {
+            if (dgvOcrTable != null)
+            {
+                return;
+            }
+
+            dgvOcrTable = new DataGridView
+            {
+                Name = "dgvOcrTable",
+                Dock = DockStyle.Fill,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AllowUserToResizeRows = true,
+                ReadOnly = true,
+                RowHeadersVisible = false,
+                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
+                SelectionMode = DataGridViewSelectionMode.CellSelect,
+                MultiSelect = false
+            };
+
+            dgvOcrTable.ColumnHeadersDefaultCellStyle.Alignment =
+                DataGridViewContentAlignment.MiddleCenter;
+
+            dgvOcrTable.DefaultCellStyle.WrapMode =
+                DataGridViewTriState.True;
+
+            dgvOcrTable.Visible = false;
+
+            tableLayoutPanel1.Controls.Add(dgvOcrTable, 1, 0);
+        }
+
+        private void DisplayOcrTable(
+    List<OcrDisplayItem> tableItems)
+        {
+            if (dgvOcrTable == null)
+                return;
+
+            dgvOcrTable.Columns.Clear();
+            dgvOcrTable.Rows.Clear();
+
+            if (tableItems.Count == 0)
+                return;
+
+            dgvOcrTable.Columns.Add(
+                "Index",
+                "No.");
+
+            dgvOcrTable.Columns.Add(
+                "Text",
+                "OCR結果");
+
+            for (int i = 0; i < tableItems.Count; i++)
+            {
+                OcrDisplayItem item = tableItems[i];
+
+                dgvOcrTable.Rows.Add(
+                    i + 1,
+                    item.Text);
+            }
+
+            dgvOcrTable.Columns["Index"]!.FillWeight = 15;
+            dgvOcrTable.Columns["Text"]!.FillWeight = 85;
+        }
+
+        private void DisplayDetectedTables(
+    List<AutoLayoutRegion> autoRegions)
+        {
+            if (tabOcrTable == null)
+                return;
+
+            tabOcrTable.Controls.Clear();
+
+            TabControl tableTabs = new TabControl
+            {
+                Dock = DockStyle.Fill
+            };
+
+            List<AutoLayoutRegion> tables =
+                autoRegions
+                    .Where(r =>
+                        string.Equals(
+                            r.Type,
+                            "table",
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+            if (tables.Count == 0)
+            {
+                Label label = new Label
+                {
+                    Dock = DockStyle.Fill,
+                    Text = "検出された表はありません。",
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+
+                tabOcrTable.Controls.Add(label);
+                return;
+            }
+
+            for (int tableIndex = 0;
+                 tableIndex < tables.Count;
+                 tableIndex++)
+            {
+                AutoLayoutRegion table =
+                    tables[tableIndex];
+
+                TabPage page = new TabPage(
+                    string.IsNullOrWhiteSpace(table.Name)
+                        ? $"表{tableIndex + 1}"
+                        : table.Name);
+
+                DataGridView grid =
+                    CreateTableGrid(table);
+
+                page.Controls.Add(grid);
+
+                tableTabs.TabPages.Add(page);
+            }
+
+            tabOcrTable.Controls.Add(tableTabs);
+        }
+
+        private DataGridView CreateTableGrid(
+    AutoLayoutRegion table)
+        {
+            DataGridView grid = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                RowHeadersVisible = false,
+                AutoSizeRowsMode =
+                    DataGridViewAutoSizeRowsMode.AllCells,
+                AutoSizeColumnsMode =
+                    DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode =
+                    DataGridViewSelectionMode.CellSelect,
+                MultiSelect = false
+            };
+
+            grid.DefaultCellStyle.WrapMode =
+                DataGridViewTriState.True;
+
+            int rows = table.Rows;
+            int columns = table.Columns;
+
+            if (rows <= 0 || columns <= 0)
+            {
+                if (table.Cells.Count > 0)
+                {
+                    rows = table.Cells.Max(c => c.Row);
+                    columns = table.Cells.Max(c => c.Column);
+                }
+            }
+
+            if (rows <= 0 || columns <= 0)
+                return grid;
+
+            for (int column = 1;
+                 column <= columns;
+                 column++)
+            {
+                grid.Columns.Add(
+                    $"Column{column}",
+                    $"列{column}");
+            }
+
+            grid.Rows.Add(rows);
+
+            foreach (AutoLayoutCell cell in table.Cells)
+            {
+                int rowIndex = cell.Row - 1;
+                int columnIndex = cell.Column - 1;
+
+                if (rowIndex < 0 ||
+                    rowIndex >= grid.Rows.Count)
+                    continue;
+
+                if (columnIndex < 0 ||
+                    columnIndex >= grid.Columns.Count)
+                    continue;
+
+                grid.Rows[rowIndex]
+                    .Cells[columnIndex]
+                    .Value = cell.Text;
+            }
+
+            return grid;
+        }
+        // =========================================================
+        // 全ページ自動領域判定
+        //
+        // PDFを開いた後、OCR開始とは別に実行する。
+        // 全ページについて NDLOCR-Lite + ndlocr_auto_region.py を実行し、
+        // auto_layout.json をページ単位で保存する。
+        // ユーザーが補正済みの pageRegions は上書きしない。
+        // =========================================================
+        private async void btnAutoLayout_Click(object? sender, EventArgs e)
+        {
+            if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
             {
                 MessageBox.Show(
                     "先にPDFを開いてください。",
-                    "OCR開始",
+                    "領域自動判定",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
 
-            MessageBox.Show(
-                "OCR開始処理は次の段階でNDLOCR-Liteに接続します。",
-                "OCR開始",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            string projectDir = FindOcrEngineDirectory();
+            string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
+            string autoRegionScript = Path.Combine(projectDir, "ndlocr_auto_region.py");
+
+            if (!File.Exists(pythonExe))
+            {
+                MessageBox.Show(
+                    $"Pythonが見つかりません。\n{pythonExe}",
+                    "領域自動判定",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!File.Exists(autoRegionScript))
+            {
+                MessageBox.Show(
+                    $"自動領域判定スクリプトが見つかりません。\n{autoRegionScript}",
+                    "領域自動判定",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            string pdfName = Path.GetFileNameWithoutExtension(currentPdfPath);
+            string outputRoot = Path.Combine(
+                projectDir,
+                "ocr_results",
+                pdfName);
+
+            Directory.CreateDirectory(outputRoot);
+
+            int originalPage = currentPage;
+            int successCount = 0;
+            int failureCount = 0;
+            ProgressForm? progressForm = null;
+
+            try
+            {
+                btnAutoLayout.Enabled = false;
+                btnStartOcr.Enabled = false;
+                btnOpenPdf.Enabled = false;
+                btnPrevPage.Enabled = false;
+                btnNextPage.Enabled = false;
+                Cursor = Cursors.WaitCursor;
+
+                // 全ページ処理中の状態を専用ウィンドウで表示する。
+                progressForm = new ProgressForm(pdfDocument.PageCount);
+                progressForm.StartPosition = FormStartPosition.CenterParent;
+                progressForm.Show(this);
+                progressForm.UpdateProgress(0, pdfDocument.PageCount, "準備中...");
+
+                richTextBox1.Clear();
+                richTextBox1.AppendText("========== 全ページ領域自動判定 ==========" + Environment.NewLine);
+                richTextBox1.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
+                richTextBox1.AppendText($"ページ数: {pdfDocument.PageCount}" + Environment.NewLine + Environment.NewLine);
+
+                // 既存の自動判定結果をクリアする。
+                // ユーザー補正済み pageRegions は保持する。
+                autoPageRegions.Clear();
+
+                for (int pageIndex = 0; pageIndex < pdfDocument.PageCount; pageIndex++)
+                {
+                    string pageMessage =
+                        $"ページ {pageIndex + 1} / {pdfDocument.PageCount} を処理しています...";
+
+                    richTextBox1.AppendText(
+                        $"---------- {pageIndex + 1}/{pdfDocument.PageCount} ページ ----------" +
+                        Environment.NewLine);
+                    richTextBox1.AppendText(pageMessage + Environment.NewLine);
+                    richTextBox1.Refresh();
+                    progressForm?.UpdateProgress(
+                        pageIndex,
+                        pdfDocument.PageCount,
+                        pageMessage + "\r\nNDLOCR-Liteを実行しています。");
+
+                    string pageDir = Path.Combine(
+                        outputRoot,
+                        $"page_{pageIndex + 1:0000}");
+                    Directory.CreateDirectory(pageDir);
+
+                    string imagePath = Path.Combine(pageDir, "page.png");
+                    string resultJson = Path.Combine(pageDir, "auto_layout.json");
+
+                    try
+                    {
+                        const int dpi = 150;
+
+                        using (Image rendered = pdfDocument.Render(
+                            pageIndex,
+                            dpi,
+                            dpi,
+                            PdfRenderFlags.Annotations))
+                        {
+                            rendered.Save(
+                                imagePath,
+                                System.Drawing.Imaging.ImageFormat.Png);
+                        }
+
+                        ProcessResult result = await RunAutoRegionProcessAsync(
+                            pythonExe,
+                            autoRegionScript,
+                            projectDir,
+                            imagePath,
+                            pageDir);
+
+                        string log =
+                            "[STDOUT]\r\n" + result.Stdout +
+                            "\r\n[STDERR]\r\n" + result.Stderr;
+
+                        File.WriteAllText(
+                            Path.Combine(pageDir, "ndlocr_run.log"),
+                            log,
+                            new UTF8Encoding(false));
+
+                        if (result.ExitCode != 0)
+                        {
+                            failureCount++;
+                            richTextBox1.AppendText(
+                                $"失敗: 終了コード {result.ExitCode}" + Environment.NewLine);
+                            progressForm?.UpdateProgress(
+                                pageIndex + 1,
+                                pdfDocument.PageCount,
+                                $"ページ {pageIndex + 1} 失敗\r\n終了コード: {result.ExitCode}");
+                            continue;
+                        }
+
+                        if (!File.Exists(resultJson))
+                        {
+                            failureCount++;
+                            richTextBox1.AppendText(
+                                "失敗: auto_layout.json が生成されませんでした。" + Environment.NewLine);
+                            progressForm?.UpdateProgress(
+                                pageIndex + 1,
+                                pdfDocument.PageCount,
+                                $"ページ {pageIndex + 1} 失敗\r\nauto_layout.json がありません。");
+                            continue;
+                        }
+
+                        List<AutoLayoutRegion> detected =
+                            LoadAutoLayoutJson(resultJson);
+
+                        List<OcrRegion> converted = detected
+                            .Select(ConvertAutoLayoutRegion)
+                            .ToList();
+
+                        autoPageRegions[pageIndex] = converted;
+
+                        successCount++;
+                        richTextBox1.AppendText(
+                            $"成功: 自動領域 {converted.Count}件" + Environment.NewLine);
+                        progressForm?.UpdateProgress(
+                            pageIndex + 1,
+                            pdfDocument.PageCount,
+                            $"ページ {pageIndex + 1} 完了\r\n自動領域 {converted.Count}件");
+                    }
+                    catch (Exception ex)
+                    {
+                        failureCount++;
+                        richTextBox1.AppendText(
+                            "失敗: " + ex.Message + Environment.NewLine);
+                        progressForm?.UpdateProgress(
+                            pageIndex + 1,
+                            pdfDocument.PageCount,
+                            $"ページ {pageIndex + 1} 失敗\r\n{ex.Message}");
+                    }
+                }
+
+                // 現在ページを、ユーザー補正済みならそれを、
+                // 未補正なら自動判定結果を表示する。
+                currentPage = originalPage;
+                LoadCurrentPageRegions();
+                ShowCurrentPage();
+
+                richTextBox1.AppendText(Environment.NewLine);
+                richTextBox1.AppendText("========== 全ページ判定完了 ==========" + Environment.NewLine);
+                richTextBox1.AppendText($"成功: {successCount}ページ" + Environment.NewLine);
+                richTextBox1.AppendText($"失敗: {failureCount}ページ" + Environment.NewLine);
+                richTextBox1.AppendText("左側の枠を確認し、必要なページだけ領域を補正してください。" + Environment.NewLine);
+            }
+            catch (Exception ex)
+            {
+                richTextBox1.AppendText(
+                    Environment.NewLine +
+                    "========== 全ページ判定例外 ==========" + Environment.NewLine +
+                    ex + Environment.NewLine);
+            }
+            finally
+            {
+                if (progressForm != null)
+                {
+                    progressForm.AllowClose = true;
+                    progressForm.Close();
+                    progressForm.Dispose();
+                }
+
+                Cursor = Cursors.Default;
+                btnAutoLayout.Enabled = true;
+                btnStartOcr.Enabled = true;
+                btnOpenPdf.Enabled = true;
+                btnPrevPage.Enabled = true;
+                btnNextPage.Enabled = true;
+            }
+        }
+
+        private sealed class ProcessResult
+        {
+            public int ExitCode { get; init; }
+            public string Stdout { get; init; } = "";
+            public string Stderr { get; init; } = "";
+        }
+
+        private async Task<ProcessResult> RunAutoRegionProcessAsync(
+            string pythonExe,
+            string autoRegionScript,
+            string projectDir,
+            string imagePath,
+            string pageDir)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = pythonExe,
+                WorkingDirectory = projectDir,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8
+            };
+
+            psi.Environment["PYTHONUTF8"] = "1";
+            psi.Environment["PYTHONIOENCODING"] = "utf-8";
+            psi.ArgumentList.Add(autoRegionScript);
+            psi.ArgumentList.Add(imagePath);
+            psi.ArgumentList.Add(pageDir);
+
+            using var process = new Process
+            {
+                StartInfo = psi,
+                EnableRaisingEvents = true
+            };
+
+            var stdout = new StringBuilder();
+            var stderr = new StringBuilder();
+            var completion = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            process.OutputDataReceived += (_, e) =>
+            {
+                if (e.Data != null)
+                    stdout.AppendLine(e.Data);
+            };
+
+            process.ErrorDataReceived += (_, e) =>
+            {
+                if (e.Data != null)
+                    stderr.AppendLine(e.Data);
+            };
+
+            process.Exited += (_, _) =>
+                completion.TrySetResult(process.ExitCode);
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            int exitCode = await completion.Task;
+
+            return new ProcessResult
+            {
+                ExitCode = exitCode,
+                Stdout = stdout.ToString(),
+                Stderr = stderr.ToString()
+            };
+        }
+
+        private OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)
+        {
+            return new OcrRegion
+            {
+                Name = GetRegionDisplayName(source.Type),
+                Type = source.Type,
+                X = source.X,
+                Y = source.Y,
+                Width = source.Width,
+                Height = source.Height
+            };
+        }
+
+        private async void btnStartOcr_Click(object? sender, EventArgs e)
+        {
+            if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
+            {
+                MessageBox.Show("先にPDFを開いてください。", "OCR開始",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // 現在ページのユーザー指定領域を確定する。
+            SaveCurrentPageRegions();
+
+            richTextBox1.Clear();
+            richTextBox1.AppendText("========== OCR開始 ==========\r\n");
+            richTextBox1.AppendText($"現在ページ: {currentPage + 1}\r\n");
+
+            // ---------------------------------------------------------
+            // 重要:
+            // ユーザーが領域を指定している場合は、ユーザー指定を
+            // 最優先とする。自動領域判定は分類には使用しない。
+            // ---------------------------------------------------------
+            bool useUserRegions = regions.Count > 0;
+
+            if (useUserRegions)
+            {
+                richTextBox1.AppendText(
+                    $"ユーザー指定領域: {regions.Count}件\r\n");
+
+                for (int i = 0; i < regions.Count; i++)
+                {
+                    OcrRegion r = regions[i];
+                    richTextBox1.AppendText(
+                        $"  [{i + 1:00}] {r.Name} / {r.Type} " +
+                        $"x={r.X}, y={r.Y}, " +
+                        $"width={r.Width}, height={r.Height}\r\n");
+                }
+            }
+            else
+            {
+                richTextBox1.AppendText(
+                    "ユーザー指定領域がありません。自動領域判定を使用します。\r\n");
+            }
+
+            richTextBox1.AppendText("ページ画像を作成しています...\r\n");
+            richTextBox1.Refresh();
+
+            string projectDir = FindOcrEngineDirectory();
+            string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
+            string autoRegionScript = Path.Combine(projectDir, "ndlocr_auto_region.py");
+
+            if (!File.Exists(pythonExe))
+            {
+                richTextBox1.AppendText($"Pythonが見つかりません: {pythonExe}\r\n");
+                return;
+            }
+
+            if (!File.Exists(autoRegionScript))
+            {
+                richTextBox1.AppendText($"スクリプトが見つかりません: {autoRegionScript}\r\n");
+                return;
+            }
+
+            string pdfName = Path.GetFileNameWithoutExtension(currentPdfPath);
+            string pageDir = Path.Combine(
+                projectDir,
+                "ocr_results",
+                pdfName,
+                $"page_{currentPage + 1:0000}");
+
+            Directory.CreateDirectory(pageDir);
+            string imagePath = Path.Combine(pageDir, "page.png");
+
+            try
+            {
+                btnStartOcr.Enabled = false;
+                Cursor = Cursors.WaitCursor;
+
+                const int dpi = 150;
+                using (Image rendered = pdfDocument.Render(
+                    currentPage,
+                    dpi,
+                    dpi,
+                    PdfRenderFlags.Annotations))
+                {
+                    rendered.Save(
+                        imagePath,
+                        System.Drawing.Imaging.ImageFormat.Png);
+                }
+
+                richTextBox1.AppendText("ページ画像作成完了\r\n");
+                richTextBox1.AppendText("NDLOCR-Liteを実行しています...\r\n");
+                richTextBox1.Refresh();
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = pythonExe,
+                    WorkingDirectory = projectDir,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
+                };
+
+                psi.Environment["PYTHONUTF8"] = "1";
+                psi.Environment["PYTHONIOENCODING"] = "utf-8";
+                psi.ArgumentList.Add(autoRegionScript);
+                psi.ArgumentList.Add(imagePath);
+                psi.ArgumentList.Add(pageDir);
+
+                using var process = new Process
+                {
+                    StartInfo = psi,
+                    EnableRaisingEvents = true
+                };
+
+                var stdout = new StringBuilder();
+                var stderr = new StringBuilder();
+                var completion = new TaskCompletionSource<int>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+
+                process.OutputDataReceived += (_, e) =>
+                {
+                    if (e.Data == null)
+                        return;
+
+                    stdout.AppendLine(e.Data);
+
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        BeginInvoke(new Action(() =>
+                        {
+                            richTextBox1.AppendText(e.Data + "\r\n");
+                            richTextBox1.SelectionStart = richTextBox1.TextLength;
+                            richTextBox1.ScrollToCaret();
+                        }));
+                    }
+                };
+
+                process.ErrorDataReceived += (_, e) =>
+                {
+                    if (e.Data == null)
+                        return;
+
+                    stderr.AppendLine(e.Data);
+
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        BeginInvoke(new Action(() =>
+                        {
+                            richTextBox1.AppendText(
+                                "[ERROR] " + e.Data + "\r\n");
+                            richTextBox1.SelectionStart = richTextBox1.TextLength;
+                            richTextBox1.ScrollToCaret();
+                        }));
+                    }
+                };
+
+                process.Exited += (_, _) =>
+                    completion.TrySetResult(process.ExitCode);
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                int exitCode = await completion.Task;
+
+                string log =
+                    "[STDOUT]\r\n" + stdout +
+                    "\r\n[STDERR]\r\n" + stderr;
+
+                File.WriteAllText(
+                    Path.Combine(pageDir, "ndlocr_run.log"),
+                    log,
+                    new UTF8Encoding(false));
+
+                string pageJson = Path.Combine(
+                    pageDir,
+                    "page.json");
+
+                string resultJson = Path.Combine(
+                    pageDir,
+                    "auto_layout.json");
+
+                richTextBox1.AppendText(
+                    $"\r\nNDLOCR-Lite終了コード: {exitCode}\r\n");
+
+                if (exitCode != 0)
+                {
+                    richTextBox1.AppendText(
+                        "========== OCR失敗 ==========\r\n");
+                    return;
+                }
+
+                if (!File.Exists(pageJson))
+                {
+                    richTextBox1.AppendText(
+                        $"page.json が見つかりません: {pageJson}\r\n");
+                    return;
+                }
+
+                // 自動領域はユーザー指定がない場合だけ必要。
+                if (!useUserRegions && !File.Exists(resultJson))
+                {
+                    richTextBox1.AppendText(
+                        $"auto_layout.json が見つかりません: {resultJson}\r\n");
+                    return;
+                }
+
+                List<OcrDisplayItem> ocrItems =
+                    LoadNdlocrPageJson(pageJson);
+
+                List<AutoLayoutRegion> autoRegions =
+                    useUserRegions
+                        ? new List<AutoLayoutRegion>()
+                        : LoadAutoLayoutJson(resultJson);
+
+                richTextBox1.AppendText(
+                    $"OCR項目数: {ocrItems.Count}\r\n");
+
+                if (useUserRegions)
+                {
+                    richTextBox1.AppendText(
+                        $"領域判定: ユーザー指定領域 ({regions.Count}件)\r\n\r\n");
+                }
+                else
+                {
+                    richTextBox1.AppendText(
+                        $"領域判定: 自動領域 ({autoRegions.Count}件)\r\n\r\n");
+                }
+
+                richTextBox1.AppendText(
+                    "========== OCR結果 ==========\r\n");
+
+                // =========================================================
+                // OCR結果の領域分類
+                //
+                // ユーザー指定領域がある場合:
+                //     必ずユーザー指定領域を使用する。
+                //
+                // 指定がない場合:
+                //     auto_layout.jsonを使用する。
+                // =========================================================
+
+                // NDLOCR-Liteの検出順ではなく、表内部だけは
+                // 表として自然な「上→下、左→右」の順にして表示する。
+                List<OcrDisplayItem> displayItems =
+                    SortTableItemsForDisplay(
+                        ocrItems,
+                        regions,
+                        useUserRegions,
+                        autoRegions);
+
+                for (int i = 0; i < displayItems.Count; i++)
+                {
+                    OcrDisplayItem item = displayItems[i];
+
+                    string type = useUserRegions
+                        ? FindUserRegionType(item, regions)
+                        : FindAutoLayoutRegionType(item, autoRegions);
+
+                    string direction =
+                        item.IsVertical ? "縦" : "横";
+
+                    richTextBox1.AppendText(
+                        $"[{i:00}] [{GetRegionDisplayName(type)}] " +
+                        $"[{direction}] {item.Text}\r\n");
+                }
+
+
+
+                // =========================================================
+                // 表OCRを右側の「表」タブへ表示
+                // =========================================================
+
+                List<OcrDisplayItem> tableItems =
+                    new List<OcrDisplayItem>();
+
+                foreach (OcrDisplayItem item in displayItems)
+                {
+                    string type = useUserRegions
+                        ? FindUserRegionType(item, regions)
+                        : FindAutoLayoutRegionType(item, autoRegions);
+
+                    if (type == "table")
+                    {
+                        tableItems.Add(item);
+                    }
+                }
+
+                richTextBox1.AppendText(
+                    Environment.NewLine +
+                    $"表表示項目数: {tableItems.Count}" +
+                    Environment.NewLine);
+
+                DisplayOcrTable(tableItems);
+
+                DisplayOcrTable(tableItems);
+
+                // =========================================================
+                // 本文OCRだけを抽出
+                // =========================================================
+
+                List<OcrDisplayItem> bodyItems =
+                    new List<OcrDisplayItem>();
+
+                foreach (OcrDisplayItem item in ocrItems)
+                {
+                    string type = useUserRegions
+                        ? FindUserRegionType(item, regions)
+                        : FindAutoLayoutRegionType(item, autoRegions);
+
+                    if (type == "body")
+                    {
+                        bodyItems.Add(item);
+                    }
+                }
+
+                richTextBox1.AppendText(
+                    $"\r\n本文OCR項目数: {bodyItems.Count}\r\n");
+
+                // =========================================================
+                // 本文読み順
+                // =========================================================
+
+                richTextBox1.AppendText(
+                    "\r\n========== 本文読み順 ==========\r\n");
+
+                List<OcrDisplayItem> orderedBody =
+                    SortBodyReadingOrder(bodyItems);
+
+                for (int i = 0; i < orderedBody.Count; i++)
+                {
+                    OcrDisplayItem item = orderedBody[i];
+
+                    richTextBox1.AppendText(
+                        $"[{i + 1:00}] {item.Text}\r\n");
+                }
+
+                // =========================================================
+                // 本文読み順テキストを保存
+                // =========================================================
+
+                string bodyReadingOrderText =
+                    string.Join(
+                        "",
+                        orderedBody.Select(
+                            item => item.Text));
+
+                string bodyReadingOrderPath = Path.Combine(
+                    pageDir,
+                    "body_reading_order.txt");
+
+                File.WriteAllText(
+                    bodyReadingOrderPath,
+                    bodyReadingOrderText,
+                    new UTF8Encoding(false));
+
+                richTextBox1.AppendText(
+                    $"本文読み順結果: {bodyReadingOrderPath}\r\n");
+
+                richTextBox1.AppendText(
+                    "\r\n========== OCR処理完了 ==========\r\n");
+            }
+            catch (Exception ex)
+            {
+                richTextBox1.AppendText(
+                    "\r\n========== OCR例外 ==========\r\n");
+                richTextBox1.AppendText(ex + "\r\n");
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+                btnStartOcr.Enabled = true;
+            }
         }
 
         // =========================================================
-        // Word出力
+        // ユーザー指定領域によるOCR分類
         // =========================================================
-        // OCR結果のWord出力はOCR結果表示機能の実装後に接続する。
-        private void btnExportWord_Click(object? sender, EventArgs e)
+        //
+        // OCR項目の中心点がユーザー指定領域内に入っているかで
+        // 判定する。
+        //
+        // ユーザー指定領域が存在する場合、auto_layout.jsonの
+        // 自動判定結果は一切使用しない。
+        //
+        // 領域外のOCRは「未分類」とし、本文読み順には入れない。
+        // =========================================================
+        private string FindUserRegionType(
+            OcrDisplayItem item,
+            List<OcrRegion> userRegions)
         {
-            MessageBox.Show(
-                "Word出力はOCR結果表示機能の実装後に追加します。",
-                "Word出力",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            int centerX =
+                item.X + item.Width / 2;
+
+            int centerY =
+                item.Y + item.Height / 2;
+
+            foreach (OcrRegion region in userRegions)
+            {
+                if (centerX >= region.X &&
+                    centerX <= region.X + region.Width &&
+                    centerY >= region.Y &&
+                    centerY <= region.Y + region.Height)
+                {
+                    return region.Type;
+                }
+            }
+
+            return "";
+        }
+
+        private List<OcrDisplayItem> LoadNdlocrPageJson(string path)
+        {
+            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
+            var result = new List<OcrDisplayItem>();
+            CollectNdlocrItems(doc.RootElement, result);
+            return result;
+        }
+
+        private void CollectNdlocrItems(JsonElement element, List<OcrDisplayItem> result)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                bool isTextline = false;
+                if (element.TryGetProperty("isTextline", out JsonElement tl))
+                {
+                    isTextline = tl.ValueKind == JsonValueKind.True ||
+                                 (tl.ValueKind == JsonValueKind.String &&
+                                  string.Equals(tl.GetString(), "true", StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (isTextline && TryParseNdlocrItem(element, out OcrDisplayItem? item))
+                {
+                    result.Add(item!);
+                    return;
+                }
+
+                foreach (JsonProperty property in element.EnumerateObject())
+                    CollectNdlocrItems(property.Value, result);
+            }
+            else if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement child in element.EnumerateArray())
+                    CollectNdlocrItems(child, result);
+            }
+        }
+
+        private bool TryParseNdlocrItem(JsonElement obj, out OcrDisplayItem? result)
+        {
+            result = null;
+            if (!obj.TryGetProperty("text", out JsonElement textElement) || textElement.ValueKind != JsonValueKind.String)
+                return false;
+
+            string text = textElement.GetString() ?? "";
+            if (string.IsNullOrWhiteSpace(text)) return false;
+
+            int x = 0, y = 0, width = 0, height = 0;
+            if (obj.TryGetProperty("boundingBox", out JsonElement box) && box.ValueKind == JsonValueKind.Array)
+            {
+                var points = new List<(int X, int Y)>();
+                foreach (JsonElement point in box.EnumerateArray())
+                {
+                    if (point.ValueKind != JsonValueKind.Array) continue;
+                    var values = new List<int>();
+                    foreach (JsonElement value in point.EnumerateArray())
+                    {
+                        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int n))
+                            values.Add(n);
+                    }
+                    if (values.Count >= 2) points.Add((values[0], values[1]));
+                }
+
+                if (points.Count > 0)
+                {
+                    x = points.Min(p => p.X);
+                    y = points.Min(p => p.Y);
+                    width = Math.Max(0, points.Max(p => p.X) - x);
+                    height = Math.Max(0, points.Max(p => p.Y) - y);
+                }
+            }
+
+            bool isVertical = false;
+            if (obj.TryGetProperty("isVertical", out JsonElement vertical))
+            {
+                isVertical = vertical.ValueKind == JsonValueKind.True ||
+                             (vertical.ValueKind == JsonValueKind.String &&
+                              string.Equals(vertical.GetString(), "true", StringComparison.OrdinalIgnoreCase));
+            }
+
+            result = new OcrDisplayItem
+            {
+                X = x, Y = y, Width = width, Height = height,
+                IsVertical = isVertical, Text = text
+            };
+            return true;
+        }
+
+        private List<AutoLayoutRegion> LoadAutoLayoutJson(string path)
+        {
+            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
+            var result = new List<AutoLayoutRegion>();
+            JsonElement root = doc.RootElement;
+            JsonElement regionsElement;
+
+            if (root.TryGetProperty("regions", out regionsElement) && regionsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement item in regionsElement.EnumerateArray()) AddAutoLayoutRegion(item, result);
+                return result;
+            }
+
+            if (root.TryGetProperty("Regions", out regionsElement) && regionsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement item in regionsElement.EnumerateArray()) AddAutoLayoutRegion(item, result);
+            }
+            return result;
+        }
+
+        private void AddAutoLayoutRegion(
+    JsonElement item,
+    List<AutoLayoutRegion> result)
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+                return;
+
+            AutoLayoutRegion region = new AutoLayoutRegion
+            {
+                Name = ReadJsonString(item, "name", "Name"),
+                Type = ReadJsonString(item, "type", "Type"),
+                X = ReadJsonInt(item, "x", "X"),
+                Y = ReadJsonInt(item, "y", "Y"),
+                Width = ReadJsonInt(item, "width", "Width"),
+                Height = ReadJsonInt(item, "height", "Height"),
+                Rows = ReadJsonInt(item, "rows", "Rows"),
+                Columns = ReadJsonInt(item, "columns", "Columns")
+            };
+
+            if (item.TryGetProperty(
+                    "cells",
+                    out JsonElement cellsElement)
+                &&
+                cellsElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement cellElement
+                         in cellsElement.EnumerateArray())
+                {
+                    if (cellElement.ValueKind != JsonValueKind.Object)
+                        continue;
+
+                    AutoLayoutCell cell = new AutoLayoutCell
+                    {
+                        Row = ReadJsonInt(
+                            cellElement,
+                            "row",
+                            "Row"),
+
+                        Column = ReadJsonInt(
+                            cellElement,
+                            "column",
+                            "Column"),
+
+                        X = ReadJsonInt(
+                            cellElement,
+                            "x",
+                            "X"),
+
+                        Y = ReadJsonInt(
+                            cellElement,
+                            "y",
+                            "Y"),
+
+                        Width = ReadJsonInt(
+                            cellElement,
+                            "width",
+                            "Width"),
+
+                        Height = ReadJsonInt(
+                            cellElement,
+                            "height",
+                            "Height"),
+
+                        Text = ReadJsonString(
+                            cellElement,
+                            "text",
+                            "Text"),
+
+                        OcrCount = ReadJsonInt(
+                            cellElement,
+                            "ocr_count",
+                            "OcrCount")
+                    };
+
+                    region.Cells.Add(cell);
+                }
+            }
+
+            result.Add(region);
+        }
+
+        private string ReadJsonString(JsonElement obj, string lower, string upper)
+        {
+            if (obj.TryGetProperty(lower, out JsonElement a) && a.ValueKind == JsonValueKind.String)
+                return a.GetString() ?? "";
+            if (obj.TryGetProperty(upper, out JsonElement b) && b.ValueKind == JsonValueKind.String)
+                return b.GetString() ?? "";
+            return "";
+        }
+
+        private int ReadJsonInt(JsonElement obj, string lower, string upper)
+        {
+            JsonElement element;
+            if (!obj.TryGetProperty(lower, out element) && !obj.TryGetProperty(upper, out element)) return 0;
+            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out int number)) return number;
+            if (element.ValueKind == JsonValueKind.String && int.TryParse(element.GetString(), out int parsed)) return parsed;
+            return 0;
+        }
+
+        private string FindAutoLayoutRegionType(OcrDisplayItem item, List<AutoLayoutRegion> regions)
+        {
+            int centerX = item.X + item.Width / 2;
+            int centerY = item.Y + item.Height / 2;
+            foreach (AutoLayoutRegion region in regions)
+            {
+                if (centerX >= region.X && centerX <= region.X + region.Width &&
+                    centerY >= region.Y && centerY <= region.Y + region.Height)
+                    return region.Type;
+            }
+            return "";
+        }
+
+        private string GetRegionDisplayName(string type)
+        {
+            return type switch
+            {
+                "body" => "本文",
+                "heading" => "見出し",
+                "header" => "ヘッダー",
+                "footer" => "フッター",
+                "footnote" => "脚注",
+                "table" => "表",
+                "image" => "画像",
+                "map" => "地図",
+                "ignore" => "OCRしない",
+                _ => "未分類"
+            };
+        }
+
+        private string FindOcrEngineDirectory()
+        {
+            string? dir = AppContext.BaseDirectory;
+            while (!string.IsNullOrEmpty(dir))
+            {
+                string candidate = Path.Combine(dir, "ocr_engine");
+                if (File.Exists(Path.Combine(candidate, "ndlocr_auto_region.py")))
+                    return candidate;
+                DirectoryInfo? parent = Directory.GetParent(dir);
+                if (parent == null) break;
+                dir = parent.FullName;
+            }
+
+            string fallback = Path.GetFullPath(Path.Combine(
+                AppContext.BaseDirectory, "..", "..", "..", "..", "ocr_engine"));
+            return fallback;
         }
 
         private void btnTestCrop_Click(object sender, EventArgs e)
@@ -1598,26 +3272,18 @@ namespace OCR_Translator
 
 
 
-                ProcessStartInfo psi =
-    new ProcessStartInfo();
-
+                ProcessStartInfo psi = new ProcessStartInfo();
                 psi.FileName = pythonExe;
-
-                psi.WorkingDirectory =
-                    projectDir;
-
+                psi.WorkingDirectory = projectDir;
                 psi.UseShellExecute = false;
-
                 psi.CreateNoWindow = true;
-
                 psi.RedirectStandardOutput = true;
                 psi.RedirectStandardError = true;
+                psi.StandardOutputEncoding = Encoding.UTF8;
+                psi.StandardErrorEncoding = Encoding.UTF8;
+                psi.ArgumentList.Add(pythonScript);
+                psi.ArgumentList.Add(ocrInput);
 
-                psi.ArgumentList.Add(
-                    pythonScript);
-
-                psi.ArgumentList.Add(
-                    ocrInput);
 
                 using (Process process =
                        new Process())
@@ -1667,6 +3333,31 @@ namespace OCR_Translator
             }
         }
 
+        private void btnRegionSettings_Click(object? sender, EventArgs e)
+        {
+            if (pdfDocument == null || pictureBox1.Image == null)
+            {
+                MessageBox.Show(
+                    "先にPDFを開いてください。",
+                    "領域設定",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                return;
+            }
+
+            // 領域設定モードを開始
+            isDrawingRegion = true;
+
+            // 新規領域作成の開始位置をリセット
+            regionPreviewRectangle = Rectangle.Empty;
+
+            pictureBox1.Focus();
+            pictureBox1.Cursor = Cursors.Cross;
+            Cursor = Cursors.Cross;
+
+            pictureBox1.Invalidate();
+        }
         private Bitmap CropRegion(Bitmap source, OcrRegion region)
         {
             int x = Math.Max(0, region.X);

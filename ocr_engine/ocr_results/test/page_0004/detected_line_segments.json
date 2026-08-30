@@ -1,0 +1,16 @@
+{
+  "image": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0004\\page.png",
+  "image_width": 464,
+  "image_height": 657,
+  "horizontal_lines": [],
+  "vertical_lines": [
+    {
+      "x": 0,
+      "y1": 15,
+      "x2": 0,
+      "y2": 656,
+      "length": 642,
+      "thickness": 5
+    }
+  ]
+}

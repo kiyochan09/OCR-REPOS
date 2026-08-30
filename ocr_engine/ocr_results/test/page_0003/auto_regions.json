@@ -1,0 +1,406 @@
+{
+  "image": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0003\\page.png",
+  "json": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0003\\page.json",
+  "results": [
+    {
+      "x": 52,
+      "y": 18,
+      "width": 219,
+      "height": 10,
+      "text": "表2NATO司令部別の主な演習のコードネーム一覧",
+      "confidence": 0.94,
+      "isVertical": false,
+      "id": 0
+    },
+    {
+      "x": 360,
+      "y": 183,
+      "width": 10,
+      "height": 168,
+      "text": "(主催司令部別のコードネームは表2参照)。",
+      "confidence": 0.931,
+      "isVertical": true,
+      "id": 1
+    },
+    {
+      "x": 342,
+      "y": 192,
+      "width": 11,
+      "height": 348,
+      "text": "集団防衛型の演習の主な目的は、NATO即応部隊(NRF)の訓練であっ",
+      "confidence": 0.953,
+      "isVertical": true,
+      "id": 2
+    },
+    {
+      "x": 324,
+      "y": 182,
+      "width": 11,
+      "height": 360,
+      "text": "た。NRFとは、1999年の戦略概念で危機管理が正式任務となったことを",
+      "confidence": 0.956,
+      "isVertical": true,
+      "id": 3
+    },
+    {
+      "x": 306,
+      "y": 181,
+      "width": 11,
+      "height": 355,
+      "text": "受けて、2002年のプラハ首脳会議において創設された部隊で、危機管理、",
+      "confidence": 0.957,
+      "isVertical": true,
+      "id": 4
+    },
+    {
+      "x": 287,
+      "y": 181,
+      "width": 11,
+      "height": 360,
+      "text": "災害救援、加盟国住民救出などの任務が想定されていた。しかし2014年の",
+      "confidence": 0.959,
+      "isVertical": true,
+      "id": 5
+    },
+    {
+      "x": 269,
+      "y": 182,
+      "width": 11,
+      "height": 361,
+      "text": "クリミア併合を受けて、NATOはあらためて即応能力の高い戦力編成の必要",
+      "confidence": 0.957,
+      "isVertical": true,
+      "id": 6
+    },
+    {
+      "x": 251,
+      "y": 181,
+      "width": 11,
+      "height": 361,
+      "text": "性を痛感させられた。その結果、NRFは4万人に増員され、集団防衛が主任",
+      "confidence": 0.953,
+      "isVertical": true,
+      "id": 7
+    },
+    {
+      "x": 233,
+      "y": 181,
+      "width": 10,
+      "height": 362,
+      "text": "務であることが明確にされたうえで、その中核的な部隊として、高度即応統合",
+      "confidence": 0.955,
+      "isVertical": true,
+      "id": 8
+    },
+    {
+      "x": 214,
+      "y": 181,
+      "width": 11,
+      "height": 362,
+      "text": "部隊(VITF)が創設された。これは、1個旅団規模で4時間から2時間以",
+      "confidence": 0.954,
+      "isVertical": true,
+      "id": 9
+    },
+    {
+      "x": 196,
+      "y": 181,
+      "width": 11,
+      "height": 361,
+      "text": "内に展開し増援する部隊として編成されていた。またVITFの前方展開をス",
+      "confidence": 0.954,
+      "isVertical": true,
+      "id": 10
+    },
+    {
+      "x": 179,
+      "y": 182,
+      "width": 10,
+      "height": 364,
+      "text": "ムーズに受け入れるために、エストニア、ラトビア、リトアニア、ポーランド、",
+      "confidence": 0.953,
+      "isVertical": true,
+      "id": 11
+    },
+    {
+      "x": 160,
+      "y": 182,
+      "width": 11,
+      "height": 361,
+      "text": "ルーマニア、ブルガリアなどに、約3名ずつからなるNATO部隊統合調整室",
+      "confidence": 0.956,
+      "isVertical": true,
+      "id": 12
+    },
+    {
+      "x": 142,
+      "y": 182,
+      "width": 11,
+      "height": 360,
+      "text": "(NFIU)が設置された。そうしたNRFの稼働体制、即応懲勢を強化するた",
+      "confidence": 0.953,
+      "isVertical": true,
+      "id": 13
+    },
+    {
+      "x": 125,
+      "y": 182,
+      "width": 10,
+      "height": 261,
+      "text": "めに、集団防衛シナリオでの演習が増加したわけである。",
+      "confidence": 0.94,
+      "isVertical": true,
+      "id": 14
+    },
+    {
+      "x": 107,
+      "y": 192,
+      "width": 10,
+      "height": 355,
+      "text": "2022年のロシア・ウクライナ戦争勃発は、加盟国の不安をさらに高めた。",
+      "confidence": 0.954,
+      "isVertical": true,
+      "id": 15
+    },
+    {
+      "x": 89,
+      "y": 181,
+      "width": 10,
+      "height": 361,
+      "text": "そのためNATOはNRFのさらなる改編に着手した。新しい戦力態勢は、2",
+      "confidence": 0.947,
+      "isVertical": true,
+      "id": 16
+    },
+    {
+      "x": 72,
+      "y": 181,
+      "width": 10,
+      "height": 271,
+      "text": "023年以降に整備される予定である(第3章、第5章参照)。",
+      "confidence": 0.934,
+      "isVertical": true,
+      "id": 17
+    },
+    {
+      "x": 70,
+      "y": 497,
+      "width": 10,
+      "height": 44,
+      "text": "(広瀬佳一)",
+      "confidence": 0.878,
+      "isVertical": true,
+      "id": 18
+    },
+    {
+      "x": 68,
+      "y": 42,
+      "width": 44,
+      "height": 11,
+      "text": "最初の一訴",
+      "confidence": 0.903,
+      "isVertical": false,
+      "id": 19
+    },
+    {
+      "x": 61,
+      "y": 32,
+      "width": 58,
+      "height": 10,
+      "text": "コードネームの",
+      "confidence": 0.896,
+      "isVertical": false,
+      "id": 20
+    },
+    {
+      "x": 53,
+      "y": 54,
+      "width": 51,
+      "height": 11,
+      "text": "STEADEAST",
+      "confidence": 0.9,
+      "isVertical": false,
+      "id": 21
+    },
+    {
+      "x": 54,
+      "y": 67,
+      "width": 40,
+      "height": 11,
+      "text": "TRIDENT",
+      "confidence": 0.901,
+      "isVertical": false,
+      "id": 22
+    },
+    {
+      "x": 54,
+      "y": 80,
+      "width": 47,
+      "height": 11,
+      "text": "BRILLIANT",
+      "confidence": 0.905,
+      "isVertical": false,
+      "id": 23
+    },
+    {
+      "x": 53,
+      "y": 92,
+      "width": 33,
+      "height": 12,
+      "text": "NOBLE",
+      "confidence": 0.904,
+      "isVertical": false,
+      "id": 24
+    },
+    {
+      "x": 53,
+      "y": 105,
+      "width": 48,
+      "height": 11,
+      "text": "FORCEFUL",
+      "confidence": 0.902,
+      "isVertical": false,
+      "id": 25
+    },
+    {
+      "x": 54,
+      "y": 118,
+      "width": 49,
+      "height": 11,
+      "text": "COMBINED",
+      "confidence": 0.905,
+      "isVertical": false,
+      "id": 26
+    },
+    {
+      "x": 54,
+      "y": 131,
+      "width": 46,
+      "height": 11,
+      "text": "RAMSTEIN",
+      "confidence": 0.898,
+      "isVertical": false,
+      "id": 27
+    },
+    {
+      "x": 54,
+      "y": 144,
+      "width": 31,
+      "height": 11,
+      "text": "LOYAL",
+      "confidence": 0.893,
+      "isVertical": false,
+      "id": 28
+    },
+    {
+      "x": 55,
+      "y": 157,
+      "width": 43,
+      "height": 11,
+      "text": "DYNAMIC",
+      "confidence": 0.89,
+      "isVertical": false,
+      "id": 29
+    },
+    {
+      "x": 206,
+      "y": 37,
+      "width": 85,
+      "height": 11,
+      "text": "部令可受章を行う司令部",
+      "confidence": 0.912,
+      "isVertical": false,
+      "id": 30
+    },
+    {
+      "x": 129,
+      "y": 54,
+      "width": 228,
+      "height": 12,
+      "text": "欧州連合電最島司令部 (SHAPE) /作戦連合軍司令部(ACO)",
+      "confidence": 0.915,
+      "isVertical": false,
+      "id": 31
+    },
+    {
+      "x": 129,
+      "y": 67,
+      "width": 95,
+      "height": 11,
+      "text": "変革連合軍司令部(ACT)",
+      "confidence": 0.907,
+      "isVertical": false,
+      "id": 32
+    },
+    {
+      "x": 129,
+      "y": 80,
+      "width": 103,
+      "height": 11,
+      "text": "統合軍司令部 (ブルンサム)",
+      "confidence": 0.91,
+      "isVertical": false,
+      "id": 33
+    },
+    {
+      "x": 129,
+      "y": 93,
+      "width": 87,
+      "height": 11,
+      "text": "統合軍司令部 (ナポリ)",
+      "confidence": 0.911,
+      "isVertical": false,
+      "id": 34
+    },
+    {
+      "x": 129,
+      "y": 106,
+      "width": 111,
+      "height": 11,
+      "text": "統合軍司令部(ノーフォーク)",
+      "confidence": 0.917,
+      "isVertical": false,
+      "id": 35
+    },
+    {
+      "x": 129,
+      "y": 118,
+      "width": 84,
+      "height": 12,
+      "text": "統合支援 強化司令部",
+      "confidence": 0.911,
+      "isVertical": false,
+      "id": 36
+    },
+    {
+      "x": 129,
+      "y": 132,
+      "width": 128,
+      "height": 10,
+      "text": "連合空軍可令部(ラムシュタイン)",
+      "confidence": 0.912,
+      "isVertical": false,
+      "id": 37
+    },
+    {
+      "x": 129,
+      "y": 144,
+      "width": 111,
+      "height": 11,
+      "text": "連合陸軍可令部(イズミルム)",
+      "confidence": 0.909,
+      "isVertical": false,
+      "id": 38
+    },
+    {
+      "x": 129,
+      "y": 157,
+      "width": 120,
+      "height": 11,
+      "text": "連合商軍司令部 (ノースウッド)",
+      "confidence": 0.901,
+      "isVertical": false,
+      "id": 39
+    }
+  ]
+}

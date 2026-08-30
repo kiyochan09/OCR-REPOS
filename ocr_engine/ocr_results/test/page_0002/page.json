@@ -1,0 +1,480 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            290,
+            86
+          ],
+          [
+            290,
+            544
+          ],
+          [
+            302,
+            86
+          ],
+          [
+            302,
+            544
+          ]
+        ],
+        "id": 0,
+        "isVertical": "true",
+        "text": "一般に軍事演習は、部隊の即応能力、戰闘能力、兵站能力等を検証するために実施されるが、多国間",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            275,
+            83
+          ],
+          [
+            275,
+            537
+          ],
+          [
+            287,
+            83
+          ],
+          [
+            287,
+            537
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "同盟の場合、それらに加えて軍事的相互運用能力を向上させることで、同盟の結束力の強さを示し、",
+        "isTextline": "true",
+        "confidence": 0.944,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            260,
+            83
+          ],
+          [
+            260,
+            313
+          ],
+          [
+            271,
+            83
+          ],
+          [
+            271,
+            313
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "脅威に対する抑止力を提供するという役割がある。",
+        "isTextline": "true",
+        "confidence": 0.946,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            245,
+            93
+          ],
+          [
+            245,
+            544
+          ],
+          [
+            256,
+            93
+          ],
+          [
+            256,
+            544
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "NATOの軍事演習という場合、厳密にはNATO主要司令部主催の演習と、特定のNATO加盟",
+        "isTextline": "true",
+        "confidence": 0.94,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            230,
+            82
+          ],
+          [
+            230,
+            544
+          ],
+          [
+            240,
+            82
+          ],
+          [
+            240,
+            544
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "国主催の演習(に他の加盟国が参加する演習)とに分けることができる。さらに、これらの演習はその形",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            216,
+            82
+          ],
+          [
+            216,
+            538
+          ],
+          [
+            225,
+            82
+          ],
+          [
+            225,
+            538
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "式により、LIVEXと呼ばれる部隊演習、CPX/CAXと呼ばれる指揮所・司令部演習、",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            200,
+            83
+          ],
+          [
+            200,
+            351
+          ],
+          [
+            210,
+            83
+          ],
+          [
+            210,
+            351
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "Exercise Studyと呼ばれるセミナーの3種類に分けられる。",
+        "isTextline": "true",
+        "confidence": 0.919,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            185,
+            93
+          ],
+          [
+            185,
+            544
+          ],
+          [
+            195,
+            93
+          ],
+          [
+            195,
+            544
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "NATO司令部主催の部隊演習は、 卯年代のバルカン半島や2003年からのアフガニスタン(1",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            169,
+            82
+          ],
+          [
+            169,
+            544
+          ],
+          [
+            179,
+            82
+          ],
+          [
+            179,
+            544
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "SAF)でNATOが危機管理活動に従事したことを反映して、2013年ごろまでは、演習目的は",
+        "isTextline": "true",
+        "confidence": 0.943,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            153,
+            81
+          ],
+          [
+            153,
+            544
+          ],
+          [
+            164,
+            81
+          ],
+          [
+            164,
+            544
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "捜索・救難活動のような相互協力の確認と、テロ対処や平和維持活動のような危機管理が中心であっ",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            137,
+            82
+          ],
+          [
+            137,
+            545
+          ],
+          [
+            148,
+            82
+          ],
+          [
+            148,
+            545
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "た。集団防衛のシナリオに基づく部隊演習は、2013年1月にバルト三国とポーランドで約600",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            121,
+            82
+          ],
+          [
+            121,
+            545
+          ],
+          [
+            131,
+            82
+          ],
+          [
+            131,
+            545
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "0人を動員して実施されたSteadlast Jazzが実に十数年ぶりであった。その後、2014年に1万3",
+        "isTextline": "true",
+        "confidence": 0.943,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            104,
+            81
+          ],
+          [
+            104,
+            545
+          ],
+          [
+            114,
+            81
+          ],
+          [
+            114,
+            545
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "000人を動員したボーランド、リトアニアでの演習(Noble Justifcation14)、20ー5年の1万300",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            86,
+            81
+          ],
+          [
+            86,
+            542
+          ],
+          [
+            97,
+            81
+          ],
+          [
+            97,
+            542
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "0人を動員したエストニアでの演習 (S) (S) (S) (S) (S) (S) 、 (S) (St)",
+        "isTextline": "true",
+        "confidence": 0.943,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            68,
+            82
+          ],
+          [
+            68,
+            545
+          ],
+          [
+            79,
+            82
+          ],
+          [
+            79,
+            545
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "の演習(Tident Juncture18)、20218)、2021など、Defender Defender 2021など、NATO",
+        "isTextline": "true",
+        "confidence": 0.935,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            49,
+            81
+          ],
+          [
+            49,
+            545
+          ],
+          [
+            60,
+            81
+          ],
+          [
+            60,
+            545
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "司令部主催の演習では、集団防衛型の演習の比重が大きくなっていた。これは、2014年のロシア",
+        "isTextline": "true",
+        "confidence": 0.948,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            31,
+            82
+          ],
+          [
+            31,
+            546
+          ],
+          [
+            42,
+            82
+          ],
+          [
+            42,
+            546
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "によるクリミア併合やドンバス紛争など、ウクライナ危機の影響であった。なお、核共有枠組み(第",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            14,
+            81
+          ],
+          [
+            14,
+            545
+          ],
+          [
+            25,
+            81
+          ],
+          [
+            25,
+            545
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "口章参照)に基づく在欧戦術核の演習(Steadiast Noon)も、2014年以前より毎年実施されている",
+        "isTextline": "true",
+        "confidence": 0.941,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 390,
+    "img_height": 593,
+    "img_path": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0002\\page.png",
+    "img_name": "page.png"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "image": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0003\\page.png",
+  "image_width": 400,
+  "image_height": 593,
+  "regions": [
+    {
+      "name": "表1",
+      "type": "table",
+      "x": 127,
+      "y": 32,
+      "width": 242,
+      "height": 137,
+      "rows": 10,
+      "columns": 1,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "x": 127,
+          "y": 32,
+          "width": 242,
+          "height": 21,
+          "text": "部令可受章を行う司令部",
+          "ocr_count": 1
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "x": 127,
+          "y": 53,
+          "width": 242,
+          "height": 13,
+          "text": "欧州連合電最島司令部 (SHAPE) /作戦連合軍司令部(ACO)",
+          "ocr_count": 1
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "x": 127,
+          "y": 66,
+          "width": 242,
+          "height": 13,
+          "text": "変革連合軍司令部(ACT)",
+          "ocr_count": 1
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "x": 127,
+          "y": 79,
+          "width": 242,
+          "height": 13,
+          "text": "統合軍司令部 (ブルンサム)",
+          "ocr_count": 1
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "x": 127,
+          "y": 92,
+          "width": 242,
+          "height": 13,
+          "text": "統合軍司令部 (ナポリ)",
+          "ocr_count": 1
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "x": 127,
+          "y": 105,
+          "width": 242,
+          "height": 13,
+          "text": "統合軍司令部(ノーフォーク)",
+          "ocr_count": 1
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "x": 127,
+          "y": 118,
+          "width": 242,
+          "height": 13,
+          "text": "統合支援 強化司令部",
+          "ocr_count": 1
+        },
+        {
+          "row": 8,
+          "column": 1,
+          "x": 127,
+          "y": 131,
+          "width": 242,
+          "height": 13,
+          "text": "連合空軍可令部(ラムシュタイン)",
+          "ocr_count": 1
+        },
+        {
+          "row": 9,
+          "column": 1,
+          "x": 127,
+          "y": 144,
+          "width": 242,
+          "height": 12,
+          "text": "連合陸軍可令部(イズミルム)",
+          "ocr_count": 1
+        },
+        {
+          "row": 10,
+          "column": 1,
+          "x": 127,
+          "y": 156,
+          "width": 242,
+          "height": 13,
+          "text": "連合商軍司令部 (ノースウッド)",
+          "ocr_count": 1
+        }
+      ]
+    },
+    {
+      "name": "本文",
+      "type": "body",
+      "x": 70,
+      "y": 181,
+      "width": 300,
+      "height": 366,
+      "orientation": "vertical",
+      "ocr_count": 18
+    },
+    {
+      "name": "本文横",
+      "type": "body",
+      "x": 53,
+      "y": 32,
+      "width": 66,
+      "height": 136,
+      "orientation": "horizontal",
+      "ocr_count": 11
+    }
+  ]
+}

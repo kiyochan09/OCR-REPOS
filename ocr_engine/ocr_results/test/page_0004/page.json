@@ -1,0 +1,506 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            414,
+            82
+          ],
+          [
+            414,
+            585
+          ],
+          [
+            424,
+            82
+          ],
+          [
+            424,
+            585
+          ]
+        ],
+        "id": 0,
+        "isVertical": "true",
+        "text": "を展開する論者は、領土問題に対してきわめて潔癖で強い嫌悪感を抱いていた米国のコーデル・ハル国務長官の一",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            394,
+            82
+          ],
+          [
+            394,
+            589
+          ],
+          [
+            405,
+            82
+          ],
+          [
+            405,
+            589
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "九四二年二月の時点における次のような発言を評価する。その要旨は、ソ連はヨーロッパに対して大それた野望を",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            374,
+            82
+          ],
+          [
+            374,
+            589
+          ],
+          [
+            385,
+            82
+          ],
+          [
+            385,
+            589
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "抱いているように思われる、米国としてはこれに対していま厳しい反対の態度を示した方があとになって反対の態",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            354,
+            82
+          ],
+          [
+            354,
+            589
+          ],
+          [
+            366,
+            82
+          ],
+          [
+            366,
+            589
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "度をとるよりも好ましいと考える、というものであった。ただ、早目に反対していたからといって、のちにソ連が",
+        "isTextline": "true",
+        "confidence": 0.948,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            335,
+            82
+          ],
+          [
+            335,
+            436
+          ],
+          [
+            345,
+            82
+          ],
+          [
+            345,
+            436
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "有利な軍事状況を背景に領土拡大をはからなかったという保証は必ずしもない。",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            315,
+            91
+          ],
+          [
+            315,
+            590
+          ],
+          [
+            326,
+            91
+          ],
+          [
+            326,
+            590
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "それはともかく、スターリンの一九四一年～四二年の領土提案が大戦末期から戦後にかけて現実となって姿を現",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            296,
+            82
+          ],
+          [
+            296,
+            589
+          ],
+          [
+            307,
+            82
+          ],
+          [
+            307,
+            589
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "したことを考えるとき、米国型の外交は無益であったばかりかむしろ有害でさえあったといえなくもない。こうし",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            276,
+            82
+          ],
+          [
+            276,
+            590
+          ],
+          [
+            287,
+            82
+          ],
+          [
+            287,
+            590
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "た議論を裏返していえば、英ソ型のレアルポリティークの外交が作用していたならば、のちの冷戦要因がある程度",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            256,
+            81
+          ],
+          [
+            256,
+            589
+          ],
+          [
+            267,
+            81
+          ],
+          [
+            267,
+            589
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "軽減ないし取り除かれていたかもしれないということになる。しかしこの論理で歴史を振り返ってみたとき、大戦",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            237,
+            81
+          ],
+          [
+            237,
+            590
+          ],
+          [
+            248,
+            81
+          ],
+          [
+            248,
+            590
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "を通して、英国の力が低落の一途を辿り、ヨーロッパにおいて単独でソ連の膨張に対抗できず、米国の協力を必要",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            218,
+            82
+          ],
+          [
+            218,
+            589
+          ],
+          [
+            228,
+            82
+          ],
+          [
+            228,
+            589
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "としなければならなかった、という別の問題に突き当たるのである。大戦中の米英ソ三国の外交を説明して、ある",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            198,
+            81
+          ],
+          [
+            198,
+            554
+          ],
+          [
+            209,
+            81
+          ],
+          [
+            209,
+            554
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "学者は、英ソのそれは「中味のある」外交で、米国のそれは「空疎な声だけの」外交であったと表現した。",
+        "isTextline": "true",
+        "confidence": 0.939,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            178,
+            91
+          ],
+          [
+            178,
+            589
+          ],
+          [
+            189,
+            91
+          ],
+          [
+            189,
+            589
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "米英はまたヨーロッパの軍事戦略をめぐっても立場の相違を露呈した。これはいわゆる\"第二戦線\"との関連で",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            159,
+            81
+          ],
+          [
+            159,
+            590
+          ],
+          [
+            169,
+            81
+          ],
+          [
+            169,
+            590
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "重要な問題を提起することとなる。両国は「米英連合参謀本部」を作って、戦時中を通じて緊密な協力関係を保持",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            139,
+            81
+          ],
+          [
+            139,
+            589
+          ],
+          [
+            150,
+            81
+          ],
+          [
+            150,
+            589
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "したが、その基本戦略構想には大きな隔たりがあった。英国がドイツ打倒のために\"間接的\"\"周辺的\"アプロー",
+        "isTextline": "true",
+        "confidence": 0.95,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            119,
+            82
+          ],
+          [
+            119,
+            590
+          ],
+          [
+            130,
+            82
+          ],
+          [
+            130,
+            590
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "チをとって遠まきにしながら目的を達しようとしたのに対して、米国は\"直接的\"アプローチをとり、英仏海峡を",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            100,
+            81
+          ],
+          [
+            100,
+            589
+          ],
+          [
+            111,
+            81
+          ],
+          [
+            111,
+            589
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "越えて北フランスから一気にドイツに攻め入ろうとする戦略を好んだ。たとえば一九四二年にドワイト・アイゼン",
+        "isTextline": "true",
+        "confidence": 0.949,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            80,
+            83
+          ],
+          [
+            80,
+            590
+          ],
+          [
+            91,
+            83
+          ],
+          [
+            91,
+            590
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "ハワー准将が「スレッジハマー」作戦というヨーロッパ上陸作戦を提案したとき、チャーチルはこれが大きな犠牲",
+        "isTextline": "true",
+        "confidence": 0.951,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            60,
+            81
+          ],
+          [
+            60,
+            590
+          ],
+          [
+            71,
+            81
+          ],
+          [
+            71,
+            590
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "を強いるものとして、猛然と反対した。チャーチルの脳裏にダンケルクからの撤退、さらには第一次大戦の塹壕戦",
+        "isTextline": "true",
+        "confidence": 0.952,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 464,
+    "img_height": 657,
+    "img_path": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0004\\page.png",
+    "img_name": "page.png"
+  }
+}

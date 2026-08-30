@@ -1,0 +1,186 @@
+{
+  "image": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0002\\page.png",
+  "json": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0002\\page.json",
+  "results": [
+    {
+      "x": 290,
+      "y": 86,
+      "width": 12,
+      "height": 458,
+      "text": "一般に軍事演習は、部隊の即応能力、戰闘能力、兵站能力等を検証するために実施されるが、多国間",
+      "confidence": 0.95,
+      "isVertical": true,
+      "id": 0
+    },
+    {
+      "x": 275,
+      "y": 83,
+      "width": 12,
+      "height": 454,
+      "text": "同盟の場合、それらに加えて軍事的相互運用能力を向上させることで、同盟の結束力の強さを示し、",
+      "confidence": 0.944,
+      "isVertical": true,
+      "id": 1
+    },
+    {
+      "x": 260,
+      "y": 83,
+      "width": 11,
+      "height": 230,
+      "text": "脅威に対する抑止力を提供するという役割がある。",
+      "confidence": 0.946,
+      "isVertical": true,
+      "id": 2
+    },
+    {
+      "x": 245,
+      "y": 93,
+      "width": 11,
+      "height": 451,
+      "text": "NATOの軍事演習という場合、厳密にはNATO主要司令部主催の演習と、特定のNATO加盟",
+      "confidence": 0.94,
+      "isVertical": true,
+      "id": 3
+    },
+    {
+      "x": 230,
+      "y": 82,
+      "width": 10,
+      "height": 462,
+      "text": "国主催の演習(に他の加盟国が参加する演習)とに分けることができる。さらに、これらの演習はその形",
+      "confidence": 0.939,
+      "isVertical": true,
+      "id": 4
+    },
+    {
+      "x": 216,
+      "y": 82,
+      "width": 9,
+      "height": 456,
+      "text": "式により、LIVEXと呼ばれる部隊演習、CPX/CAXと呼ばれる指揮所・司令部演習、",
+      "confidence": 0.939,
+      "isVertical": true,
+      "id": 5
+    },
+    {
+      "x": 200,
+      "y": 83,
+      "width": 10,
+      "height": 268,
+      "text": "Exercise Studyと呼ばれるセミナーの3種類に分けられる。",
+      "confidence": 0.919,
+      "isVertical": true,
+      "id": 6
+    },
+    {
+      "x": 185,
+      "y": 93,
+      "width": 10,
+      "height": 451,
+      "text": "NATO司令部主催の部隊演習は、 卯年代のバルカン半島や2003年からのアフガニスタン(1",
+      "confidence": 0.947,
+      "isVertical": true,
+      "id": 7
+    },
+    {
+      "x": 169,
+      "y": 82,
+      "width": 10,
+      "height": 462,
+      "text": "SAF)でNATOが危機管理活動に従事したことを反映して、2013年ごろまでは、演習目的は",
+      "confidence": 0.943,
+      "isVertical": true,
+      "id": 8
+    },
+    {
+      "x": 153,
+      "y": 81,
+      "width": 11,
+      "height": 463,
+      "text": "捜索・救難活動のような相互協力の確認と、テロ対処や平和維持活動のような危機管理が中心であっ",
+      "confidence": 0.949,
+      "isVertical": true,
+      "id": 9
+    },
+    {
+      "x": 137,
+      "y": 82,
+      "width": 11,
+      "height": 463,
+      "text": "た。集団防衛のシナリオに基づく部隊演習は、2013年1月にバルト三国とポーランドで約600",
+      "confidence": 0.95,
+      "isVertical": true,
+      "id": 10
+    },
+    {
+      "x": 121,
+      "y": 82,
+      "width": 10,
+      "height": 463,
+      "text": "0人を動員して実施されたSteadlast Jazzが実に十数年ぶりであった。その後、2014年に1万3",
+      "confidence": 0.943,
+      "isVertical": true,
+      "id": 11
+    },
+    {
+      "x": 104,
+      "y": 81,
+      "width": 10,
+      "height": 464,
+      "text": "000人を動員したボーランド、リトアニアでの演習(Noble Justifcation14)、20ー5年の1万300",
+      "confidence": 0.95,
+      "isVertical": true,
+      "id": 12
+    },
+    {
+      "x": 86,
+      "y": 81,
+      "width": 11,
+      "height": 461,
+      "text": "0人を動員したエストニアでの演習 (S) (S) (S) (S) (S) (S) 、 (S) (St)",
+      "confidence": 0.943,
+      "isVertical": true,
+      "id": 13
+    },
+    {
+      "x": 68,
+      "y": 82,
+      "width": 11,
+      "height": 463,
+      "text": "の演習(Tident Juncture18)、20218)、2021など、Defender Defender 2021など、NATO",
+      "confidence": 0.935,
+      "isVertical": true,
+      "id": 14
+    },
+    {
+      "x": 49,
+      "y": 81,
+      "width": 11,
+      "height": 464,
+      "text": "司令部主催の演習では、集団防衛型の演習の比重が大きくなっていた。これは、2014年のロシア",
+      "confidence": 0.948,
+      "isVertical": true,
+      "id": 15
+    },
+    {
+      "x": 31,
+      "y": 82,
+      "width": 11,
+      "height": 464,
+      "text": "によるクリミア併合やドンバス紛争など、ウクライナ危機の影響であった。なお、核共有枠組み(第",
+      "confidence": 0.952,
+      "isVertical": true,
+      "id": 16
+    },
+    {
+      "x": 14,
+      "y": 81,
+      "width": 11,
+      "height": 464,
+      "text": "口章参照)に基づく在欧戦術核の演習(Steadiast Noon)も、2014年以前より毎年実施されている",
+      "confidence": 0.941,
+      "isVertical": true,
+      "id": 17
+    }
+  ]
+}

@@ -51,6 +51,7 @@
             cmbRegionType = new ComboBox();
             btnTestCrop = new Button();
             btnAutoLayout = new Button();
+            btnRegionSettings = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             panelToolbar.SuspendLayout();
@@ -60,6 +61,7 @@
             ((System.ComponentModel.ISupportInitialize)numY).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numX).BeginInit();
             SuspendLayout();
+            this.btnStartOcr.Click += new System.EventHandler(this.btnStartOcr_Click);
             // 
             // tableLayoutPanel1
             // 
@@ -101,6 +103,7 @@
             // panelToolbar
             //
             panelToolbar.Controls.Add(btnAutoLayout);
+            panelToolbar.Controls.Add(btnRegionSettings);
             panelToolbar.Controls.Add(btnTestCrop);
             panelToolbar.Controls.Add(btnExportWord);
             panelToolbar.Controls.Add(btnStartOcr);
@@ -113,21 +116,43 @@
             panelToolbar.Size = new Size(1379, 78);
             panelToolbar.TabIndex = 1;
             // 
+            // btnRegionSettings
+            // 
+            btnRegionSettings.Location = new Point(515, 25);
+            btnRegionSettings.Name = "btnRegionSettings";
+            btnRegionSettings.Size = new Size(112, 34);
+            btnRegionSettings.TabIndex = 3;
+            btnRegionSettings.Text = "領域設定";
+            btnRegionSettings.UseVisualStyleBackColor = true;
+            btnRegionSettings.Click += btnRegionSettings_Click;
+            // 
+            // 
             // btnExportWord
             // 
-            btnExportWord.Location = new Point(780, 25);
+            btnExportWord.Location = new Point(771, 25);
             btnExportWord.Name = "btnExportWord";
             btnExportWord.Size = new Size(112, 34);
-            btnExportWord.TabIndex = 4;
+            btnExportWord.TabIndex = 5;
             btnExportWord.Text = "Word出力";
             btnExportWord.UseVisualStyleBackColor = true;
+            
+            // 
+            // btnAutoLayout
+            // 
+            btnAutoLayout.Location = new Point(1030, 25);
+            btnAutoLayout.Name = "btnAutoLayout";
+            btnAutoLayout.Size = new Size(140, 34);
+            btnAutoLayout.TabIndex = 6;
+            btnAutoLayout.Text = "領域自動判定";
+            btnAutoLayout.UseVisualStyleBackColor = true;
+            // 
             // 
             // btnStartOcr
             // 
-            btnStartOcr.Location = new Point(589, 25);
+            btnStartOcr.Location = new Point(645, 25);
             btnStartOcr.Name = "btnStartOcr";
             btnStartOcr.Size = new Size(112, 34);
-            btnStartOcr.TabIndex = 3;
+            btnStartOcr.TabIndex = 4;
             btnStartOcr.Text = "OCR開始";
             btnStartOcr.UseVisualStyleBackColor = true;
             btnStartOcr.Click += btnStartOcr_Click;
@@ -140,6 +165,7 @@
             btnNextPage.TabIndex = 2;
             btnNextPage.Text = "次のページ";
             btnNextPage.UseVisualStyleBackColor = true;
+            btnNextPage.Click += btnNextPage_Click;
             // 
             // btnPrevPage
             // 
@@ -149,6 +175,7 @@
             btnPrevPage.TabIndex = 1;
             btnPrevPage.Text = " 前のページ";
             btnPrevPage.UseVisualStyleBackColor = true;
+            btnPrevPage.Click += btnPrevPage_Click;
             // 
             // btnOpenPdf
             // 
@@ -338,5 +365,7 @@
         private Button btnTestCrop;
 
         private Button btnAutoLayout;
+        private Button btnRegionSettings;
+
     }
 }

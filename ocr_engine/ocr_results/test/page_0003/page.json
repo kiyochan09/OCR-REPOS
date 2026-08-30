@@ -1,0 +1,1052 @@
+{
+  "contents": [
+    [
+      {
+        "boundingBox": [
+          [
+            52,
+            18
+          ],
+          [
+            52,
+            28
+          ],
+          [
+            271,
+            18
+          ],
+          [
+            271,
+            28
+          ]
+        ],
+        "id": 0,
+        "isVertical": "false",
+        "text": "表2NATO司令部別の主な演習のコードネーム一覧",
+        "isTextline": "true",
+        "confidence": 0.94,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            360,
+            183
+          ],
+          [
+            360,
+            351
+          ],
+          [
+            370,
+            183
+          ],
+          [
+            370,
+            351
+          ]
+        ],
+        "id": 1,
+        "isVertical": "true",
+        "text": "(主催司令部別のコードネームは表2参照)。",
+        "isTextline": "true",
+        "confidence": 0.931,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            342,
+            192
+          ],
+          [
+            342,
+            540
+          ],
+          [
+            353,
+            192
+          ],
+          [
+            353,
+            540
+          ]
+        ],
+        "id": 2,
+        "isVertical": "true",
+        "text": "集団防衛型の演習の主な目的は、NATO即応部隊(NRF)の訓練であっ",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            324,
+            182
+          ],
+          [
+            324,
+            542
+          ],
+          [
+            335,
+            182
+          ],
+          [
+            335,
+            542
+          ]
+        ],
+        "id": 3,
+        "isVertical": "true",
+        "text": "た。NRFとは、1999年の戦略概念で危機管理が正式任務となったことを",
+        "isTextline": "true",
+        "confidence": 0.956,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            306,
+            181
+          ],
+          [
+            306,
+            536
+          ],
+          [
+            317,
+            181
+          ],
+          [
+            317,
+            536
+          ]
+        ],
+        "id": 4,
+        "isVertical": "true",
+        "text": "受けて、2002年のプラハ首脳会議において創設された部隊で、危機管理、",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            287,
+            181
+          ],
+          [
+            287,
+            541
+          ],
+          [
+            298,
+            181
+          ],
+          [
+            298,
+            541
+          ]
+        ],
+        "id": 5,
+        "isVertical": "true",
+        "text": "災害救援、加盟国住民救出などの任務が想定されていた。しかし2014年の",
+        "isTextline": "true",
+        "confidence": 0.959,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            269,
+            182
+          ],
+          [
+            269,
+            543
+          ],
+          [
+            280,
+            182
+          ],
+          [
+            280,
+            543
+          ]
+        ],
+        "id": 6,
+        "isVertical": "true",
+        "text": "クリミア併合を受けて、NATOはあらためて即応能力の高い戦力編成の必要",
+        "isTextline": "true",
+        "confidence": 0.957,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            251,
+            181
+          ],
+          [
+            251,
+            542
+          ],
+          [
+            262,
+            181
+          ],
+          [
+            262,
+            542
+          ]
+        ],
+        "id": 7,
+        "isVertical": "true",
+        "text": "性を痛感させられた。その結果、NRFは4万人に増員され、集団防衛が主任",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            233,
+            181
+          ],
+          [
+            233,
+            543
+          ],
+          [
+            243,
+            181
+          ],
+          [
+            243,
+            543
+          ]
+        ],
+        "id": 8,
+        "isVertical": "true",
+        "text": "務であることが明確にされたうえで、その中核的な部隊として、高度即応統合",
+        "isTextline": "true",
+        "confidence": 0.955,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            214,
+            181
+          ],
+          [
+            214,
+            543
+          ],
+          [
+            225,
+            181
+          ],
+          [
+            225,
+            543
+          ]
+        ],
+        "id": 9,
+        "isVertical": "true",
+        "text": "部隊(VITF)が創設された。これは、1個旅団規模で4時間から2時間以",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            196,
+            181
+          ],
+          [
+            196,
+            542
+          ],
+          [
+            207,
+            181
+          ],
+          [
+            207,
+            542
+          ]
+        ],
+        "id": 10,
+        "isVertical": "true",
+        "text": "内に展開し増援する部隊として編成されていた。またVITFの前方展開をス",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            179,
+            182
+          ],
+          [
+            179,
+            546
+          ],
+          [
+            189,
+            182
+          ],
+          [
+            189,
+            546
+          ]
+        ],
+        "id": 11,
+        "isVertical": "true",
+        "text": "ムーズに受け入れるために、エストニア、ラトビア、リトアニア、ポーランド、",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            160,
+            182
+          ],
+          [
+            160,
+            543
+          ],
+          [
+            171,
+            182
+          ],
+          [
+            171,
+            543
+          ]
+        ],
+        "id": 12,
+        "isVertical": "true",
+        "text": "ルーマニア、ブルガリアなどに、約3名ずつからなるNATO部隊統合調整室",
+        "isTextline": "true",
+        "confidence": 0.956,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            142,
+            182
+          ],
+          [
+            142,
+            542
+          ],
+          [
+            153,
+            182
+          ],
+          [
+            153,
+            542
+          ]
+        ],
+        "id": 13,
+        "isVertical": "true",
+        "text": "(NFIU)が設置された。そうしたNRFの稼働体制、即応懲勢を強化するた",
+        "isTextline": "true",
+        "confidence": 0.953,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            125,
+            182
+          ],
+          [
+            125,
+            443
+          ],
+          [
+            135,
+            182
+          ],
+          [
+            135,
+            443
+          ]
+        ],
+        "id": 14,
+        "isVertical": "true",
+        "text": "めに、集団防衛シナリオでの演習が増加したわけである。",
+        "isTextline": "true",
+        "confidence": 0.94,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            107,
+            192
+          ],
+          [
+            107,
+            547
+          ],
+          [
+            117,
+            192
+          ],
+          [
+            117,
+            547
+          ]
+        ],
+        "id": 15,
+        "isVertical": "true",
+        "text": "2022年のロシア・ウクライナ戦争勃発は、加盟国の不安をさらに高めた。",
+        "isTextline": "true",
+        "confidence": 0.954,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            89,
+            181
+          ],
+          [
+            89,
+            542
+          ],
+          [
+            99,
+            181
+          ],
+          [
+            99,
+            542
+          ]
+        ],
+        "id": 16,
+        "isVertical": "true",
+        "text": "そのためNATOはNRFのさらなる改編に着手した。新しい戦力態勢は、2",
+        "isTextline": "true",
+        "confidence": 0.947,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            72,
+            181
+          ],
+          [
+            72,
+            452
+          ],
+          [
+            82,
+            181
+          ],
+          [
+            82,
+            452
+          ]
+        ],
+        "id": 17,
+        "isVertical": "true",
+        "text": "023年以降に整備される予定である(第3章、第5章参照)。",
+        "isTextline": "true",
+        "confidence": 0.934,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            70,
+            497
+          ],
+          [
+            70,
+            541
+          ],
+          [
+            80,
+            497
+          ],
+          [
+            80,
+            541
+          ]
+        ],
+        "id": 18,
+        "isVertical": "true",
+        "text": "(広瀬佳一)",
+        "isTextline": "true",
+        "confidence": 0.878,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            68,
+            42
+          ],
+          [
+            68,
+            53
+          ],
+          [
+            112,
+            42
+          ],
+          [
+            112,
+            53
+          ]
+        ],
+        "id": 19,
+        "isVertical": "false",
+        "text": "最初の一訴",
+        "isTextline": "true",
+        "confidence": 0.903,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            61,
+            32
+          ],
+          [
+            61,
+            42
+          ],
+          [
+            119,
+            32
+          ],
+          [
+            119,
+            42
+          ]
+        ],
+        "id": 20,
+        "isVertical": "false",
+        "text": "コードネームの",
+        "isTextline": "true",
+        "confidence": 0.896,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            53,
+            54
+          ],
+          [
+            53,
+            65
+          ],
+          [
+            104,
+            54
+          ],
+          [
+            104,
+            65
+          ]
+        ],
+        "id": 21,
+        "isVertical": "false",
+        "text": "STEADEAST",
+        "isTextline": "true",
+        "confidence": 0.9,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            54,
+            67
+          ],
+          [
+            54,
+            78
+          ],
+          [
+            94,
+            67
+          ],
+          [
+            94,
+            78
+          ]
+        ],
+        "id": 22,
+        "isVertical": "false",
+        "text": "TRIDENT",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            54,
+            80
+          ],
+          [
+            54,
+            91
+          ],
+          [
+            101,
+            80
+          ],
+          [
+            101,
+            91
+          ]
+        ],
+        "id": 23,
+        "isVertical": "false",
+        "text": "BRILLIANT",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            53,
+            92
+          ],
+          [
+            53,
+            104
+          ],
+          [
+            86,
+            92
+          ],
+          [
+            86,
+            104
+          ]
+        ],
+        "id": 24,
+        "isVertical": "false",
+        "text": "NOBLE",
+        "isTextline": "true",
+        "confidence": 0.904,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            53,
+            105
+          ],
+          [
+            53,
+            116
+          ],
+          [
+            101,
+            105
+          ],
+          [
+            101,
+            116
+          ]
+        ],
+        "id": 25,
+        "isVertical": "false",
+        "text": "FORCEFUL",
+        "isTextline": "true",
+        "confidence": 0.902,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            54,
+            118
+          ],
+          [
+            54,
+            129
+          ],
+          [
+            103,
+            118
+          ],
+          [
+            103,
+            129
+          ]
+        ],
+        "id": 26,
+        "isVertical": "false",
+        "text": "COMBINED",
+        "isTextline": "true",
+        "confidence": 0.905,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            54,
+            131
+          ],
+          [
+            54,
+            142
+          ],
+          [
+            100,
+            131
+          ],
+          [
+            100,
+            142
+          ]
+        ],
+        "id": 27,
+        "isVertical": "false",
+        "text": "RAMSTEIN",
+        "isTextline": "true",
+        "confidence": 0.898,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            54,
+            144
+          ],
+          [
+            54,
+            155
+          ],
+          [
+            85,
+            144
+          ],
+          [
+            85,
+            155
+          ]
+        ],
+        "id": 28,
+        "isVertical": "false",
+        "text": "LOYAL",
+        "isTextline": "true",
+        "confidence": 0.893,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            55,
+            157
+          ],
+          [
+            55,
+            168
+          ],
+          [
+            98,
+            157
+          ],
+          [
+            98,
+            168
+          ]
+        ],
+        "id": 29,
+        "isVertical": "false",
+        "text": "DYNAMIC",
+        "isTextline": "true",
+        "confidence": 0.89,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            206,
+            37
+          ],
+          [
+            206,
+            48
+          ],
+          [
+            291,
+            37
+          ],
+          [
+            291,
+            48
+          ]
+        ],
+        "id": 30,
+        "isVertical": "false",
+        "text": "部令可受章を行う司令部",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            54
+          ],
+          [
+            129,
+            66
+          ],
+          [
+            357,
+            54
+          ],
+          [
+            357,
+            66
+          ]
+        ],
+        "id": 31,
+        "isVertical": "false",
+        "text": "欧州連合電最島司令部 (SHAPE) /作戦連合軍司令部(ACO)",
+        "isTextline": "true",
+        "confidence": 0.915,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            67
+          ],
+          [
+            129,
+            78
+          ],
+          [
+            224,
+            67
+          ],
+          [
+            224,
+            78
+          ]
+        ],
+        "id": 32,
+        "isVertical": "false",
+        "text": "変革連合軍司令部(ACT)",
+        "isTextline": "true",
+        "confidence": 0.907,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            80
+          ],
+          [
+            129,
+            91
+          ],
+          [
+            232,
+            80
+          ],
+          [
+            232,
+            91
+          ]
+        ],
+        "id": 33,
+        "isVertical": "false",
+        "text": "統合軍司令部 (ブルンサム)",
+        "isTextline": "true",
+        "confidence": 0.91,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            93
+          ],
+          [
+            129,
+            104
+          ],
+          [
+            216,
+            93
+          ],
+          [
+            216,
+            104
+          ]
+        ],
+        "id": 34,
+        "isVertical": "false",
+        "text": "統合軍司令部 (ナポリ)",
+        "isTextline": "true",
+        "confidence": 0.911,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            106
+          ],
+          [
+            129,
+            117
+          ],
+          [
+            240,
+            106
+          ],
+          [
+            240,
+            117
+          ]
+        ],
+        "id": 35,
+        "isVertical": "false",
+        "text": "統合軍司令部(ノーフォーク)",
+        "isTextline": "true",
+        "confidence": 0.917,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            118
+          ],
+          [
+            129,
+            130
+          ],
+          [
+            213,
+            118
+          ],
+          [
+            213,
+            130
+          ]
+        ],
+        "id": 36,
+        "isVertical": "false",
+        "text": "統合支援 強化司令部",
+        "isTextline": "true",
+        "confidence": 0.911,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            132
+          ],
+          [
+            129,
+            142
+          ],
+          [
+            257,
+            132
+          ],
+          [
+            257,
+            142
+          ]
+        ],
+        "id": 37,
+        "isVertical": "false",
+        "text": "連合空軍可令部(ラムシュタイン)",
+        "isTextline": "true",
+        "confidence": 0.912,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            144
+          ],
+          [
+            129,
+            155
+          ],
+          [
+            240,
+            144
+          ],
+          [
+            240,
+            155
+          ]
+        ],
+        "id": 38,
+        "isVertical": "false",
+        "text": "連合陸軍可令部(イズミルム)",
+        "isTextline": "true",
+        "confidence": 0.909,
+        "class_index": 1
+      },
+      {
+        "boundingBox": [
+          [
+            129,
+            157
+          ],
+          [
+            129,
+            168
+          ],
+          [
+            249,
+            157
+          ],
+          [
+            249,
+            168
+          ]
+        ],
+        "id": 39,
+        "isVertical": "false",
+        "text": "連合商軍司令部 (ノースウッド)",
+        "isTextline": "true",
+        "confidence": 0.901,
+        "class_index": 1
+      }
+    ]
+  ],
+  "imginfo": {
+    "img_width": 400,
+    "img_height": 593,
+    "img_path": "C:\\Users\\natur\\source\\repos\\OCR_Translator\\ocr_engine\\ocr_results\\test\\page_0003\\page.png",
+    "img_name": "page.png"
+  }
+}
