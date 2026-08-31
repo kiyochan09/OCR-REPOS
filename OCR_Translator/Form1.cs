@@ -16,7 +16,6 @@ namespace OCR_Translator
 {
     public partial class Form1 : Form
     {
-        // PDF関連
         private PdfDocument? pdfDocument;
         private int currentPage = 0;
         private string? currentPdfPath;
@@ -28,13 +27,11 @@ namespace OCR_Translator
         private readonly Dictionary<string, RichTextBox> ocrResultTextBoxes = new();
         private readonly LayoutStorage _layoutStorage = new LayoutStorage();
 
-        // 現在表示しているページの領域
+        // ログ出力専用（本文タブと分離）
+        private RichTextBox txtLog = null!;
+
         private List<OcrRegion> regions = new List<OcrRegion>();
-
-        // ページごとの領域設定（キーは PDF のページ番号 0始まり）
         private Dictionary<int, List<OcrRegion>> pageRegions = new();
-
-        // 自動領域判定結果（ページ単位）
         private Dictionary<int, List<OcrRegion>> autoPageRegions = new();
 
         private bool isDrawingRegion = false;
@@ -52,17 +49,16 @@ namespace OCR_Translator
         private Point resizeStartPoint;
 
         private const int ResizeHandleSize = 8;
-
         private bool isUpdatingRegionTypeCombo = false;
         private int nextAnnotationNumber = 1;
 
         public Form1()
         {
             InitializeComponent();
+            InitializeLogView();
             InitializeOcrResultView();
 
             cmbRegionType.SelectedIndexChanged += cmbRegionType_SelectedIndexChanged;
-            richTextBox1.MouseClick += richTextBox1_MouseClick;
 
             btnStartOcr.Click -= btnStartOcr_Click;
             btnStartOcr.Click += btnStartOcr_Click;
@@ -71,9 +67,6 @@ namespace OCR_Translator
             btnAutoLayout.Click += btnAutoLayout_Click;
         }
 
-        // =========================================================
-        // 領域タイプ変換
-        // =========================================================
         private string GetRegionType()
         {
             return cmbRegionType.Text switch
@@ -88,21 +81,28 @@ namespace OCR_Translator
             };
         }
 
-        // =========================================================
-        // PDF表示
-        // =========================================================
+        private void InitializeLogView()
+        {
+            txtLog = new RichTextBox
+            {
+                Dock = DockStyle.Bottom,
+                Height = 140,
+                ReadOnly = true,
+                BackColor = SystemColors.Window,
+                Font = new Font("Consolas", 9F),
+                ScrollBars = RichTextBoxScrollBars.Vertical
+            };
+            Controls.Add(txtLog);
+        }
+
         private void ShowCurrentPage()
         {
-            if (pdfDocument == null)
-                return;
-
-            if (currentPage < 0 || currentPage >= pdfDocument.PageCount)
-                return;
+            if (pdfDocument == null) return;
+            if (currentPage < 0 || currentPage >= pdfDocument.PageCount) return;
 
             try
             {
                 const int dpi = 150;
-
                 using Image image = pdfDocument.Render(
                     currentPage, dpi, dpi, PdfRenderFlags.Annotations);
 
@@ -130,13 +130,9 @@ namespace OCR_Translator
             Text = $"OCR Translator - {currentPage + 1}/{pdfDocument.PageCount}";
         }
 
-        // =========================================================
-        // ページ単位の領域管理
-        // =========================================================
         private void SaveCurrentPageRegions()
         {
             if (pdfDocument == null) return;
-
             _layoutStorage.TrySaveCurrentPageRegions(
                 currentPage, regions, pageRegions, autoPageRegions);
         }
@@ -173,9 +169,6 @@ namespace OCR_Translator
             pictureBox1.Invalidate();
         }
 
-        // =========================================================
-        // イベントハンドラー
-        // =========================================================
         private void btnOpenPdf_Click(object? sender, EventArgs e)
         {
             using OpenFileDialog dialog = new OpenFileDialog();
@@ -195,6 +188,8 @@ namespace OCR_Translator
                 autoPageRegions.Clear();
                 regions.Clear();
                 lstRegions.Items.Clear();
+                ClearOcrResultTabs();
+                txtLog.Clear();
 
                 pdfDocument = PdfDocument.Load(currentPdfPath);
                 currentPage = 0;
@@ -365,9 +360,6 @@ namespace OCR_Translator
             pictureBox1.Invalidate();
         }
 
-        // =========================================================
-        // PictureBox 描画・マウス操作
-        // =========================================================
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
             if (pictureBox1.Image == null) return;
@@ -676,9 +668,6 @@ namespace OCR_Translator
             };
         }
 
-        // =========================================================
-        // OCR結果表示タブ初期化
-        // =========================================================
         private void InitializeOcrResultView()
         {
             tabOcrResult = new TabControl { Dock = DockStyle.Fill };
@@ -721,7 +710,6 @@ namespace OCR_Translator
         {
             if (tabOcrResult == null) return;
             RichTextBox resultBox = new RichTextBox { Dock = DockStyle.Fill };
-            resultBox.MouseClick += richTextBox1_MouseClick;
             TabPage page = new TabPage(title);
             page.Controls.Add(resultBox);
             tabOcrResult.TabPages.Add(page);
@@ -734,58 +722,23 @@ namespace OCR_Translator
                 resultBox.Clear();
         }
 
-        // =========================================================
-        // 注釈番号
-        // =========================================================
-        private void richTextBox1_MouseClick(object? sender, MouseEventArgs e)
-        {
-            if (sender is not RichTextBox resultBox) return;
-            if (e.Button != MouseButtons.Left || e.X < resultBox.ClientSize.Width - 48) return;
-
-            int characterIndex = resultBox.GetCharIndexFromPosition(e.Location);
-            int lineIndex = resultBox.GetLineFromCharIndex(characterIndex);
-            ToggleAnnotationNumber(resultBox, lineIndex);
-        }
-
         private void btnAddAnnotationNumber_Click(object? sender, EventArgs e)
         {
             RichTextBox? resultBox = tabOcrResult?.SelectedTab?
                 .Controls.OfType<RichTextBox>().FirstOrDefault();
 
-            if (resultBox == null)
+            if (resultBox == null || resultBox.SelectionLength == 0)
             {
-                MessageBox.Show("本文・見出し・注釈文・図のタブで、対象行を選択してください。",
+                MessageBox.Show("注釈を付ける文字列を選択してください。",
                     "注釈番号", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            int lineIndex = resultBox.GetLineFromCharIndex(resultBox.SelectionStart);
-            ToggleAnnotationNumber(resultBox, lineIndex);
+            int insertPos = resultBox.SelectionStart + resultBox.SelectionLength;
+            resultBox.Select(insertPos, 0);
+            resultBox.SelectedText = $"【注{nextAnnotationNumber++}】";
         }
 
-        private void ToggleAnnotationNumber(RichTextBox resultBox, int lineIndex)
-        {
-            if (lineIndex < 0 || lineIndex >= resultBox.Lines.Length) return;
-            string line = resultBox.Lines[lineIndex];
-            if (string.IsNullOrWhiteSpace(line)) return;
-
-            const string noteMarker = "\t【注";
-            int markerIndex = line.LastIndexOf(noteMarker, StringComparison.Ordinal);
-
-            string updatedLine = markerIndex >= 0
-                ? line[..markerIndex]
-                : line + $"\t【注{nextAnnotationNumber++}】";
-
-            int lineStart = resultBox.GetFirstCharIndexFromLine(lineIndex);
-            resultBox.Select(lineStart, line.Length);
-            resultBox.SelectedText = updatedLine;
-            resultBox.Select(lineStart + updatedLine.Length, 0);
-            resultBox.Focus();
-        }
-
-        // =========================================================
-        // 領域テスト切り出し
-        // =========================================================
         private void btnTestCrop_Click(object sender, EventArgs e)
         {
             int index = lstRegions.SelectedIndex;
@@ -883,9 +836,6 @@ namespace OCR_Translator
             }
         }
 
-        // =========================================================
-        // 全ページ自動領域判定
-        // =========================================================
         private async void btnAutoLayout_Click(object? sender, EventArgs e)
         {
             if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
@@ -936,19 +886,19 @@ namespace OCR_Translator
                 progressForm.Show(this);
                 progressForm.UpdateProgress(0, pdfDocument.PageCount, "準備中...");
 
-                richTextBox1.Clear();
-                richTextBox1.AppendText("========== 全ページ領域自動判定 ==========" + Environment.NewLine);
-                richTextBox1.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
-                richTextBox1.AppendText($"ページ数: {pdfDocument.PageCount}" + Environment.NewLine + Environment.NewLine);
+                txtLog.Clear();
+                txtLog.AppendText("========== 全ページ領域自動判定 ==========" + Environment.NewLine);
+                txtLog.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
+                txtLog.AppendText($"ページ数: {pdfDocument.PageCount}" + Environment.NewLine + Environment.NewLine);
 
                 autoPageRegions.Clear();
 
                 for (int pageIndex = 0; pageIndex < pdfDocument.PageCount; pageIndex++)
                 {
                     string pageMessage = $"ページ {pageIndex + 1} / {pdfDocument.PageCount} を処理しています...";
-                    richTextBox1.AppendText($"---------- {pageIndex + 1}/{pdfDocument.PageCount} ページ ----------" + Environment.NewLine);
-                    richTextBox1.AppendText(pageMessage + Environment.NewLine);
-                    richTextBox1.Refresh();
+                    txtLog.AppendText($"---------- {pageIndex + 1}/{pdfDocument.PageCount} ページ ----------" + Environment.NewLine);
+                    txtLog.AppendText(pageMessage + Environment.NewLine);
+                    txtLog.Refresh();
                     progressForm?.UpdateProgress(pageIndex, pdfDocument.PageCount,
                         pageMessage + "\r\nNDLOCR-Liteを実行しています。");
 
@@ -973,7 +923,7 @@ namespace OCR_Translator
                         if (result.ExitCode != 0)
                         {
                             failureCount++;
-                            richTextBox1.AppendText($"失敗: 終了コード {result.ExitCode}" + Environment.NewLine);
+                            txtLog.AppendText($"失敗: 終了コード {result.ExitCode}" + Environment.NewLine);
                             progressForm?.UpdateProgress(pageIndex + 1, pdfDocument.PageCount,
                                 $"ページ {pageIndex + 1} 失敗\r\n終了コード: {result.ExitCode}");
                             continue;
@@ -982,7 +932,7 @@ namespace OCR_Translator
                         if (!File.Exists(resultJson))
                         {
                             failureCount++;
-                            richTextBox1.AppendText("失敗: auto_layout.json が生成されませんでした。" + Environment.NewLine);
+                            txtLog.AppendText("失敗: auto_layout.json が生成されませんでした。" + Environment.NewLine);
                             progressForm?.UpdateProgress(pageIndex + 1, pdfDocument.PageCount,
                                 $"ページ {pageIndex + 1} 失敗\r\nauto_layout.json がありません。");
                             continue;
@@ -993,14 +943,14 @@ namespace OCR_Translator
                         autoPageRegions[pageIndex] = converted;
 
                         successCount++;
-                        richTextBox1.AppendText($"成功: 自動領域 {converted.Count}件" + Environment.NewLine);
+                        txtLog.AppendText($"成功: 自動領域 {converted.Count}件" + Environment.NewLine);
                         progressForm?.UpdateProgress(pageIndex + 1, pdfDocument.PageCount,
                             $"ページ {pageIndex + 1} 完了\r\n自動領域 {converted.Count}件");
                     }
                     catch (Exception ex)
                     {
                         failureCount++;
-                        richTextBox1.AppendText("失敗: " + ex.Message + Environment.NewLine);
+                        txtLog.AppendText("失敗: " + ex.Message + Environment.NewLine);
                         progressForm?.UpdateProgress(pageIndex + 1, pdfDocument.PageCount,
                             $"ページ {pageIndex + 1} 失敗\r\n{ex.Message}");
                     }
@@ -1010,15 +960,15 @@ namespace OCR_Translator
                 LoadCurrentPageRegions();
                 ShowCurrentPage();
 
-                richTextBox1.AppendText(Environment.NewLine);
-                richTextBox1.AppendText("========== 全ページ判定完了 ==========" + Environment.NewLine);
-                richTextBox1.AppendText($"成功: {successCount}ページ" + Environment.NewLine);
-                richTextBox1.AppendText($"失敗: {failureCount}ページ" + Environment.NewLine);
-                richTextBox1.AppendText("左側の枠を確認し、必要なページだけ領域を補正してください。" + Environment.NewLine);
+                txtLog.AppendText(Environment.NewLine);
+                txtLog.AppendText("========== 全ページ判定完了 ==========" + Environment.NewLine);
+                txtLog.AppendText($"成功: {successCount}ページ" + Environment.NewLine);
+                txtLog.AppendText($"失敗: {failureCount}ページ" + Environment.NewLine);
+                txtLog.AppendText("左側の枠を確認し、必要なページだけ領域を補正してください。" + Environment.NewLine);
             }
             catch (Exception ex)
             {
-                richTextBox1.AppendText(Environment.NewLine +
+                txtLog.AppendText(Environment.NewLine +
                     "========== 全ページ判定例外 ==========" + Environment.NewLine + ex + Environment.NewLine);
             }
             finally
@@ -1039,9 +989,6 @@ namespace OCR_Translator
             }
         }
 
-        // =========================================================
-        // OCR開始
-        // =========================================================
         private async void btnStartOcr_Click(object? sender, EventArgs e)
         {
             if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
@@ -1052,29 +999,30 @@ namespace OCR_Translator
             }
 
             SaveCurrentPageRegions();
-            richTextBox1.Clear();
-            richTextBox1.AppendText("========== OCR開始 ==========\r\n");
-            richTextBox1.AppendText($"現在ページ: {currentPage + 1}\r\n");
+
+            if (txtLog.TextLength > 0)
+                txtLog.AppendText("\r\n");
+            txtLog.AppendText($"========== OCR開始 ページ {currentPage + 1} ==========" + Environment.NewLine);
 
             bool useUserRegions = regions.Count > 0;
 
             if (useUserRegions)
             {
-                richTextBox1.AppendText($"ユーザー指定領域: {regions.Count}件\r\n");
+                txtLog.AppendText($"ユーザー指定領域: {regions.Count}件" + Environment.NewLine);
                 for (int i = 0; i < regions.Count; i++)
                 {
                     OcrRegion r = regions[i];
-                    richTextBox1.AppendText(
-                        $"  [{i + 1:00}] {r.Name} / {r.Type} x={r.X}, y={r.Y}, width={r.Width}, height={r.Height}\r\n");
+                    txtLog.AppendText(
+                        $"  [{i + 1:00}] {r.Name} / {r.Type} x={r.X}, y={r.Y}, width={r.Width}, height={r.Height}" + Environment.NewLine);
                 }
             }
             else
             {
-                richTextBox1.AppendText("ユーザー指定領域がありません。自動領域判定を使用します。\r\n");
+                txtLog.AppendText("ユーザー指定領域がありません。自動領域判定を使用します。" + Environment.NewLine);
             }
 
-            richTextBox1.AppendText("ページ画像を作成しています...\r\n");
-            richTextBox1.Refresh();
+            txtLog.AppendText("ページ画像を作成しています..." + Environment.NewLine);
+            txtLog.Refresh();
 
             string projectDir = OcrProcessor.FindOcrEngineDirectory();
             string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
@@ -1082,13 +1030,13 @@ namespace OCR_Translator
 
             if (!File.Exists(pythonExe))
             {
-                richTextBox1.AppendText($"Pythonが見つかりません: {pythonExe}\r\n");
+                txtLog.AppendText($"Pythonが見つかりません: {pythonExe}" + Environment.NewLine);
                 return;
             }
 
             if (!File.Exists(autoRegionScript))
             {
-                richTextBox1.AppendText($"スクリプトが見つかりません: {autoRegionScript}\r\n");
+                txtLog.AppendText($"スクリプトが見つかりません: {autoRegionScript}" + Environment.NewLine);
                 return;
             }
 
@@ -1106,9 +1054,9 @@ namespace OCR_Translator
                 using (Image rendered = pdfDocument.Render(currentPage, dpi, dpi, PdfRenderFlags.Annotations))
                     rendered.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
 
-                richTextBox1.AppendText("ページ画像作成完了\r\n");
-                richTextBox1.AppendText("NDLOCR-Liteを実行しています...\r\n");
-                richTextBox1.Refresh();
+                txtLog.AppendText("ページ画像作成完了" + Environment.NewLine);
+                txtLog.AppendText("NDLOCR-Liteを実行しています..." + Environment.NewLine);
+                txtLog.Refresh();
 
                 var psi = new ProcessStartInfo
                 {
@@ -1140,9 +1088,9 @@ namespace OCR_Translator
                     {
                         BeginInvoke(new Action(() =>
                         {
-                            richTextBox1.AppendText(ev.Data + "\r\n");
-                            richTextBox1.SelectionStart = richTextBox1.TextLength;
-                            richTextBox1.ScrollToCaret();
+                            txtLog.AppendText(ev.Data + Environment.NewLine);
+                            txtLog.SelectionStart = txtLog.TextLength;
+                            txtLog.ScrollToCaret();
                         }));
                     }
                 };
@@ -1155,9 +1103,9 @@ namespace OCR_Translator
                     {
                         BeginInvoke(new Action(() =>
                         {
-                            richTextBox1.AppendText("[ERROR] " + ev.Data + "\r\n");
-                            richTextBox1.SelectionStart = richTextBox1.TextLength;
-                            richTextBox1.ScrollToCaret();
+                            txtLog.AppendText("[ERROR] " + ev.Data + Environment.NewLine);
+                            txtLog.SelectionStart = txtLog.TextLength;
+                            txtLog.ScrollToCaret();
                         }));
                     }
                 };
@@ -1175,23 +1123,23 @@ namespace OCR_Translator
                 string pageJson = Path.Combine(pageDir, "page.json");
                 string resultJson = Path.Combine(pageDir, "auto_layout.json");
 
-                richTextBox1.AppendText($"\r\nNDLOCR-Lite終了コード: {exitCode}\r\n");
+                txtLog.AppendText($"\r\nNDLOCR-Lite終了コード: {exitCode}" + Environment.NewLine);
 
                 if (exitCode != 0)
                 {
-                    richTextBox1.AppendText("========== OCR失敗 ==========\r\n");
+                    txtLog.AppendText("========== OCR失敗 ==========" + Environment.NewLine);
                     return;
                 }
 
                 if (!File.Exists(pageJson))
                 {
-                    richTextBox1.AppendText($"page.json が見つかりません: {pageJson}\r\n");
+                    txtLog.AppendText($"page.json が見つかりません: {pageJson}" + Environment.NewLine);
                     return;
                 }
 
                 if (!useUserRegions && !File.Exists(resultJson))
                 {
-                    richTextBox1.AppendText($"auto_layout.json が見つかりません: {resultJson}\r\n");
+                    txtLog.AppendText($"auto_layout.json が見つかりません: {resultJson}" + Environment.NewLine);
                     return;
                 }
 
@@ -1200,18 +1148,19 @@ namespace OCR_Translator
                     ? new List<AutoLayoutRegion>()
                     : OcrJsonParser.LoadAutoLayoutJson(resultJson);
 
-                richTextBox1.AppendText($"OCR項目数: {ocrItems.Count}\r\n");
-                richTextBox1.AppendText(useUserRegions
-                    ? $"領域判定: ユーザー指定領域 ({regions.Count}件)\r\n\r\n"
-                    : $"領域判定: 自動領域 ({autoRegions.Count}件)\r\n\r\n");
+                txtLog.AppendText($"OCR項目数: {ocrItems.Count}" + Environment.NewLine);
+                txtLog.AppendText(useUserRegions
+                    ? $"領域判定: ユーザー指定領域 ({regions.Count}件)" + Environment.NewLine + Environment.NewLine
+                    : $"領域判定: 自動領域 ({autoRegions.Count}件)" + Environment.NewLine + Environment.NewLine);
 
-                ClearOcrResultTabs();
                 nextAnnotationNumber = 1;
 
                 List<OcrDisplayItem> displayItems = OcrSorter.SortTableItemsForDisplay(
                     ocrItems, regions, useUserRegions, autoRegions);
 
+                bool bodyStarted = false;
                 Dictionary<string, int> itemNumbers = new();
+
                 foreach (OcrDisplayItem item in displayItems)
                 {
                     string type = useUserRegions
@@ -1221,9 +1170,22 @@ namespace OCR_Translator
                     if (type == "table") continue;
 
                     string tabType = ocrResultTextBoxes.ContainsKey(type) ? type : "unclassified";
-                    int number = itemNumbers.TryGetValue(tabType, out int currentNumber) ? currentNumber + 1 : 1;
-                    itemNumbers[tabType] = number;
-                    ocrResultTextBoxes[tabType].AppendText($"[{number:00}] {item.Text}\r\n");
+
+                    if (tabType == "body")
+                    {
+                        if (!bodyStarted)
+                        {
+                            ocrResultTextBoxes["body"].AppendText($"\r\n--- ページ {currentPage + 1} ---\r\n");
+                            bodyStarted = true;
+                        }
+                        ocrResultTextBoxes["body"].AppendText(item.Text + " ");
+                    }
+                    else
+                    {
+                        int number = itemNumbers.TryGetValue(tabType, out int currentNumber) ? currentNumber + 1 : 1;
+                        itemNumbers[tabType] = number;
+                        ocrResultTextBoxes[tabType].AppendText($"[{number:00}] {item.Text}" + Environment.NewLine);
+                    }
                 }
 
                 List<OcrDisplayItem> tableItems = displayItems.Where(item =>
@@ -1248,8 +1210,8 @@ namespace OCR_Translator
             }
             catch (Exception ex)
             {
-                richTextBox1.AppendText("\r\n========== OCR例外 ==========\r\n");
-                richTextBox1.AppendText(ex + "\r\n");
+                txtLog.AppendText(Environment.NewLine + "========== OCR例外 ==========" + Environment.NewLine);
+                txtLog.AppendText(ex + Environment.NewLine);
             }
             finally
             {
