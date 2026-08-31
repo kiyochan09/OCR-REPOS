@@ -72,21 +72,8 @@ private bool isDrawingRegion = false;
         private Rectangle moveOriginalRectangle;
 
         private int hoverRegionIndex = -1;
-        private ResizeMode hoverResizeMode = ResizeMode.None;
-        private enum ResizeMode
-        {
-            None,
-            Left,
-            Right,
-            Top,
-            Bottom,
-            TopLeft,
-            TopRight,
-            BottomLeft,
-            BottomRight
-        }
-
-        private ResizeMode resizeMode = ResizeMode.None;
+        private ImageCoordinateHelper.ResizeMode hoverResizeMode = ImageCoordinateHelper.ResizeMode.None;
+        private ImageCoordinateHelper.ResizeMode resizeMode = ImageCoordinateHelper.ResizeMode.None;
         private Rectangle resizeOriginalRectangle;
         private Point resizeStartPoint;
 
@@ -658,7 +645,7 @@ private bool isDrawingRegion = false;
                         region.Height);
 
                 Rectangle screenRect =
-                    ImageRectangleToScreenRectangle(imageRect);
+                ImageCoordinateHelper.ImageToScreen(imageRect, pictureBox1);
 
                 e.Graphics.DrawRectangle(
                     regionPen,
@@ -745,7 +732,7 @@ private bool isDrawingRegion = false;
                     regions[hitIndex];
 
                 Rectangle screenRect =
-                    ImageRectangleToScreenRectangle(
+                    ImageCoordinateHelper.ImageToScreen(
                         new Rectangle(
                             region.X,
                             region.Y,
@@ -807,7 +794,7 @@ private bool isDrawingRegion = false;
             if (pictureBox1.Image == null)
                 return;
 
-            HitTestRegionNear(e.Location, 20);
+            ImageCoordinateHelper.HitTestRegionNear(e.Location, 20);
 
             // マウスが近づいた領域を自動選択
             if (resizeMode == ResizeMode.None &&
@@ -834,7 +821,7 @@ private bool isDrawingRegion = false;
                 hoverRegionIndex = -1;
                 hoverResizeMode = ResizeMode.None;
 
-                int nearIndex = HitTestRegionNear(e.Location, 20);
+                int nearIndex = ImageCoordinateHelper.HitTestRegionNear(point, 20, regions, pictureBox1);
 
                 if (nearIndex >= 0)
                 {
@@ -859,7 +846,7 @@ private bool isDrawingRegion = false;
                                 hoverRegion.Height));
 
                     ResizeMode mode =
-                        GetResizeMode(e.Location, hoverRect);
+                        ImageCoordinateHelper.GetResizeMode(point, rect);
 
                     hoverResizeMode = mode;
 
@@ -1188,7 +1175,7 @@ private bool isDrawingRegion = false;
             }
 
             Rectangle imageRect =
-                ScreenRectangleToImageRectangle(regionPreviewRectangle);
+                ImageCoordinateHelper.ScreenToImage(rect, pictureBox1)
 
             OcrRegion region = new OcrRegion
             {
@@ -1216,53 +1203,9 @@ private bool isDrawingRegion = false;
             pictureBox1.Invalidate();
         }
 
-        private Rectangle ScreenRectangleToImageRectangle(Rectangle screenRect)
-        {
-            if (pictureBox1.Image == null)
-                return Rectangle.Empty;
+        
 
-            float scaleX =
-                (float)pictureBox1.ClientSize.Width /
-                pictureBox1.Image.Width;
-
-            float scaleY =
-                (float)pictureBox1.ClientSize.Height /
-                pictureBox1.Image.Height;
-
-            float scale = Math.Min(scaleX, scaleY);
-
-            float displayWidth =
-                pictureBox1.Image.Width * scale;
-
-            float displayHeight =
-                pictureBox1.Image.Height * scale;
-
-            float offsetX =
-                (pictureBox1.ClientSize.Width - displayWidth) / 2;
-
-            float offsetY =
-                (pictureBox1.ClientSize.Height - displayHeight) / 2;
-
-            int x = (int)((screenRect.X - offsetX) / scale);
-            int y = (int)((screenRect.Y - offsetY) / scale);
-
-            int width = (int)(screenRect.Width / scale);
-            int height = (int)(screenRect.Height / scale);
-
-            x = Math.Max(0, x);
-            y = Math.Max(0, y);
-
-            width = Math.Min(width, pictureBox1.Image.Width - x);
-            height = Math.Min(height, pictureBox1.Image.Height - y);
-
-            return new Rectangle(
-                x,
-                y,
-                width,
-                height);
-        }
-
-        private int HitTestRegion(Point screenPoint)
+        private int ImageCoordinateHelper.HitTestRegion(point, regions, pictureBox1)
         {
             if (pictureBox1.Image == null)
                 return -1;
@@ -1286,135 +1229,9 @@ private bool isDrawingRegion = false;
             return -1;
         }
 
-        private Rectangle ImageRectangleToScreenRectangle(Rectangle imageRect)
-        {
-            if (pictureBox1.Image == null)
-                return Rectangle.Empty;
+        
 
-            float scaleX =
-                (float)pictureBox1.ClientSize.Width /
-                pictureBox1.Image.Width;
-
-            float scaleY =
-                (float)pictureBox1.ClientSize.Height /
-                pictureBox1.Image.Height;
-
-            float scale = Math.Min(scaleX, scaleY);
-
-            float displayWidth =
-                pictureBox1.Image.Width * scale;
-
-            float displayHeight =
-                pictureBox1.Image.Height * scale;
-
-            float offsetX =
-                (pictureBox1.ClientSize.Width - displayWidth) / 2;
-
-            float offsetY =
-                (pictureBox1.ClientSize.Height - displayHeight) / 2;
-
-            int x =
-                (int)(offsetX + imageRect.X * scale);
-
-            int y =
-                (int)(offsetY + imageRect.Y * scale);
-
-            int width =
-                (int)(imageRect.Width * scale);
-
-            int height =
-                (int)(imageRect.Height * scale);
-
-            return new Rectangle(
-                x,
-                y,
-                width,
-                height);
-
-
-        }
-
-        private ResizeMode GetResizeMode(Point point, Rectangle rect)
-        {
-            int h = ResizeHandleSize;
-            int edge = 20;
-
-            Rectangle topLeft = new Rectangle(
-                rect.Left - h / 2,
-                rect.Top - h / 2,
-                h,
-                h);
-
-            Rectangle topRight = new Rectangle(
-                rect.Right - h / 2,
-                rect.Top - h / 2,
-                h,
-                h);
-
-            Rectangle bottomLeft = new Rectangle(
-                rect.Left - h / 2,
-                rect.Bottom - h / 2,
-                h,
-                h);
-
-            Rectangle bottomRight = new Rectangle(
-                rect.Right - h / 2,
-                rect.Bottom - h / 2,
-                h,
-                h);
-
-            if (topLeft.Contains(point))
-                return ResizeMode.TopLeft;
-
-            if (topRight.Contains(point))
-                return ResizeMode.TopRight;
-
-            if (bottomLeft.Contains(point))
-                return ResizeMode.BottomLeft;
-
-            if (bottomRight.Contains(point))
-                return ResizeMode.BottomRight;
-
-
-
-            Rectangle left = new Rectangle(
-                rect.Left - edge / 2,
-                rect.Top + edge,
-                edge,
-                Math.Max(0, rect.Height - edge * 2));
-
-            Rectangle right = new Rectangle(
-                rect.Right - edge / 2,
-                rect.Top + edge,
-                edge,
-                Math.Max(0, rect.Height - edge * 2));
-
-            Rectangle top = new Rectangle(
-                rect.Left + edge,
-                rect.Top - edge / 2,
-                Math.Max(0, rect.Width - edge * 2),
-                edge);
-
-            Rectangle bottom = new Rectangle(
-                rect.Left + edge,
-                rect.Bottom - edge / 2,
-                Math.Max(0, rect.Width - edge * 2),
-                edge);
-
-            if (left.Contains(point))
-                return ResizeMode.Left;
-
-            if (right.Contains(point))
-                return ResizeMode.Right;
-
-            if (top.Contains(point))
-                return ResizeMode.Top;
-
-            if (bottom.Contains(point))
-                return ResizeMode.Bottom;
-
-            return ResizeMode.None;
-        }
+        
 
         private Color GetRegionColor(string type)
         {
@@ -1452,229 +1269,9 @@ private bool isDrawingRegion = false;
             }
         }
                 
-        private int HitTestRegionNear(Point point, int tolerance)
-        {
-            int nearestIndex = -1;
-            double nearestDistance = double.MaxValue;
+        
 
-            for (int i = 0; i < regions.Count; i++)
-            {
-                OcrRegion region = regions[i];
-
-                Rectangle screenRect =
-                    ImageRectangleToScreenRectangle(
-                        new Rectangle(
-                            region.X,
-                            region.Y,
-                            region.Width,
-                            region.Height));
-
-                Rectangle expandedRect =
-                    new Rectangle(
-                        screenRect.X - tolerance,
-                        screenRect.Y - tolerance,
-                        screenRect.Width + tolerance * 2,
-                        screenRect.Height + tolerance * 2);
-
-                if (!expandedRect.Contains(point))
-                    continue;
-
-                // 矩形の中心までの距離を計算
-                float centerX =
-                    screenRect.Left + screenRect.Width / 2f;
-
-                float centerY =
-                    screenRect.Top + screenRect.Height / 2f;
-
-                double distance =
-                    Math.Sqrt(
-                        Math.Pow(point.X - centerX, 2) +
-                        Math.Pow(point.Y - centerY, 2));
-
-                if (distance < nearestDistance)
-                {
-                    nearestDistance = distance;
-                    nearestIndex = i;
-                }
-            }
-
-            return nearestIndex;
-        }
-
-        private sealed class OcrDisplayItem
-        {
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Width { get; set; }
-            public int Height { get; set; }
-            public bool IsVertical { get; set; }
-            public string Text { get; set; } = "";
-        }
-
-        private sealed class AutoLayoutRegion
-        {
-            public string Name { get; set; } = "";
-            public string Type { get; set; } = "";
-
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Width { get; set; }
-            public int Height { get; set; }
-
-            public int Rows { get; set; }
-            public int Columns { get; set; }
-
-            public List<AutoLayoutCell> Cells { get; set; }
-                = new List<AutoLayoutCell>();
-        }
-        private sealed class AutoLayoutCell
-        {
-            public int Row { get; set; }
-            public int Column { get; set; }
-
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Width { get; set; }
-            public int Height { get; set; }
-
-            public string Text { get; set; } = "";
-            public int OcrCount { get; set; }
-        }
-
-        // =========================================================
-        // 本文読み順
-        //
-        // 縦書き:
-        //   1. OCRを縦列にグループ化
-        //   2. 列を右 → 左
-        //   3. 各列を上 → 下
-        //
-        // 横書き:
-        //   1. 上 → 下
-        //   2. 同じ位置なら左 → 右
-        // =========================================================
-
-        private List<OcrDisplayItem> SortBodyReadingOrder(
-            List<OcrDisplayItem> items)
-        {
-            if (items.Count <= 1)
-                return new List<OcrDisplayItem>(items);
-
-            int verticalCount =
-                items.Count(item => item.IsVertical);
-
-            bool isVertical =
-                verticalCount * 2 >= items.Count;
-
-            // ---------------------------------------------------------
-            // 横書き本文
-            // ---------------------------------------------------------
-            if (!isVertical)
-            {
-                return items
-                    .OrderBy(item => item.Y)
-                    .ThenBy(item => item.X)
-                    .ToList();
-            }
-
-            // ---------------------------------------------------------
-            // 縦書き本文
-            //
-            // OCRの中心Xを基準に縦列を作る。
-            // ---------------------------------------------------------
-
-            var columns =
-                new List<List<OcrDisplayItem>>();
-
-            foreach (OcrDisplayItem item in
-                items.OrderByDescending(
-                    item => item.X + item.Width / 2))
-            {
-                double centerX =
-                    item.X + item.Width / 2.0;
-
-                List<OcrDisplayItem>? targetColumn = null;
-                double bestDistance = double.MaxValue;
-
-                foreach (List<OcrDisplayItem> column in columns)
-                {
-                    double columnCenterX =
-                        column.Average(
-                            x => x.X + x.Width / 2.0);
-
-                    double distance =
-                        Math.Abs(centerX - columnCenterX);
-
-                    double averageWidth =
-                        column.Average(x => x.Width);
-
-                    double tolerance =
-                        Math.Max(
-                            8.0,
-                            Math.Max(
-                                item.Width,
-                                averageWidth) * 1.5);
-
-                    if (distance <= tolerance &&
-                        distance < bestDistance)
-                    {
-                        targetColumn = column;
-                        bestDistance = distance;
-                    }
-                }
-
-                if (targetColumn == null)
-                {
-                    targetColumn =
-                        new List<OcrDisplayItem>();
-
-                    columns.Add(targetColumn);
-                }
-
-                targetColumn.Add(item);
-            }
-
-            // ---------------------------------------------------------
-            // 各縦列は上 → 下
-            // ---------------------------------------------------------
-
-            foreach (List<OcrDisplayItem> column in columns)
-            {
-                column.Sort(
-                    (a, b) =>
-                    {
-                        int result =
-                            a.Y.CompareTo(b.Y);
-
-                        if (result != 0)
-                            return result;
-
-                        return a.X.CompareTo(b.X);
-                    });
-            }
-
-            // ---------------------------------------------------------
-            // 縦列そのものは右 → 左
-            // ---------------------------------------------------------
-
-            columns.Sort(
-                (a, b) =>
-                {
-                    double aX =
-                        a.Average(
-                            x => x.X + x.Width / 2.0);
-
-                    double bX =
-                        b.Average(
-                            x => x.X + x.Width / 2.0);
-
-                    return bX.CompareTo(aX);
-                });
-
-            return columns
-                .SelectMany(column => column)
-                .ToList();
-        }
+        
 
         // =========================================================
         // OCR結果表示用の表内部読み順
@@ -1688,352 +1285,7 @@ private bool isDrawingRegion = false;
         //
         // ※文字列内容による特別扱いは行わない。
         // =========================================================
-        private List<OcrDisplayItem> SortTableItemsForDisplay(
-            List<OcrDisplayItem> items,
-            List<OcrRegion> userRegions,
-            bool useUserRegions,
-            List<AutoLayoutRegion> autoRegions)
-        {
-            if (items.Count <= 1)
-                return new List<OcrDisplayItem>(items);
-
-            string GetTypeForItem(OcrDisplayItem item)
-            {
-                return useUserRegions
-                    ? FindUserRegionType(item, userRegions)
-                    : FindAutoLayoutRegionType(item, autoRegions);
-            }
-
-            // ---------------------------------------------------------
-            // 表OCRだけを抽出
-            // ---------------------------------------------------------
-
-            List<OcrDisplayItem> tableItems = items
-                .Where(item => GetTypeForItem(item) == "table")
-                .ToList();
-
-            if (tableItems.Count <= 1)
-                return new List<OcrDisplayItem>(items);
-
-            // ---------------------------------------------------------
-            // 表内部のX方向グループを作る
-            //
-            // OCRボックスの中心Xを基準にする。
-            // ただし、固定の座標値には依存しない。
-            // ---------------------------------------------------------
-
-            var columns = new List<List<OcrDisplayItem>>();
-
-            foreach (OcrDisplayItem item in tableItems
-                .OrderBy(item => item.X + item.Width / 2.0)
-                .ThenBy(item => item.Y))
-            {
-                double itemCenterX =
-                    item.X + item.Width / 2.0;
-
-                List<OcrDisplayItem>? targetColumn = null;
-                double bestDistance = double.MaxValue;
-
-                foreach (List<OcrDisplayItem> column in columns)
-                {
-                    double columnCenterX =
-                        column.Average(
-                            x => x.X + x.Width / 2.0);
-
-                    double averageWidth =
-                        column.Count == 0
-                            ? Math.Max(1, item.Width)
-                            : column.Average(
-                                x => Math.Max(1, x.Width));
-
-                    // OCRボックス幅を基準にした相対許容値
-                    double tolerance =
-                        Math.Max(4.0, averageWidth * 0.8);
-
-                    double distance =
-                        Math.Abs(itemCenterX - columnCenterX);
-
-                    if (distance <= tolerance &&
-                        distance < bestDistance)
-                    {
-                        targetColumn = column;
-                        bestDistance = distance;
-                    }
-                }
-
-                if (targetColumn == null)
-                {
-                    targetColumn =
-                        new List<OcrDisplayItem>();
-
-                    columns.Add(targetColumn);
-                }
-
-                targetColumn.Add(item);
-            }
-
-            // ---------------------------------------------------------
-            // 各X列の内部は上→下
-            // ---------------------------------------------------------
-
-            foreach (List<OcrDisplayItem> column in columns)
-            {
-                column.Sort((a, b) =>
-                {
-                    int result =
-                        a.Y.CompareTo(b.Y);
-
-                    if (result != 0)
-                        return result;
-
-                    return a.X.CompareTo(b.X);
-                });
-            }
-
-            // ---------------------------------------------------------
-            // X列を左→右に並べる
-            //
-            // 表が通常の横書き表の場合はこちら。
-            // ---------------------------------------------------------
-
-            columns.Sort((a, b) =>
-            {
-                double ax =
-                    a.Average(
-                        x => x.X + x.Width / 2.0);
-
-                double bx =
-                    b.Average(
-                        x => x.X + x.Width / 2.0);
-
-                return ax.CompareTo(bx);
-            });
-
-            // ---------------------------------------------------------
-            // 表項目を完成
-            // ---------------------------------------------------------
-
-            List<OcrDisplayItem> sortedTableItems =
-                columns
-                    .SelectMany(column => column)
-                    .ToList();
-
-            // ---------------------------------------------------------
-            // 元のOCRリストでは、表項目の位置だけを置換。
-            // 本文など他の領域の順序は変更しない。
-            // ---------------------------------------------------------
-
-            List<OcrDisplayItem> result =
-                new List<OcrDisplayItem>(items);
-
-            int tableIndex = 0;
-
-            for (int i = 0; i < result.Count; i++)
-            {
-                if (GetTypeForItem(result[i]) == "table")
-                {
-                    result[i] =
-                        sortedTableItems[tableIndex];
-
-                    tableIndex++;
-                }
-            }
-
-            return result;
-        }
-
-        private void CreateOcrTableView()
-        {
-            if (dgvOcrTable != null)
-            {
-                return;
-            }
-
-            dgvOcrTable = new DataGridView
-            {
-                Name = "dgvOcrTable",
-                Dock = DockStyle.Fill,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                AllowUserToResizeRows = true,
-                ReadOnly = true,
-                RowHeadersVisible = false,
-                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
-                SelectionMode = DataGridViewSelectionMode.CellSelect,
-                MultiSelect = false
-            };
-
-            dgvOcrTable.ColumnHeadersDefaultCellStyle.Alignment =
-                DataGridViewContentAlignment.MiddleCenter;
-
-            dgvOcrTable.DefaultCellStyle.WrapMode =
-                DataGridViewTriState.True;
-
-            dgvOcrTable.Visible = false;
-
-            tableLayoutPanel1.Controls.Add(dgvOcrTable, 1, 0);
-        }
-
-        private void DisplayOcrTable(
-    List<OcrDisplayItem> tableItems)
-        {
-            if (dgvOcrTable == null)
-                return;
-
-            dgvOcrTable.Columns.Clear();
-            dgvOcrTable.Rows.Clear();
-
-            if (tableItems.Count == 0)
-                return;
-
-            dgvOcrTable.Columns.Add(
-                "Index",
-                "No.");
-
-            dgvOcrTable.Columns.Add(
-                "Text",
-                "OCR結果");
-
-            for (int i = 0; i < tableItems.Count; i++)
-            {
-                OcrDisplayItem item = tableItems[i];
-
-                dgvOcrTable.Rows.Add(
-                    i + 1,
-                    item.Text);
-            }
-
-            dgvOcrTable.Columns["Index"]!.FillWeight = 15;
-            dgvOcrTable.Columns["Text"]!.FillWeight = 85;
-        }
-
-        private void DisplayDetectedTables(
-    List<AutoLayoutRegion> autoRegions)
-        {
-            if (tabOcrTable == null)
-                return;
-
-            tabOcrTable.Controls.Clear();
-
-            TabControl tableTabs = new TabControl
-            {
-                Dock = DockStyle.Fill
-            };
-
-            List<AutoLayoutRegion> tables =
-                autoRegions
-                    .Where(r =>
-                        string.Equals(
-                            r.Type,
-                            "table",
-                            StringComparison.OrdinalIgnoreCase))
-                    .ToList();
-
-            if (tables.Count == 0)
-            {
-                Label label = new Label
-                {
-                    Dock = DockStyle.Fill,
-                    Text = "検出された表はありません。",
-                    TextAlign = ContentAlignment.MiddleCenter
-                };
-
-                tabOcrTable.Controls.Add(label);
-                return;
-            }
-
-            for (int tableIndex = 0;
-                 tableIndex < tables.Count;
-                 tableIndex++)
-            {
-                AutoLayoutRegion table =
-                    tables[tableIndex];
-
-                TabPage page = new TabPage(
-                    string.IsNullOrWhiteSpace(table.Name)
-                        ? $"表{tableIndex + 1}"
-                        : table.Name);
-
-                DataGridView grid =
-                    CreateTableGrid(table);
-
-                page.Controls.Add(grid);
-
-                tableTabs.TabPages.Add(page);
-            }
-
-            tabOcrTable.Controls.Add(tableTabs);
-        }
-
-        private DataGridView CreateTableGrid(
-    AutoLayoutRegion table)
-        {
-            DataGridView grid = new DataGridView
-            {
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                RowHeadersVisible = false,
-                AutoSizeRowsMode =
-                    DataGridViewAutoSizeRowsMode.AllCells,
-                AutoSizeColumnsMode =
-                    DataGridViewAutoSizeColumnsMode.Fill,
-                SelectionMode =
-                    DataGridViewSelectionMode.CellSelect,
-                MultiSelect = false
-            };
-
-            grid.DefaultCellStyle.WrapMode =
-                DataGridViewTriState.True;
-
-            int rows = table.Rows;
-            int columns = table.Columns;
-
-            if (rows <= 0 || columns <= 0)
-            {
-                if (table.Cells.Count > 0)
-                {
-                    rows = table.Cells.Max(c => c.Row);
-                    columns = table.Cells.Max(c => c.Column);
-                }
-            }
-
-            if (rows <= 0 || columns <= 0)
-                return grid;
-
-            for (int column = 1;
-                 column <= columns;
-                 column++)
-            {
-                grid.Columns.Add(
-                    $"Column{column}",
-                    $"列{column}");
-            }
-
-            grid.Rows.Add(rows);
-
-            foreach (AutoLayoutCell cell in table.Cells)
-            {
-                int rowIndex = cell.Row - 1;
-                int columnIndex = cell.Column - 1;
-
-                if (rowIndex < 0 ||
-                    rowIndex >= grid.Rows.Count)
-                    continue;
-
-                if (columnIndex < 0 ||
-                    columnIndex >= grid.Columns.Count)
-                    continue;
-
-                grid.Rows[rowIndex]
-                    .Cells[columnIndex]
-                    .Value = cell.Text;
-            }
-
-            return grid;
-        }
+                
         // =========================================================
         // 全ページ自動領域判定
         //
@@ -2153,7 +1405,7 @@ private bool isDrawingRegion = false;
                                 System.Drawing.Imaging.ImageFormat.Png);
                         }
 
-                        ProcessResult result = await RunAutoRegionProcessAsync(
+                        ProcessResult result = await OcrProcessor.RunAutoRegionProcessAsync(
                             pythonExe,
                             autoRegionScript,
                             projectDir,
@@ -2197,7 +1449,7 @@ private bool isDrawingRegion = false;
                             LoadAutoLayoutJson(resultJson);
 
                         List<OcrRegion> converted = detected
-                            .Select(ConvertAutoLayoutRegion)
+                            .Select(OcrProcessor.ConvertAutoLayoutRegion)
                             .ToList();
 
                         autoPageRegions[pageIndex] = converted;
@@ -2259,91 +1511,7 @@ private bool isDrawingRegion = false;
             }
         }
 
-        private sealed class ProcessResult
-        {
-            public int ExitCode { get; init; }
-            public string Stdout { get; init; } = "";
-            public string Stderr { get; init; } = "";
-        }
-
-        private async Task<ProcessResult> RunAutoRegionProcessAsync(
-            string pythonExe,
-            string autoRegionScript,
-            string projectDir,
-            string imagePath,
-            string pageDir)
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = pythonExe,
-                WorkingDirectory = projectDir,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            psi.Environment["PYTHONUTF8"] = "1";
-            psi.Environment["PYTHONIOENCODING"] = "utf-8";
-            psi.ArgumentList.Add(autoRegionScript);
-            psi.ArgumentList.Add(imagePath);
-            psi.ArgumentList.Add(pageDir);
-
-            using var process = new Process
-            {
-                StartInfo = psi,
-                EnableRaisingEvents = true
-            };
-
-            var stdout = new StringBuilder();
-            var stderr = new StringBuilder();
-            var completion = new TaskCompletionSource<int>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            process.OutputDataReceived += (_, e) =>
-            {
-                if (e.Data != null)
-                    stdout.AppendLine(e.Data);
-            };
-
-            process.ErrorDataReceived += (_, e) =>
-            {
-                if (e.Data != null)
-                    stderr.AppendLine(e.Data);
-            };
-
-            process.Exited += (_, _) =>
-                completion.TrySetResult(process.ExitCode);
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            int exitCode = await completion.Task;
-
-            return new ProcessResult
-            {
-                ExitCode = exitCode,
-                Stdout = stdout.ToString(),
-                Stderr = stderr.ToString()
-            };
-        }
-
-        private OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)
-        {
-            return new OcrRegion
-            {
-                Name = GetRegionDisplayName(source.Type),
-                Type = source.Type,
-                X = source.X,
-                Y = source.Y,
-                Width = source.Width,
-                Height = source.Height
-            };
-        }
-
+        
         private async void btnStartOcr_Click(object? sender, EventArgs e)
         {
             if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
@@ -2390,7 +1558,7 @@ private bool isDrawingRegion = false;
             richTextBox1.AppendText("ページ画像を作成しています...\r\n");
             richTextBox1.Refresh();
 
-            string projectDir = FindOcrEngineDirectory();
+            string projectDir = OcrProcessor.FindOcrEngineDirectory();
             string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
             string autoRegionScript = Path.Combine(projectDir, "ndlocr_auto_region.py");
 
@@ -2555,12 +1723,12 @@ private bool isDrawingRegion = false;
                 }
 
                 List<OcrDisplayItem> ocrItems =
-                    LoadNdlocrPageJson(pageJson);
+                    OcrJsonParser.LoadNdlocrPageJson(pageJson);
 
                 List<AutoLayoutRegion> autoRegions =
                     useUserRegions
                         ? new List<AutoLayoutRegion>()
-                        : LoadAutoLayoutJson(resultJson);
+                        : OcrJsonParser.LoadAutoLayoutJson(resultJson);
 
                 richTextBox1.AppendText(
                     $"OCR項目数: {ocrItems.Count}\r\n");
@@ -2592,25 +1760,21 @@ private bool isDrawingRegion = false;
                 // NDLOCR-Liteの検出順ではなく、表内部だけは
                 // 表として自然な「上→下、左→右」の順にして表示する。
                 List<OcrDisplayItem> displayItems =
-                    SortTableItemsForDisplay(
-                        ocrItems,
-                        regions,
-                        useUserRegions,
-                        autoRegions);
+                    OcrSorter.SortTableItemsForDisplay(items, regions, useUserRegions, autoRegions);
 
                 for (int i = 0; i < displayItems.Count; i++)
                 {
                     OcrDisplayItem item = displayItems[i];
 
                     string type = useUserRegions
-                        ? FindUserRegionType(item, regions)
-                        : FindAutoLayoutRegionType(item, autoRegions);
+                        ? OcrProcessor.FindUserRegionType(item, regions)
+                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
 
                     string direction =
                         item.IsVertical ? "縦" : "横";
 
                     richTextBox1.AppendText(
-                        $"[{i:00}] [{GetRegionDisplayName(type)}] " +
+                        $"[{i:00}] [{OcrProcessor.GetRegionDisplayName(type)}] " +
                         $"[{direction}] {item.Text}\r\n");
                 }
 
@@ -2640,9 +1804,9 @@ private bool isDrawingRegion = false;
                     $"表表示項目数: {tableItems.Count}" +
                     Environment.NewLine);
 
-                DisplayOcrTable(tableItems);
+                OcrTableDisplay.DisplayOcrTable(tableItems);
 
-                DisplayOcrTable(tableItems);
+                OcrTableDisplay.DisplayOcrTable(tableItems);
 
                 // =========================================================
                 // 本文OCRだけを抽出
@@ -2674,7 +1838,7 @@ private bool isDrawingRegion = false;
                     "\r\n========== 本文読み順 ==========\r\n");
 
                 List<OcrDisplayItem> orderedBody =
-                    SortBodyReadingOrder(bodyItems);
+                    OcrSorter.SortBodyReadingOrder(items);
 
                 for (int i = 0; i < orderedBody.Count; i++)
                 {
@@ -2734,283 +1898,8 @@ private bool isDrawingRegion = false;
         //
         // 領域外のOCRは「未分類」とし、本文読み順には入れない。
         // =========================================================
-        private string FindUserRegionType(
-            OcrDisplayItem item,
-            List<OcrRegion> userRegions)
-        {
-            int centerX =
-                item.X + item.Width / 2;
-
-            int centerY =
-                item.Y + item.Height / 2;
-
-            foreach (OcrRegion region in userRegions)
-            {
-                if (centerX >= region.X &&
-                    centerX <= region.X + region.Width &&
-                    centerY >= region.Y &&
-                    centerY <= region.Y + region.Height)
-                {
-                    return region.Type;
-                }
-            }
-
-            return "";
-        }
-
-        private List<OcrDisplayItem> LoadNdlocrPageJson(string path)
-        {
-            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
-            var result = new List<OcrDisplayItem>();
-            CollectNdlocrItems(doc.RootElement, result);
-            return result;
-        }
-
-        private void CollectNdlocrItems(JsonElement element, List<OcrDisplayItem> result)
-        {
-            if (element.ValueKind == JsonValueKind.Object)
-            {
-                bool isTextline = false;
-                if (element.TryGetProperty("isTextline", out JsonElement tl))
-                {
-                    isTextline = tl.ValueKind == JsonValueKind.True ||
-                                 (tl.ValueKind == JsonValueKind.String &&
-                                  string.Equals(tl.GetString(), "true", StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (isTextline && TryParseNdlocrItem(element, out OcrDisplayItem? item))
-                {
-                    result.Add(item!);
-                    return;
-                }
-
-                foreach (JsonProperty property in element.EnumerateObject())
-                    CollectNdlocrItems(property.Value, result);
-            }
-            else if (element.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement child in element.EnumerateArray())
-                    CollectNdlocrItems(child, result);
-            }
-        }
-
-        private bool TryParseNdlocrItem(JsonElement obj, out OcrDisplayItem? result)
-        {
-            result = null;
-            if (!obj.TryGetProperty("text", out JsonElement textElement) || textElement.ValueKind != JsonValueKind.String)
-                return false;
-
-            string text = textElement.GetString() ?? "";
-            if (string.IsNullOrWhiteSpace(text)) return false;
-
-            int x = 0, y = 0, width = 0, height = 0;
-            if (obj.TryGetProperty("boundingBox", out JsonElement box) && box.ValueKind == JsonValueKind.Array)
-            {
-                var points = new List<(int X, int Y)>();
-                foreach (JsonElement point in box.EnumerateArray())
-                {
-                    if (point.ValueKind != JsonValueKind.Array) continue;
-                    var values = new List<int>();
-                    foreach (JsonElement value in point.EnumerateArray())
-                    {
-                        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int n))
-                            values.Add(n);
-                    }
-                    if (values.Count >= 2) points.Add((values[0], values[1]));
-                }
-
-                if (points.Count > 0)
-                {
-                    x = points.Min(p => p.X);
-                    y = points.Min(p => p.Y);
-                    width = Math.Max(0, points.Max(p => p.X) - x);
-                    height = Math.Max(0, points.Max(p => p.Y) - y);
-                }
-            }
-
-            bool isVertical = false;
-            if (obj.TryGetProperty("isVertical", out JsonElement vertical))
-            {
-                isVertical = vertical.ValueKind == JsonValueKind.True ||
-                             (vertical.ValueKind == JsonValueKind.String &&
-                              string.Equals(vertical.GetString(), "true", StringComparison.OrdinalIgnoreCase));
-            }
-
-            result = new OcrDisplayItem
-            {
-                X = x, Y = y, Width = width, Height = height,
-                IsVertical = isVertical, Text = text
-            };
-            return true;
-        }
-
-        private List<AutoLayoutRegion> LoadAutoLayoutJson(string path)
-        {
-            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
-            var result = new List<AutoLayoutRegion>();
-            JsonElement root = doc.RootElement;
-            JsonElement regionsElement;
-
-            if (root.TryGetProperty("regions", out regionsElement) && regionsElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement item in regionsElement.EnumerateArray()) AddAutoLayoutRegion(item, result);
-                return result;
-            }
-
-            if (root.TryGetProperty("Regions", out regionsElement) && regionsElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement item in regionsElement.EnumerateArray()) AddAutoLayoutRegion(item, result);
-            }
-            return result;
-        }
-
-        private void AddAutoLayoutRegion(
-    JsonElement item,
-    List<AutoLayoutRegion> result)
-        {
-            if (item.ValueKind != JsonValueKind.Object)
-                return;
-
-            AutoLayoutRegion region = new AutoLayoutRegion
-            {
-                Name = ReadJsonString(item, "name", "Name"),
-                Type = ReadJsonString(item, "type", "Type"),
-                X = ReadJsonInt(item, "x", "X"),
-                Y = ReadJsonInt(item, "y", "Y"),
-                Width = ReadJsonInt(item, "width", "Width"),
-                Height = ReadJsonInt(item, "height", "Height"),
-                Rows = ReadJsonInt(item, "rows", "Rows"),
-                Columns = ReadJsonInt(item, "columns", "Columns")
-            };
-
-            if (item.TryGetProperty(
-                    "cells",
-                    out JsonElement cellsElement)
-                &&
-                cellsElement.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement cellElement
-                         in cellsElement.EnumerateArray())
-                {
-                    if (cellElement.ValueKind != JsonValueKind.Object)
-                        continue;
-
-                    AutoLayoutCell cell = new AutoLayoutCell
-                    {
-                        Row = ReadJsonInt(
-                            cellElement,
-                            "row",
-                            "Row"),
-
-                        Column = ReadJsonInt(
-                            cellElement,
-                            "column",
-                            "Column"),
-
-                        X = ReadJsonInt(
-                            cellElement,
-                            "x",
-                            "X"),
-
-                        Y = ReadJsonInt(
-                            cellElement,
-                            "y",
-                            "Y"),
-
-                        Width = ReadJsonInt(
-                            cellElement,
-                            "width",
-                            "Width"),
-
-                        Height = ReadJsonInt(
-                            cellElement,
-                            "height",
-                            "Height"),
-
-                        Text = ReadJsonString(
-                            cellElement,
-                            "text",
-                            "Text"),
-
-                        OcrCount = ReadJsonInt(
-                            cellElement,
-                            "ocr_count",
-                            "OcrCount")
-                    };
-
-                    region.Cells.Add(cell);
-                }
-            }
-
-            result.Add(region);
-        }
-
-        private string ReadJsonString(JsonElement obj, string lower, string upper)
-        {
-            if (obj.TryGetProperty(lower, out JsonElement a) && a.ValueKind == JsonValueKind.String)
-                return a.GetString() ?? "";
-            if (obj.TryGetProperty(upper, out JsonElement b) && b.ValueKind == JsonValueKind.String)
-                return b.GetString() ?? "";
-            return "";
-        }
-
-        private int ReadJsonInt(JsonElement obj, string lower, string upper)
-        {
-            JsonElement element;
-            if (!obj.TryGetProperty(lower, out element) && !obj.TryGetProperty(upper, out element)) return 0;
-            if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out int number)) return number;
-            if (element.ValueKind == JsonValueKind.String && int.TryParse(element.GetString(), out int parsed)) return parsed;
-            return 0;
-        }
-
-        private string FindAutoLayoutRegionType(OcrDisplayItem item, List<AutoLayoutRegion> regions)
-        {
-            int centerX = item.X + item.Width / 2;
-            int centerY = item.Y + item.Height / 2;
-            foreach (AutoLayoutRegion region in regions)
-            {
-                if (centerX >= region.X && centerX <= region.X + region.Width &&
-                    centerY >= region.Y && centerY <= region.Y + region.Height)
-                    return region.Type;
-            }
-            return "";
-        }
-
-        private string GetRegionDisplayName(string type)
-        {
-            return type switch
-            {
-                "body" => "本文",
-                "heading" => "見出し",
-                "header" => "ヘッダー",
-                "footer" => "フッター",
-                "footnote" => "脚注",
-                "table" => "表",
-                "image" => "画像",
-                "map" => "地図",
-                "ignore" => "OCRしない",
-                _ => "未分類"
-            };
-        }
-
-        private string FindOcrEngineDirectory()
-        {
-            string? dir = AppContext.BaseDirectory;
-            while (!string.IsNullOrEmpty(dir))
-            {
-                string candidate = Path.Combine(dir, "ocr_engine");
-                if (File.Exists(Path.Combine(candidate, "ndlocr_auto_region.py")))
-                    return candidate;
-                DirectoryInfo? parent = Directory.GetParent(dir);
-                if (parent == null) break;
-                dir = parent.FullName;
-            }
-
-            string fallback = Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory, "..", "..", "..", "..", "ocr_engine"));
-            return fallback;
-        }
-
+     
+        
         private void btnTestCrop_Click(object sender, EventArgs e)
         {
             // ========================================
@@ -3066,9 +1955,7 @@ private bool isDrawingRegion = false;
             // 選択領域を切り出す
             // ========================================
 
-            Bitmap croppedImage = CropRegion(
-                pageImage,
-                region);
+            Bitmap RegionImageExtractor.Crop(bitmap, region);
 
             pageImage.Dispose();
 
@@ -3270,41 +2157,9 @@ private bool isDrawingRegion = false;
 
             pictureBox1.Invalidate();
         }
-        private Bitmap CropRegion(Bitmap source, OcrRegion region)
-        {
-            int x = Math.Max(0, region.X);
-            int y = Math.Max(0, region.Y);
+        
 
-            int right = Math.Min(
-                source.Width,
-                region.X + region.Width);
-
-            int bottom = Math.Min(
-                source.Height,
-                region.Y + region.Height);
-
-            int width = right - x;
-            int height = bottom - y;
-
-            if (width <= 0 || height <= 0)
-            {
-                throw new ArgumentException(
-                    "OCR領域が画像の範囲外です。");
-            }
-
-            Rectangle cropRect =
-                new Rectangle(
-                    x,
-                    y,
-                    width,
-                    height);
-
-            return source.Clone(
-                cropRect,
-                source.PixelFormat);
-        }
-
-
+        private List<OcrDisplayItem> LoadNdlocrPageJson
 
     }
 }
