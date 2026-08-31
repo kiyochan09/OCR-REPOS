@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using OCR_Translator.Models;
+using OCR_Translator.Services;
 
 namespace OCR_Translator
 {
@@ -23,39 +25,7 @@ namespace OCR_Translator
         private TabControl? tabOcrResult;
         private TabPage? tabOcrText;
         private TabPage? tabOcrTable;
-        public class OcrRegion
-        {
-            public string Name { get; set; } = "本文";
-            public string Type { get; set; } = "body";
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Width { get; set; }
-            public int Height { get; set; }
-        }
-
-        public class PageLayout
-        {
-            public TemplateSettings Template { get; set; } = new TemplateSettings();
-
-            public Dictionary<string, PageSettings> Pages { get; set; }
-                = new Dictionary<string, PageSettings>();
-        }
-
-        public class TemplateSettings
-        {
-            public string Name { get; set; } = "縦書き本文";
-
-            public List<OcrRegion> Regions { get; set; }
-                = new List<OcrRegion>();
-        }
-
-        public class PageSettings
-        {
-            public bool UseTemplate { get; set; } = true;
-
-            public List<OcrRegion> Regions { get; set; }
-                = new List<OcrRegion>();
-        }
+        private readonly LayoutStorage _layoutStorage = new LayoutStorage();
 
         private void ShowCurrentPage()
         {
@@ -214,74 +184,27 @@ private bool isDrawingRegion = false;
             if (pdfDocument == null)
                 return;
 
-            // すでにユーザー補正済みとして保存されているページは、
-            // 現在の regions をそのまま保存する。
-            if (pageRegions.ContainsKey(currentPage))
-            {
-                pageRegions[currentPage] = CloneRegions(regions);
-                return;
-            }
-
-            // 自動判定結果が存在する場合は、
-            // 現在の regions と自動判定結果を比較する。
-            // 同一なら、まだユーザー補正されていないと判断して保存しない。
-            if (autoPageRegions.TryGetValue(
+            _layoutStorage.TrySaveCurrentPageRegions(
                 currentPage,
-                out List<OcrRegion>? autoRegions))
-            {
-                if (AreRegionsEqual(regions, autoRegions))
-                {
-                    return;
-                }
-            }
-
-            // 自動判定結果と異なる場合は、
-            // ユーザーが補正したものとして保存する。
-            pageRegions[currentPage] = CloneRegions(regions);
+                regions,
+                pageRegions,
+                autoPageRegions);
         }
 
-        private bool AreRegionsEqual(
-            List<OcrRegion> regions1,
-            List<OcrRegion> regions2)
-        {
-            if (regions1.Count != regions2.Count)
-                return false;
-
-            for (int i = 0; i < regions1.Count; i++)
-            {
-                OcrRegion a = regions1[i];
-                OcrRegion b = regions2[i];
-
-                if (a.X != b.X ||
-                    a.Y != b.Y ||
-                    a.Width != b.Width ||
-                    a.Height != b.Height ||
-                    a.Type != b.Type)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+        // 自動判定結果と異なる場合は、
+        // ユーザーが補正したものとして保存する。
+        pageRegions[currentPage] = CloneRegions(regions);
         }
+
+        
         private void LoadCurrentPageRegions()
         {
             regions.Clear();
-
-            // ユーザーが保存・補正した領域を最優先する。
-            if (pageRegions.TryGetValue(
-                currentPage,
-                out List<OcrRegion>? savedRegions))
-            {
-                regions.AddRange(CloneRegions(savedRegions));
-            }
-            // ユーザー設定がないページは自動判定結果を表示する。
-            else if (autoPageRegions.TryGetValue(
-                currentPage,
-                out List<OcrRegion>? autoRegions))
-            {
-                regions.AddRange(CloneRegions(autoRegions));
-            }
+            regions.AddRange(
+                _layoutStorage.LoadPageRegions(
+                    currentPage,
+                    pageRegions,
+                    autoPageRegions));
 
             RefreshRegionList();
         }
@@ -534,42 +457,32 @@ private bool isDrawingRegion = false;
         {
             SaveCurrentPageRegions();
 
-            PageLayout layout = new PageLayout();
-
-            layout.Template.Name = "縦書き本文";
-            layout.Template.Regions = new List<OcrRegion>();
-
-            foreach (KeyValuePair<int, List<OcrRegion>> pair in pageRegions)
-            {
-                string pageKey = (pair.Key + 1).ToString();
-
-                layout.Pages[pageKey] = new PageSettings
-                {
-                    UseTemplate = false,
-                    Regions = CloneRegions(pair.Value)
-                };
-            }
-
-            string json = JsonSerializer.Serialize(
-                layout,
-                new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+            PageLayout layout = _layoutStorage.BuildPageLayout(pageRegions);
 
             string path = Path.Combine(
                 Application.StartupPath,
                 "page_layout.json");
 
-            File.WriteAllText(path, json);
+            try
+            {
+                _layoutStorage.SaveToJsonFile(layout, path);
 
-            MessageBox.Show(
-                $"ページ単位の設定を保存しました。\n\n" +
-                $"保存ページ数: {pageRegions.Count}\n" +
-                $"ファイル: {path}",
-                "保存完了",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+                MessageBox.Show(
+                    $"ページ単位の設定を保存しました。\n\n" +
+                    $"保存ページ数: {pageRegions.Count}\n" +
+                    $"ファイル: {path}",
+                    "保存完了",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "保存に失敗しました。\n\n" + ex.Message,
+                    "保存エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
 
         private void btnNextPage_Click(object? sender, EventArgs e)
@@ -661,7 +574,9 @@ private bool isDrawingRegion = false;
 
             lstRegions.Items[index] = newName;
 
-            pageRegions[currentPage] = CloneRegions(regions);
+            pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
+            // または ForceSavePageRegions を使う
+            _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
 
             pictureBox1.Invalidate();
         }
