@@ -1,20 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using OCR_Translator.Models;
 
 namespace OCR_Translator.Services
 {
-    /// <summary>
-    /// NDLOCR-Lite の実行（単ページ・全ページバッチ）を行う。
-    /// UI 更新は IProgress / Action コールバックで委譲する。
-    /// </summary>
     public static class OcrProcessor
     {
         public sealed class ProcessResult
@@ -23,10 +17,6 @@ namespace OCR_Translator.Services
             public string Stdout { get; init; } = "";
             public string Stderr { get; init; } = "";
         }
-
-        // =========================================================
-        // Python プロセス実行
-        // =========================================================
 
         public static async Task<ProcessResult> RunAutoRegionProcessAsync(
             string pythonExe,
@@ -65,18 +55,15 @@ namespace OCR_Translator.Services
 
             process.OutputDataReceived += (_, e) =>
             {
-                if (e.Data != null)
-                    stdout.AppendLine(e.Data);
+                if (e.Data != null) stdout.AppendLine(e.Data);
             };
 
             process.ErrorDataReceived += (_, e) =>
             {
-                if (e.Data != null)
-                    stderr.AppendLine(e.Data);
+                if (e.Data != null) stderr.AppendLine(e.Data);
             };
 
-            process.Exited += (_, _) =>
-                completion.TrySetResult(process.ExitCode);
+            process.Exited += (_, _) => completion.TrySetResult(process.ExitCode);
 
             process.Start();
             process.BeginOutputReadLine();
@@ -91,10 +78,6 @@ namespace OCR_Translator.Services
                 Stderr = stderr.ToString()
             };
         }
-
-        // =========================================================
-        // エンジン探索
-        // =========================================================
 
         public static string FindOcrEngineDirectory()
         {
@@ -114,14 +97,9 @@ namespace OCR_Translator.Services
             return fallback;
         }
 
-        // =========================================================
-        // 領域変換・分類
-        // =========================================================
-
         public static OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)
         {
             string type = NormalizeRegionType(source.Type);
-
             return new OcrRegion
             {
                 Name = GetRegionDisplayName(type),
@@ -155,11 +133,8 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                {
                     return NormalizeRegionType(region.Type);
-                }
             }
-
             return "";
         }
 
@@ -174,7 +149,6 @@ namespace OCR_Translator.Services
                     centerY >= region.Y && centerY <= region.Y + region.Height)
                     return NormalizeRegionType(region.Type);
             }
-
             return "";
         }
 

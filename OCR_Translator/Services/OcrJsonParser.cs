@@ -8,15 +8,8 @@ using OCR_Translator.Models;
 
 namespace OCR_Translator.Services
 {
-    /// <summary>
-    /// NDLOCR-Lite の出力JSON（page.json / auto_layout.json）をパースする。
-    /// </summary>
     public static class OcrJsonParser
     {
-        // =========================================================
-        // page.json（OCR結果）
-        // =========================================================
-
         public static List<OcrDisplayItem> LoadNdlocrPageJson(string path)
         {
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
@@ -103,10 +96,6 @@ namespace OCR_Translator.Services
             return true;
         }
 
-        // =========================================================
-        // auto_layout.json（領域判定結果）
-        // =========================================================
-
         public static List<AutoLayoutRegion> LoadAutoLayoutJson(string path)
         {
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
@@ -129,8 +118,7 @@ namespace OCR_Translator.Services
 
         private static void AddAutoLayoutRegion(JsonElement item, List<AutoLayoutRegion> result)
         {
-            if (item.ValueKind != JsonValueKind.Object)
-                return;
+            if (item.ValueKind != JsonValueKind.Object) return;
 
             AutoLayoutRegion region = new AutoLayoutRegion
             {
@@ -149,10 +137,9 @@ namespace OCR_Translator.Services
             {
                 foreach (JsonElement cellElement in cellsElement.EnumerateArray())
                 {
-                    if (cellElement.ValueKind != JsonValueKind.Object)
-                        continue;
+                    if (cellElement.ValueKind != JsonValueKind.Object) continue;
 
-                    AutoLayoutCell cell = new AutoLayoutCell
+                    region.Cells.Add(new AutoLayoutCell
                     {
                         Row = ReadJsonInt(cellElement, "row", "Row"),
                         Column = ReadJsonInt(cellElement, "column", "Column"),
@@ -162,9 +149,7 @@ namespace OCR_Translator.Services
                         Height = ReadJsonInt(cellElement, "height", "Height"),
                         Text = ReadJsonString(cellElement, "text", "Text"),
                         OcrCount = ReadJsonInt(cellElement, "ocr_count", "OcrCount")
-                    };
-
-                    region.Cells.Add(cell);
+                    });
                 }
             }
 

@@ -7,35 +7,19 @@ using OCR_Translator.Models;
 
 namespace OCR_Translator.Services
 {
-    /// <summary>
-    /// PictureBox上のスクリーン座標と画像座標の相互変換、
-    /// 領域ヒットテスト、リサイズモード判定を行う。
-    /// </summary>
     public static class ImageCoordinateHelper
     {
         public const int ResizeHandleSize = 8;
 
         public enum ResizeMode
         {
-            None,
-            Left,
-            Right,
-            Top,
-            Bottom,
-            TopLeft,
-            TopRight,
-            BottomLeft,
-            BottomRight
+            None, Left, Right, Top, Bottom,
+            TopLeft, TopRight, BottomLeft, BottomRight
         }
-
-        // =========================================================
-        // 座標変換
-        // =========================================================
 
         public static Rectangle ScreenToImage(Rectangle screenRect, PictureBox pictureBox)
         {
-            if (pictureBox.Image == null)
-                return Rectangle.Empty;
+            if (pictureBox.Image == null) return Rectangle.Empty;
 
             float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
             float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
@@ -43,19 +27,16 @@ namespace OCR_Translator.Services
 
             float displayWidth = pictureBox.Image.Width * scale;
             float displayHeight = pictureBox.Image.Height * scale;
-
             float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
             float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
 
             int x = (int)((screenRect.X - offsetX) / scale);
             int y = (int)((screenRect.Y - offsetY) / scale);
-
             int width = (int)(screenRect.Width / scale);
             int height = (int)(screenRect.Height / scale);
 
             x = Math.Max(0, x);
             y = Math.Max(0, y);
-
             width = Math.Min(width, pictureBox.Image.Width - x);
             height = Math.Min(height, pictureBox.Image.Height - y);
 
@@ -64,8 +45,7 @@ namespace OCR_Translator.Services
 
         public static Rectangle ImageToScreen(Rectangle imageRect, PictureBox pictureBox)
         {
-            if (pictureBox.Image == null)
-                return Rectangle.Empty;
+            if (pictureBox.Image == null) return Rectangle.Empty;
 
             float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
             float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
@@ -73,21 +53,15 @@ namespace OCR_Translator.Services
 
             float displayWidth = pictureBox.Image.Width * scale;
             float displayHeight = pictureBox.Image.Height * scale;
-
             float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
             float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
 
-            int x = (int)(offsetX + imageRect.X * scale);
-            int y = (int)(offsetY + imageRect.Y * scale);
-            int width = (int)(imageRect.Width * scale);
-            int height = (int)(imageRect.Height * scale);
-
-            return new Rectangle(x, y, width, height);
+            return new Rectangle(
+                (int)(offsetX + imageRect.X * scale),
+                (int)(offsetY + imageRect.Y * scale),
+                (int)(imageRect.Width * scale),
+                (int)(imageRect.Height * scale));
         }
-
-        // =========================================================
-        // ヒットテスト
-        // =========================================================
 
         public static int HitTestRegionNear(Point point, int tolerance, List<OcrRegion> regions, PictureBox pictureBox)
         {
@@ -101,21 +75,15 @@ namespace OCR_Translator.Services
                     new Rectangle(region.X, region.Y, region.Width, region.Height),
                     pictureBox);
 
-                Rectangle expandedRect = new Rectangle(
-                    screenRect.X - tolerance,
-                    screenRect.Y - tolerance,
-                    screenRect.Width + tolerance * 2,
-                    screenRect.Height + tolerance * 2);
+                Rectangle expanded = new Rectangle(
+                    screenRect.X - tolerance, screenRect.Y - tolerance,
+                    screenRect.Width + tolerance * 2, screenRect.Height + tolerance * 2);
 
-                if (!expandedRect.Contains(point))
-                    continue;
+                if (!expanded.Contains(point)) continue;
 
-                float centerX = screenRect.Left + screenRect.Width / 2f;
-                float centerY = screenRect.Top + screenRect.Height / 2f;
-
-                double distance = Math.Sqrt(
-                    Math.Pow(point.X - centerX, 2) +
-                    Math.Pow(point.Y - centerY, 2));
+                float cx = screenRect.Left + screenRect.Width / 2f;
+                float cy = screenRect.Top + screenRect.Height / 2f;
+                double distance = Math.Sqrt(Math.Pow(point.X - cx, 2) + Math.Pow(point.Y - cy, 2));
 
                 if (distance < nearestDistance)
                 {
@@ -123,13 +91,8 @@ namespace OCR_Translator.Services
                     nearestIndex = i;
                 }
             }
-
             return nearestIndex;
         }
-
-        // =========================================================
-        // リサイズモード判定
-        // =========================================================
 
         public static ResizeMode GetResizeMode(Point point, Rectangle rect)
         {
@@ -146,18 +109,10 @@ namespace OCR_Translator.Services
             if (bottomLeft.Contains(point)) return ResizeMode.BottomLeft;
             if (bottomRight.Contains(point)) return ResizeMode.BottomRight;
 
-            Rectangle left = new Rectangle(
-                rect.Left - edge / 2, rect.Top + edge, edge,
-                Math.Max(0, rect.Height - edge * 2));
-            Rectangle right = new Rectangle(
-                rect.Right - edge / 2, rect.Top + edge, edge,
-                Math.Max(0, rect.Height - edge * 2));
-            Rectangle top = new Rectangle(
-                rect.Left + edge, rect.Top - edge / 2,
-                Math.Max(0, rect.Width - edge * 2), edge);
-            Rectangle bottom = new Rectangle(
-                rect.Left + edge, rect.Bottom - edge / 2,
-                Math.Max(0, rect.Width - edge * 2), edge);
+            Rectangle left = new Rectangle(rect.Left - edge / 2, rect.Top + edge, edge, Math.Max(0, rect.Height - edge * 2));
+            Rectangle right = new Rectangle(rect.Right - edge / 2, rect.Top + edge, edge, Math.Max(0, rect.Height - edge * 2));
+            Rectangle top = new Rectangle(rect.Left + edge, rect.Top - edge / 2, Math.Max(0, rect.Width - edge * 2), edge);
+            Rectangle bottom = new Rectangle(rect.Left + edge, rect.Bottom - edge / 2, Math.Max(0, rect.Width - edge * 2), edge);
 
             if (left.Contains(point)) return ResizeMode.Left;
             if (right.Contains(point)) return ResizeMode.Right;

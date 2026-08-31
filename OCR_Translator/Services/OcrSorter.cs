@@ -5,15 +5,8 @@ using OCR_Translator.Models;
 
 namespace OCR_Translator.Services
 {
-    /// <summary>
-    /// OCR結果の読み順ソート（本文・表）を行う。
-    /// </summary>
     public static class OcrSorter
     {
-        // =========================================================
-        // 本文読み順
-        // =========================================================
-
         public static List<OcrDisplayItem> SortBodyReadingOrder(List<OcrDisplayItem> items)
         {
             if (items.Count <= 1)
@@ -23,12 +16,7 @@ namespace OCR_Translator.Services
             bool isVertical = verticalCount * 2 >= items.Count;
 
             if (!isVertical)
-            {
-                return items
-                    .OrderBy(item => item.Y)
-                    .ThenBy(item => item.X)
-                    .ToList();
-            }
+                return items.OrderBy(item => item.Y).ThenBy(item => item.X).ToList();
 
             var columns = new List<List<OcrDisplayItem>>();
 
@@ -57,7 +45,6 @@ namespace OCR_Translator.Services
                     targetColumn = new List<OcrDisplayItem>();
                     columns.Add(targetColumn);
                 }
-
                 targetColumn.Add(item);
             }
 
@@ -66,8 +53,7 @@ namespace OCR_Translator.Services
                 column.Sort((a, b) =>
                 {
                     int result = a.Y.CompareTo(b.Y);
-                    if (result != 0) return result;
-                    return a.X.CompareTo(b.X);
+                    return result != 0 ? result : a.X.CompareTo(b.X);
                 });
             }
 
@@ -80,10 +66,6 @@ namespace OCR_Translator.Services
 
             return columns.SelectMany(column => column).ToList();
         }
-
-        // =========================================================
-        // 表内部読み順
-        // =========================================================
 
         public static List<OcrDisplayItem> SortTableItemsForDisplay(
             List<OcrDisplayItem> items,
@@ -140,7 +122,6 @@ namespace OCR_Translator.Services
                     targetColumn = new List<OcrDisplayItem>();
                     columns.Add(targetColumn);
                 }
-
                 targetColumn.Add(item);
             }
 
@@ -149,8 +130,7 @@ namespace OCR_Translator.Services
                 column.Sort((a, b) =>
                 {
                     int result = a.Y.CompareTo(b.Y);
-                    if (result != 0) return result;
-                    return a.X.CompareTo(b.X);
+                    return result != 0 ? result : a.X.CompareTo(b.X);
                 });
             }
 
@@ -178,10 +158,6 @@ namespace OCR_Translator.Services
             return result;
         }
 
-        // ---------------------------------------------------------
-        // 領域分類ヘルパー
-        // ---------------------------------------------------------
-
         private static string FindUserRegionType(OcrDisplayItem item, List<OcrRegion> userRegions)
         {
             int centerX = item.X + item.Width / 2;
@@ -191,11 +167,8 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                {
                     return region.Type;
-                }
             }
-
             return "";
         }
 
@@ -210,7 +183,6 @@ namespace OCR_Translator.Services
                     centerY >= region.Y && centerY <= region.Y + region.Height)
                     return region.Type;
             }
-
             return "";
         }
     }
