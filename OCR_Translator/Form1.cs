@@ -27,55 +27,10 @@ namespace OCR_Translator
         private TabPage? tabOcrTable;
         private readonly LayoutStorage _layoutStorage = new LayoutStorage();
 
-        private void ShowCurrentPage()
-        {
-            if (pdfDocument == null)
-            {
-                return;
-            }
-
-            if (currentPage < 0 || currentPage >= pdfDocument.PageCount)
-            {
-                return;
-            }
-
-            try
-            {
-                const int dpi = 150;
-
-                using Image image =
-                    pdfDocument.Render(
-                        currentPage,
-                        dpi,
-                        dpi,
-                        PdfRenderFlags.Annotations
-                    );
-
-                Bitmap displayBitmap = new Bitmap(image);
-
-                Image? oldImage = pictureBox1.Image;
-
-                pictureBox1.Image = displayBitmap;
-
-                oldImage?.Dispose();
-                                
-            
-                UpdatePageDisplayTitle();
-                pictureBox1.Invalidate();
-}
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "ページを表示できませんでした。"
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + ex.Message,
-                    "PDF表示エラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
+        // =========================================================
+        // ページ単位の領域管理
+        // =========================================================
+       
 
         private string GetRegionType()
         {
@@ -179,35 +134,54 @@ private bool isDrawingRegion = false;
             return source.Select(CloneRegion).ToList();
         }
 
-        private void SaveCurrentPageRegions()
+        private void ShowCurrentPage()
         {
             if (pdfDocument == null)
                 return;
 
-            _layoutStorage.TrySaveCurrentPageRegions(
-                currentPage,
-                regions,
-                pageRegions,
-                autoPageRegions);
+            if (currentPage < 0 || currentPage >= pdfDocument.PageCount)
+                return;
+
+            try
+            {
+                const int dpi = 150;
+
+                using Image image =
+                    pdfDocument.Render(
+                        currentPage,
+                        dpi,
+                        dpi,
+                        PdfRenderFlags.Annotations
+                    );
+
+                Bitmap displayBitmap = new Bitmap(image);
+
+                Image? oldImage = pictureBox1.Image;
+
+                pictureBox1.Image = displayBitmap;
+
+                oldImage?.Dispose();
+
+                UpdatePageDisplayTitle();
+                pictureBox1.Invalidate();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "ページを表示できませんでした。"
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + ex.Message,
+                    "PDF表示エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
         }
 
-        // 自動判定結果と異なる場合は、
-        // ユーザーが補正したものとして保存する。
-        pageRegions[currentPage] = CloneRegions(regions);
-        }
 
-        
-        private void LoadCurrentPageRegions()
-        {
-            regions.Clear();
-            regions.AddRange(
-                _layoutStorage.LoadPageRegions(
-                    currentPage,
-                    pageRegions,
-                    autoPageRegions));
 
-            RefreshRegionList();
-        }
+
 
         private void RefreshRegionList()
         {
@@ -235,6 +209,29 @@ private bool isDrawingRegion = false;
                 $"OCR Translator - {currentPage + 1}/{pdfDocument.PageCount}";
         }
 
+        private void SaveCurrentPageRegions()
+        {
+            if (pdfDocument == null)
+                return;
+
+            _layoutStorage.TrySaveCurrentPageRegions(
+                currentPage,
+                regions,
+                pageRegions,
+                autoPageRegions);
+        }
+
+        private void LoadCurrentPageRegions()
+        {
+            regions.Clear();
+            regions.AddRange(
+                _layoutStorage.LoadPageRegions(
+                    currentPage,
+                    pageRegions,
+                    autoPageRegions));
+
+            RefreshRegionList();
+        }
         private void SwitchToPage(int pageIndex)
         {
             if (pdfDocument == null)
