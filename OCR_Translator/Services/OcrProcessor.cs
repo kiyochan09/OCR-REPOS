@@ -120,10 +120,12 @@ namespace OCR_Translator.Services
 
         public static OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)
         {
+            string type = NormalizeRegionType(source.Type);
+
             return new OcrRegion
             {
-                Name = GetRegionDisplayName(source.Type),
-                Type = source.Type,
+                Name = GetRegionDisplayName(type),
+                Type = type,
                 X = source.X,
                 Y = source.Y,
                 Width = source.Width,
@@ -137,13 +139,9 @@ namespace OCR_Translator.Services
             {
                 "body" => "本文",
                 "heading" => "見出し",
-                "header" => "ヘッダー",
-                "footer" => "フッター",
-                "footnote" => "脚注",
+                "footnote" => "注釈文",
                 "table" => "表",
-                "image" => "画像",
-                "map" => "地図",
-                "ignore" => "OCRしない",
+                "image" => "図",
                 _ => "未分類"
             };
         }
@@ -158,7 +156,7 @@ namespace OCR_Translator.Services
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
                 {
-                    return region.Type;
+                    return NormalizeRegionType(region.Type);
                 }
             }
 
@@ -174,10 +172,19 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                    return region.Type;
+                    return NormalizeRegionType(region.Type);
             }
 
             return "";
+        }
+
+        private static string NormalizeRegionType(string type)
+        {
+            return type switch
+            {
+                "header" or "footer" or "map" or "ignore" => "body",
+                _ => type
+            };
         }
     }
 }

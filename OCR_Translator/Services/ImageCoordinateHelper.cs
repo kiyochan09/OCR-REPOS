@@ -89,25 +89,6 @@ namespace OCR_Translator.Services
         // ヒットテスト
         // =========================================================
 
-        public static int HitTestRegion(Point screenPoint, List<OcrRegion> regions, PictureBox pictureBox)
-        {
-            if (pictureBox.Image == null)
-                return -1;
-
-            for (int i = regions.Count - 1; i >= 0; i--)
-            {
-                OcrRegion region = regions[i];
-                Rectangle screenRect = ImageToScreen(
-                    new Rectangle(region.X, region.Y, region.Width, region.Height),
-                    pictureBox);
-
-                if (screenRect.Contains(screenPoint))
-                    return i;
-            }
-
-            return -1;
-        }
-
         public static int HitTestRegionNear(Point point, int tolerance, List<OcrRegion> regions, PictureBox pictureBox)
         {
             int nearestIndex = -1;

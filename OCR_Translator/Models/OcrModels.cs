@@ -10,7 +10,7 @@ namespace OCR_Translator.Models
         public string Name { get; set; } = "本文";
 
         /// <summary>
-        /// body / heading / header / footer / footnote / table / image / map / ignore
+        /// body / heading / footnote / table / image
         /// </summary>
         public string Type { get; set; } = "body";
 

@@ -32,6 +32,7 @@
             richTextBox1 = new RichTextBox();
             pictureBox1 = new PictureBox();
             panelToolbar = new Panel();
+            btnAddAnnotationNumber = new Button();
             btnExportWord = new Button();
             btnStartOcr = new Button();
             btnNextPage = new Button();
@@ -41,7 +42,6 @@
             btnUpdateRegion = new Button();
             lstRegions = new ListBox();
             btnDeleteRegion = new Button();
-            btnApplyTemplate = new Button();
             btnSaveLayout = new Button();
             btnAddRegion = new Button();
             numHeight = new NumericUpDown();
@@ -49,7 +49,6 @@
             numY = new NumericUpDown();
             numX = new NumericUpDown();
             cmbRegionType = new ComboBox();
-            btnTestCrop = new Button();
             btnAutoLayout = new Button();
             btnRegionSettings = new Button();
             tableLayoutPanel1.SuspendLayout();
@@ -104,7 +103,7 @@
             //
             panelToolbar.Controls.Add(btnAutoLayout);
             panelToolbar.Controls.Add(btnRegionSettings);
-            panelToolbar.Controls.Add(btnTestCrop);
+            panelToolbar.Controls.Add(btnAddAnnotationNumber);
             panelToolbar.Controls.Add(btnExportWord);
             panelToolbar.Controls.Add(btnStartOcr);
             panelToolbar.Controls.Add(btnNextPage);
@@ -136,6 +135,17 @@
             btnExportWord.Text = "Word出力";
             btnExportWord.UseVisualStyleBackColor = true;
             
+            //
+            // btnAddAnnotationNumber
+            //
+            btnAddAnnotationNumber.Location = new Point(895, 25);
+            btnAddAnnotationNumber.Name = "btnAddAnnotationNumber";
+            btnAddAnnotationNumber.Size = new Size(120, 34);
+            btnAddAnnotationNumber.TabIndex = 6;
+            btnAddAnnotationNumber.Text = "注釈番号";
+            btnAddAnnotationNumber.UseVisualStyleBackColor = true;
+            btnAddAnnotationNumber.Click += btnAddAnnotationNumber_Click;
+            //
             // 
             // btnAutoLayout
             // 
@@ -194,7 +204,6 @@
             pnlRegionSettings.Controls.Add(btnUpdateRegion);
             pnlRegionSettings.Controls.Add(lstRegions);
             pnlRegionSettings.Controls.Add(btnDeleteRegion);
-            pnlRegionSettings.Controls.Add(btnApplyTemplate);
             pnlRegionSettings.Controls.Add(btnSaveLayout);
             pnlRegionSettings.Controls.Add(btnAddRegion);
             pnlRegionSettings.Controls.Add(numHeight);
@@ -236,15 +245,6 @@
             btnDeleteRegion.Text = " 領域削除";
             btnDeleteRegion.UseVisualStyleBackColor = true;
             btnDeleteRegion.Click += btnDeleteRegion_Click;
-            // 
-            // btnApplyTemplate
-            // 
-            btnApplyTemplate.Location = new Point(15, 574);
-            btnApplyTemplate.Name = "btnApplyTemplate";
-            btnApplyTemplate.Size = new Size(137, 41);
-            btnApplyTemplate.TabIndex = 7;
-            btnApplyTemplate.Text = "全ページに適用";
-            btnApplyTemplate.UseVisualStyleBackColor = true;
             // 
             // btnSaveLayout
             // 
@@ -301,22 +301,12 @@
             // cmbRegionType
             // 
             cmbRegionType.FormattingEnabled = true;
-            cmbRegionType.Items.AddRange(new object[] { "本文", "", "見出し", "", "ヘッダー", "", "フッター", "", "脚注", "", "表", "", "画像", "", "地図", "", "OCRしない" });
+            cmbRegionType.Items.AddRange(new object[] { "本文", "見出し", "注釈文", "表", "図" });
             cmbRegionType.Location = new Point(62, 41);
             cmbRegionType.Name = "cmbRegionType";
             cmbRegionType.Size = new Size(182, 33);
             cmbRegionType.TabIndex = 0;
             cmbRegionType.Text = "本文";
-            // 
-            // btnTestCrop
-            // 
-            btnTestCrop.Location = new Point(1226, 25);
-            btnTestCrop.Name = "btnTestCrop";
-            btnTestCrop.Size = new Size(132, 34);
-            btnTestCrop.TabIndex = 5;
-            btnTestCrop.Text = "選択領域テスト";
-            btnTestCrop.UseVisualStyleBackColor = true;
-            btnTestCrop.Click += btnTestCrop_Click;
             // 
             // Form1
             // 
@@ -347,6 +337,7 @@
         private Panel panelToolbar;
         private Button btnOpenPdf;
         private Button btnExportWord;
+        private Button btnAddAnnotationNumber;
         private Button btnStartOcr;
         private Button btnNextPage;
         private Button btnPrevPage;
@@ -359,10 +350,8 @@
         private Button btnAddRegion;
         private NumericUpDown numHeight;
         private Button btnDeleteRegion;
-        private Button btnApplyTemplate;
         private ListBox lstRegions;
         private Button btnUpdateRegion;
-        private Button btnTestCrop;
 
         private Button btnAutoLayout;
         private Button btnRegionSettings;

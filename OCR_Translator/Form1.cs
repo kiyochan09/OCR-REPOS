@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using OCR_Translator.Models;
 using OCR_Translator.Services;
+using ResizeMode = OCR_Translator.Services.ImageCoordinateHelper.ResizeMode;
 
 namespace OCR_Translator
 {
@@ -25,6 +26,7 @@ namespace OCR_Translator
         private TabControl? tabOcrResult;
         private TabPage? tabOcrText;
         private TabPage? tabOcrTable;
+        private readonly Dictionary<string, RichTextBox> ocrResultTextBoxes = new();
         private readonly LayoutStorage _layoutStorage = new LayoutStorage();
 
         // =========================================================
@@ -38,13 +40,10 @@ namespace OCR_Translator
             {
                 "本文" => "body",
                 "見出し" => "heading",
-                "ヘッダー" => "header",
-                "フッター" => "footer",
-                "脚注" => "footnote",
+                "注釈文" => "footnote",
                 "表" => "table",
+                "図" => "image",
                 "画像" => "image",
-                "地図" => "map",
-                "OCRしない" => "ignore",
                 _ => "body"
             };
         }
@@ -80,6 +79,7 @@ private bool isDrawingRegion = false;
         private const int ResizeHandleSize = 8;
 
         private bool isUpdatingRegionTypeCombo = false;
+        private int nextAnnotationNumber = 1;
 
 
 
@@ -89,6 +89,7 @@ private bool isDrawingRegion = false;
             InitializeOcrResultView();
 
             cmbRegionType.SelectedIndexChanged += cmbRegionType_SelectedIndexChanged;
+            richTextBox1.MouseClick += richTextBox1_MouseClick;
 
             // Designer.cs のイベント接続状態に依存しないよう明示的に接続
             btnStartOcr.Click -= btnStartOcr_Click;
@@ -337,7 +338,7 @@ private bool isDrawingRegion = false;
                 Dock = DockStyle.Fill
             };
 
-            tabOcrText = new TabPage("OCR結果");
+            tabOcrText = new TabPage("本文");
             tabOcrTable = new TabPage("表");
 
             // 現在のRichTextBoxをOCR結果タブへ移動する。
@@ -346,6 +347,14 @@ private bool isDrawingRegion = false;
             richTextBox1.Dock = DockStyle.Fill;
 
             tabOcrText.Controls.Add(richTextBox1);
+            ocrResultTextBoxes["body"] = richTextBox1;
+            tabOcrResult.TabPages.Add(tabOcrText);
+            tabOcrResult.TabPages.Add(tabOcrTable);
+
+            AddOcrResultTab("heading", "見出し");
+            AddOcrResultTab("footnote", "注釈文");
+            AddOcrResultTab("image", "図");
+            AddOcrResultTab("unclassified", "未分類");
 
             // 表表示用DataGridView
             dgvOcrTable = new DataGridView
@@ -370,14 +379,36 @@ private bool isDrawingRegion = false;
 
             tabOcrTable.Controls.Add(dgvOcrTable);
 
-            tabOcrResult.TabPages.Add(tabOcrText);
-            tabOcrResult.TabPages.Add(tabOcrTable);
-
             // 右側セルにTabControlを1つだけ配置する。
             tableLayoutPanel1.Controls.Add(
                 tabOcrResult,
                 1,
                 0);
+        }
+
+        private void AddOcrResultTab(string type, string title)
+        {
+            if (tabOcrResult == null)
+                return;
+
+            RichTextBox resultBox = new RichTextBox
+            {
+                Dock = DockStyle.Fill
+            };
+            resultBox.MouseClick += richTextBox1_MouseClick;
+
+            TabPage page = new TabPage(title);
+            page.Controls.Add(resultBox);
+            tabOcrResult.TabPages.Add(page);
+            ocrResultTextBoxes[type] = resultBox;
+        }
+
+        private void ClearOcrResultTabs()
+        {
+            foreach (RichTextBox resultBox in ocrResultTextBoxes.Values)
+            {
+                resultBox.Clear();
+            }
         }
 
         // 
@@ -645,7 +676,7 @@ private bool isDrawingRegion = false;
                         region.Height);
 
                 Rectangle screenRect =
-                ImageCoordinateHelper.ImageToScreen(imageRect, pictureBox1);
+                    ImageCoordinateHelper.ImageToScreen(imageRect, pictureBox1);
 
                 e.Graphics.DrawRectangle(
                     regionPen,
@@ -737,7 +768,8 @@ private bool isDrawingRegion = false;
                             region.X,
                             region.Y,
                             region.Width,
-                            region.Height));
+                            region.Height),
+                        pictureBox1);
 
                 // MouseMoveで決定済みの操作方法をそのまま使用
                 ResizeMode mode = hoverResizeMode;
@@ -794,14 +826,16 @@ private bool isDrawingRegion = false;
             if (pictureBox1.Image == null)
                 return;
 
-            ImageCoordinateHelper.HitTestRegionNear(e.Location, 20);
-
             // マウスが近づいた領域を自動選択
             if (resizeMode == ResizeMode.None &&
                 movingRegionIndex < 0 &&
                 !isDrawingRegion)
             {
-                int nearIndex = HitTestRegionNear(e.Location, 20);
+                int nearIndex = ImageCoordinateHelper.HitTestRegionNear(
+                    e.Location,
+                    20,
+                    regions,
+                    pictureBox1);
 
                 if (nearIndex >= 0 &&
                     lstRegions.SelectedIndex != nearIndex)
@@ -821,7 +855,11 @@ private bool isDrawingRegion = false;
                 hoverRegionIndex = -1;
                 hoverResizeMode = ResizeMode.None;
 
-                int nearIndex = ImageCoordinateHelper.HitTestRegionNear(point, 20, regions, pictureBox1);
+                int nearIndex = ImageCoordinateHelper.HitTestRegionNear(
+                    e.Location,
+                    20,
+                    regions,
+                    pictureBox1);
 
                 if (nearIndex >= 0)
                 {
@@ -838,15 +876,16 @@ private bool isDrawingRegion = false;
                         regions[nearIndex];
 
                     Rectangle hoverRect =
-                        ImageRectangleToScreenRectangle(
+                        ImageCoordinateHelper.ImageToScreen(
                             new Rectangle(
                                 hoverRegion.X,
                                 hoverRegion.Y,
                                 hoverRegion.Width,
-                                hoverRegion.Height));
+                                hoverRegion.Height),
+                            pictureBox1);
 
                     ResizeMode mode =
-                        ImageCoordinateHelper.GetResizeMode(point, rect);
+                        ImageCoordinateHelper.GetResizeMode(e.Location, hoverRect);
 
                     hoverResizeMode = mode;
 
@@ -1175,7 +1214,9 @@ private bool isDrawingRegion = false;
             }
 
             Rectangle imageRect =
-                ImageCoordinateHelper.ScreenToImage(rect, pictureBox1)
+                ImageCoordinateHelper.ScreenToImage(
+                    regionPreviewRectangle,
+                    pictureBox1);
 
             OcrRegion region = new OcrRegion
             {
@@ -1205,33 +1246,6 @@ private bool isDrawingRegion = false;
 
         
 
-        private int ImageCoordinateHelper.HitTestRegion(point, regions, pictureBox1)
-        {
-            if (pictureBox1.Image == null)
-                return -1;
-
-            for (int i = regions.Count - 1; i >= 0; i--)
-            {
-                OcrRegion region = regions[i];
-
-                Rectangle screenRect =
-                    ImageRectangleToScreenRectangle(
-                        new Rectangle(
-                            region.X,
-                            region.Y,
-                            region.Width,
-                            region.Height));
-
-                if (screenRect.Contains(screenPoint))
-                    return i;
-            }
-
-            return -1;
-        }
-
-        
-
-        
 
         private Color GetRegionColor(string type)
         {
@@ -1242,12 +1256,6 @@ private bool isDrawingRegion = false;
 
                 case "heading":
                     return Color.Green;
-
-                case "header":
-                    return Color.Purple;
-
-                case "footer":
-                    return Color.Brown;
 
                 case "footnote":
                     return Color.Gray;
@@ -1277,7 +1285,7 @@ private bool isDrawingRegion = false;
         // OCR結果表示用の表内部読み順
         //
         // ユーザー指定の「表」領域に属するOCRだけを対象とする。
-        // 本文・脚注など、表以外の項目の順序は変更しない。
+        // 本文など、表以外の項目の順序は変更しない。
         //
         // 表では単純な Y 座標による「行」判定を行わない。
         // OCRの文字列ブロックが複数段に分かれた場合でも、
@@ -1306,7 +1314,7 @@ private bool isDrawingRegion = false;
                 return;
             }
 
-            string projectDir = FindOcrEngineDirectory();
+            string projectDir = OcrProcessor.FindOcrEngineDirectory();
             string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
             string autoRegionScript = Path.Combine(projectDir, "ndlocr_auto_region.py");
 
@@ -1405,7 +1413,7 @@ private bool isDrawingRegion = false;
                                 System.Drawing.Imaging.ImageFormat.Png);
                         }
 
-                        ProcessResult result = await OcrProcessor.RunAutoRegionProcessAsync(
+                        OcrProcessor.ProcessResult result = await OcrProcessor.RunAutoRegionProcessAsync(
                             pythonExe,
                             autoRegionScript,
                             projectDir,
@@ -1446,7 +1454,7 @@ private bool isDrawingRegion = false;
                         }
 
                         List<AutoLayoutRegion> detected =
-                            LoadAutoLayoutJson(resultJson);
+                            OcrJsonParser.LoadAutoLayoutJson(resultJson);
 
                         List<OcrRegion> converted = detected
                             .Select(OcrProcessor.ConvertAutoLayoutRegion)
@@ -1744,8 +1752,9 @@ private bool isDrawingRegion = false;
                         $"領域判定: 自動領域 ({autoRegions.Count}件)\r\n\r\n");
                 }
 
-                richTextBox1.AppendText(
-                    "========== OCR結果 ==========\r\n");
+                // OCR処理中のログは結果画面に残さず、補正対象だけを表示する。
+                ClearOcrResultTabs();
+                nextAnnotationNumber = 1;
 
                 // =========================================================
                 // OCR結果の領域分類
@@ -1760,22 +1769,34 @@ private bool isDrawingRegion = false;
                 // NDLOCR-Liteの検出順ではなく、表内部だけは
                 // 表として自然な「上→下、左→右」の順にして表示する。
                 List<OcrDisplayItem> displayItems =
-                    OcrSorter.SortTableItemsForDisplay(items, regions, useUserRegions, autoRegions);
+                    OcrSorter.SortTableItemsForDisplay(
+                        ocrItems,
+                        regions,
+                        useUserRegions,
+                        autoRegions);
 
-                for (int i = 0; i < displayItems.Count; i++)
+                Dictionary<string, int> itemNumbers = new();
+
+                foreach (OcrDisplayItem item in displayItems)
                 {
-                    OcrDisplayItem item = displayItems[i];
-
                     string type = useUserRegions
                         ? OcrProcessor.FindUserRegionType(item, regions)
                         : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
 
-                    string direction =
-                        item.IsVertical ? "縦" : "横";
+                    if (type == "table")
+                        continue;
 
-                    richTextBox1.AppendText(
-                        $"[{i:00}] [{OcrProcessor.GetRegionDisplayName(type)}] " +
-                        $"[{direction}] {item.Text}\r\n");
+                    string tabType = ocrResultTextBoxes.ContainsKey(type)
+                        ? type
+                        : "unclassified";
+
+                    int number = itemNumbers.TryGetValue(tabType, out int currentNumber)
+                        ? currentNumber + 1
+                        : 1;
+                    itemNumbers[tabType] = number;
+
+                    ocrResultTextBoxes[tabType].AppendText(
+                        $"[{number:00}] {item.Text}\r\n");
                 }
 
 
@@ -1790,8 +1811,8 @@ private bool isDrawingRegion = false;
                 foreach (OcrDisplayItem item in displayItems)
                 {
                     string type = useUserRegions
-                        ? FindUserRegionType(item, regions)
-                        : FindAutoLayoutRegionType(item, autoRegions);
+                        ? OcrProcessor.FindUserRegionType(item, regions)
+                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
 
                     if (type == "table")
                     {
@@ -1799,14 +1820,7 @@ private bool isDrawingRegion = false;
                     }
                 }
 
-                richTextBox1.AppendText(
-                    Environment.NewLine +
-                    $"表表示項目数: {tableItems.Count}" +
-                    Environment.NewLine);
-
-                OcrTableDisplay.DisplayOcrTable(tableItems);
-
-                OcrTableDisplay.DisplayOcrTable(tableItems);
+                OcrTableDisplay.DisplayOcrTable(dgvOcrTable, tableItems);
 
                 // =========================================================
                 // 本文OCRだけを抽出
@@ -1818,8 +1832,8 @@ private bool isDrawingRegion = false;
                 foreach (OcrDisplayItem item in ocrItems)
                 {
                     string type = useUserRegions
-                        ? FindUserRegionType(item, regions)
-                        : FindAutoLayoutRegionType(item, autoRegions);
+                        ? OcrProcessor.FindUserRegionType(item, regions)
+                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
 
                     if (type == "body")
                     {
@@ -1827,26 +1841,8 @@ private bool isDrawingRegion = false;
                     }
                 }
 
-                richTextBox1.AppendText(
-                    $"\r\n本文OCR項目数: {bodyItems.Count}\r\n");
-
-                // =========================================================
-                // 本文読み順
-                // =========================================================
-
-                richTextBox1.AppendText(
-                    "\r\n========== 本文読み順 ==========\r\n");
-
                 List<OcrDisplayItem> orderedBody =
-                    OcrSorter.SortBodyReadingOrder(items);
-
-                for (int i = 0; i < orderedBody.Count; i++)
-                {
-                    OcrDisplayItem item = orderedBody[i];
-
-                    richTextBox1.AppendText(
-                        $"[{i + 1:00}] {item.Text}\r\n");
-                }
+                    OcrSorter.SortBodyReadingOrder(bodyItems);
 
                 // =========================================================
                 // 本文読み順テキストを保存
@@ -1867,11 +1863,6 @@ private bool isDrawingRegion = false;
                     bodyReadingOrderText,
                     new UTF8Encoding(false));
 
-                richTextBox1.AppendText(
-                    $"本文読み順結果: {bodyReadingOrderPath}\r\n");
-
-                richTextBox1.AppendText(
-                    "\r\n========== OCR処理完了 ==========\r\n");
             }
             catch (Exception ex)
             {
@@ -1883,252 +1874,6 @@ private bool isDrawingRegion = false;
             {
                 Cursor = Cursors.Default;
                 btnStartOcr.Enabled = true;
-            }
-        }
-
-        // =========================================================
-        // ユーザー指定領域によるOCR分類
-        // =========================================================
-        //
-        // OCR項目の中心点がユーザー指定領域内に入っているかで
-        // 判定する。
-        //
-        // ユーザー指定領域が存在する場合、auto_layout.jsonの
-        // 自動判定結果は一切使用しない。
-        //
-        // 領域外のOCRは「未分類」とし、本文読み順には入れない。
-        // =========================================================
-     
-        
-        private void btnTestCrop_Click(object sender, EventArgs e)
-        {
-            // ========================================
-            // 領域が選択されているか確認
-            // ========================================
-
-            int index = lstRegions.SelectedIndex;
-
-            if (index < 0 || index >= regions.Count)
-            {
-                MessageBox.Show(
-                    "先に領域を選択してください。",
-                    "領域テスト",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                return;
-            }
-
-            // ========================================
-            // ページ画像があるか確認
-            // ========================================
-
-            if (pictureBox1.Image == null)
-            {
-                MessageBox.Show(
-                    "ページ画像がありません。",
-                    "領域テスト",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-
-                return;
-            }
-
-            // ========================================
-            // OCR領域を取得
-            // ========================================
-
-            OcrRegion region = regions[index];
-
-            // ========================================
-            // 現在表示しているページ画像をコピー
-            // ========================================
-
-            Bitmap pageImage;
-
-            using (Bitmap source = new Bitmap(pictureBox1.Image))
-            {
-                pageImage = new Bitmap(source);
-            }
-
-            // ========================================
-            // 選択領域を切り出す
-            // ========================================
-
-            Bitmap RegionImageExtractor.Crop(bitmap, region);
-
-            pageImage.Dispose();
-
-            // ========================================
-            // 切り出した画像を保存
-            // ========================================
-
-            string projectDir =
-                @"C:\Users\natur\source\repos\OCR_Translator\ocr_engine";
-
-            string ocrInput =
-                Path.Combine(
-                    projectDir,
-                    "ocr_input.png");
-
-            croppedImage.Save(
-                ocrInput,
-                System.Drawing.Imaging.ImageFormat.Png);
-
-            // ========================================
-            // 切り出した画像を表示
-            // ========================================
-
-            Form previewForm = new Form();
-
-            previewForm.Text =
-                "OCR領域テスト - " + region.Name;
-
-            previewForm.StartPosition =
-                FormStartPosition.CenterParent;
-
-            previewForm.Size =
-                new Size(800, 600);
-
-            PictureBox previewPictureBox =
-                new PictureBox();
-
-            previewPictureBox.Dock =
-                DockStyle.Fill;
-
-            previewPictureBox.SizeMode =
-                PictureBoxSizeMode.Zoom;
-
-            previewPictureBox.Image =
-                croppedImage;
-
-            previewForm.Controls.Add(
-                previewPictureBox);
-
-            previewForm.Show(this);
-
-            // ========================================
-            // Python OCRを実行
-            // ========================================
-            try
-            {
-                
-
-                string pythonExe =
-                    Path.Combine(
-                        projectDir,
-                        "venv",
-                        "Scripts",
-                        "python.exe");
-
-                string pythonScript =
-                    Path.Combine(
-                        projectDir,
-                        "ocr_region.py");
-
-                
-                // ファイル存在確認
-                if (!File.Exists(pythonExe))
-                {
-                    MessageBox.Show(
-                        "python.exe が見つかりません。\r\n\r\n" +
-                        pythonExe,
-                        "Pythonエラー",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-
-                    return;
-                }
-
-                if (!File.Exists(pythonScript))
-                {
-                    MessageBox.Show(
-                        "ocr_region.py が見つかりません。\r\n\r\n" +
-                        pythonScript,
-                        "Pythonエラー",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-
-                    return;
-                }
-
-                if (!File.Exists(ocrInput))
-                {
-                    MessageBox.Show(
-                        "ocr_input.png が見つかりません。\r\n\r\n" +
-                        ocrInput,
-                        "OCR入力画像エラー",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-
-                    return;
-                }
-
-                // ========================================
-                // cmd.exe からPythonを実行
-                // 黒いコンソール画面を表示する
-                // ========================================
-
-
-
-                ProcessStartInfo psi = new ProcessStartInfo();
-                psi.FileName = pythonExe;
-                psi.WorkingDirectory = projectDir;
-                psi.UseShellExecute = false;
-                psi.CreateNoWindow = true;
-                psi.RedirectStandardOutput = true;
-                psi.RedirectStandardError = true;
-                psi.StandardOutputEncoding = Encoding.UTF8;
-                psi.StandardErrorEncoding = Encoding.UTF8;
-                psi.ArgumentList.Add(pythonScript);
-                psi.ArgumentList.Add(ocrInput);
-
-
-                using (Process process =
-                       new Process())
-                {
-                    process.StartInfo = psi;
-
-                    process.Start();
-
-                    string standardOutput =
-                        process.StandardOutput.ReadToEnd();
-
-                    string standardError =
-                        process.StandardError.ReadToEnd();
-
-                    process.WaitForExit();
-
-                    MessageBox.Show(
-                        "Python終了コード: " +
-                        process.ExitCode +
-                        "\r\n\r\n" +
-                        "【標準出力】\r\n" +
-                        standardOutput +
-                        "\r\n\r\n" +
-                        "【エラー出力】\r\n" +
-                        standardError,
-                        "Python OCR結果",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                }
-
-                MessageBox.Show(
-                    "Python OCRを起動しました。\r\n\r\n" +
-                    "入力画像:\r\n" +
-                    ocrInput,
-                    "OCRテスト",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "Python OCRの起動に失敗しました。\r\n\r\n" +
-                    ex.ToString(),
-                    "OCRエラー",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
             }
         }
 
@@ -2157,9 +1902,71 @@ private bool isDrawingRegion = false;
 
             pictureBox1.Invalidate();
         }
-        
 
-        private List<OcrDisplayItem> LoadNdlocrPageJson
+        private void richTextBox1_MouseClick(object? sender, MouseEventArgs e)
+        {
+            if (sender is not RichTextBox resultBox)
+                return;
 
+            // OCR結果の右端をクリックした場合だけ、注釈番号を付け外しする。
+            if (e.Button != MouseButtons.Left ||
+                e.X < resultBox.ClientSize.Width - 48)
+            {
+                return;
+            }
+
+            int characterIndex = resultBox.GetCharIndexFromPosition(e.Location);
+            int lineIndex = resultBox.GetLineFromCharIndex(characterIndex);
+
+            if (lineIndex < 0 || lineIndex >= resultBox.Lines.Length)
+                return;
+
+            ToggleAnnotationNumber(resultBox, lineIndex);
+        }
+
+        private void btnAddAnnotationNumber_Click(object? sender, EventArgs e)
+        {
+            RichTextBox? resultBox = tabOcrResult?.SelectedTab?
+                .Controls
+                .OfType<RichTextBox>()
+                .FirstOrDefault();
+
+            if (resultBox == null)
+            {
+                MessageBox.Show(
+                    "本文・見出し・注釈文・図のタブで、対象行を選択してください。",
+                    "注釈番号",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            int lineIndex = resultBox.GetLineFromCharIndex(resultBox.SelectionStart);
+            ToggleAnnotationNumber(resultBox, lineIndex);
+        }
+
+        private void ToggleAnnotationNumber(RichTextBox resultBox, int lineIndex)
+        {
+            if (lineIndex < 0 || lineIndex >= resultBox.Lines.Length)
+                return;
+
+            string line = resultBox.Lines[lineIndex];
+
+            if (string.IsNullOrWhiteSpace(line))
+                return;
+
+            const string noteMarker = "\t【注";
+            int markerIndex = line.LastIndexOf(noteMarker, StringComparison.Ordinal);
+
+            string updatedLine = markerIndex >= 0
+                ? line[..markerIndex]
+                : line + $"\t【注{nextAnnotationNumber++}】";
+
+            int lineStart = resultBox.GetFirstCharIndexFromLine(lineIndex);
+            resultBox.Select(lineStart, line.Length);
+            resultBox.SelectedText = updatedLine;
+            resultBox.Select(lineStart + updatedLine.Length, 0);
+            resultBox.Focus();
+        }
     }
 }
