@@ -27,7 +27,6 @@ namespace OCR_Translator
         private readonly Dictionary<string, RichTextBox> ocrResultTextBoxes = new();
         private readonly LayoutStorage _layoutStorage = new LayoutStorage();
 
-        // ログ出力専用（本文タブと分離）
         private RichTextBox txtLog = null!;
 
         private List<OcrRegion> regions = new List<OcrRegion>();
@@ -989,6 +988,7 @@ namespace OCR_Translator
             }
         }
 
+
         private async void btnStartOcr_Click(object? sender, EventArgs e)
         {
             if (pdfDocument == null || string.IsNullOrWhiteSpace(currentPdfPath))
@@ -998,215 +998,237 @@ namespace OCR_Translator
                 return;
             }
 
-            SaveCurrentPageRegions();
-
-            if (txtLog.TextLength > 0)
-                txtLog.AppendText("\r\n");
-            txtLog.AppendText($"========== OCR開始 ページ {currentPage + 1} ==========" + Environment.NewLine);
-
-            bool useUserRegions = regions.Count > 0;
-
-            if (useUserRegions)
-            {
-                txtLog.AppendText($"ユーザー指定領域: {regions.Count}件" + Environment.NewLine);
-                for (int i = 0; i < regions.Count; i++)
-                {
-                    OcrRegion r = regions[i];
-                    txtLog.AppendText(
-                        $"  [{i + 1:00}] {r.Name} / {r.Type} x={r.X}, y={r.Y}, width={r.Width}, height={r.Height}" + Environment.NewLine);
-                }
-            }
-            else
-            {
-                txtLog.AppendText("ユーザー指定領域がありません。自動領域判定を使用します。" + Environment.NewLine);
-            }
-
-            txtLog.AppendText("ページ画像を作成しています..." + Environment.NewLine);
-            txtLog.Refresh();
-
             string projectDir = OcrProcessor.FindOcrEngineDirectory();
             string pythonExe = Path.Combine(projectDir, "venv", "Scripts", "python.exe");
             string autoRegionScript = Path.Combine(projectDir, "ndlocr_auto_region.py");
 
             if (!File.Exists(pythonExe))
             {
-                txtLog.AppendText($"Pythonが見つかりません: {pythonExe}" + Environment.NewLine);
+                MessageBox.Show($"Pythonが見つかりません。\n{pythonExe}", "OCR開始",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (!File.Exists(autoRegionScript))
             {
-                txtLog.AppendText($"スクリプトが見つかりません: {autoRegionScript}" + Environment.NewLine);
+                MessageBox.Show($"スクリプトが見つかりません。\n{autoRegionScript}", "OCR開始",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             string pdfName = Path.GetFileNameWithoutExtension(currentPdfPath);
-            string pageDir = Path.Combine(projectDir, "ocr_results", pdfName, $"page_{currentPage + 1:0000}");
-            Directory.CreateDirectory(pageDir);
-            string imagePath = Path.Combine(pageDir, "page.png");
+            int originalPage = currentPage;
+            int successCount = 0;
+            int failureCount = 0;
+
+            txtLog.Clear();
+            txtLog.AppendText("========== 全ページOCR開始 ==========" + Environment.NewLine);
+            txtLog.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
+            txtLog.AppendText($"ページ数: {pdfDocument.PageCount}" + Environment.NewLine + Environment.NewLine);
 
             try
             {
                 btnStartOcr.Enabled = false;
+                btnAutoLayout.Enabled = false;
+                btnOpenPdf.Enabled = false;
+                btnPrevPage.Enabled = false;
+                btnNextPage.Enabled = false;
                 Cursor = Cursors.WaitCursor;
 
-                const int dpi = 150;
-                using (Image rendered = pdfDocument.Render(currentPage, dpi, dpi, PdfRenderFlags.Annotations))
-                    rendered.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
-
-                txtLog.AppendText("ページ画像作成完了" + Environment.NewLine);
-                txtLog.AppendText("NDLOCR-Liteを実行しています..." + Environment.NewLine);
-                txtLog.Refresh();
-
-                var psi = new ProcessStartInfo
+                for (int pageIndex = 0; pageIndex < pdfDocument.PageCount; pageIndex++)
                 {
-                    FileName = pythonExe,
-                    WorkingDirectory = projectDir,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-                psi.Environment["PYTHONUTF8"] = "1";
-                psi.Environment["PYTHONIOENCODING"] = "utf-8";
-                psi.ArgumentList.Add(autoRegionScript);
-                psi.ArgumentList.Add(imagePath);
-                psi.ArgumentList.Add(pageDir);
-
-                using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
-                var stdout = new StringBuilder();
-                var stderr = new StringBuilder();
-                var completion = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                process.OutputDataReceived += (_, ev) =>
-                {
-                    if (ev.Data == null) return;
-                    stdout.AppendLine(ev.Data);
-                    if (!IsDisposed && IsHandleCreated)
+                    if (pageIndex != currentPage)
                     {
-                        BeginInvoke(new Action(() =>
-                        {
-                            txtLog.AppendText(ev.Data + Environment.NewLine);
-                            txtLog.SelectionStart = txtLog.TextLength;
-                            txtLog.ScrollToCaret();
-                        }));
+                        SaveCurrentPageRegions();
+                        currentPage = pageIndex;
+                        LoadCurrentPageRegions();
+                        ShowCurrentPage();
+                        await Task.Delay(50);
                     }
-                };
 
-                process.ErrorDataReceived += (_, ev) =>
-                {
-                    if (ev.Data == null) return;
-                    stderr.AppendLine(ev.Data);
-                    if (!IsDisposed && IsHandleCreated)
+                    txtLog.AppendText($"---------- ページ {pageIndex + 1}/{pdfDocument.PageCount} ----------" + Environment.NewLine);
+                    txtLog.Refresh();
+
+                    string pageDir = Path.Combine(projectDir, "ocr_results", pdfName, $"page_{pageIndex + 1:0000}");
+                    Directory.CreateDirectory(pageDir);
+                    string imagePath = Path.Combine(pageDir, "page.png");
+
+                    const int dpi = 150;
+                    using (Image rendered = pdfDocument.Render(pageIndex, dpi, dpi, PdfRenderFlags.Annotations))
+                        rendered.Save(imagePath, System.Drawing.Imaging.ImageFormat.Png);
+
+                    var psi = new ProcessStartInfo
                     {
-                        BeginInvoke(new Action(() =>
-                        {
-                            txtLog.AppendText("[ERROR] " + ev.Data + Environment.NewLine);
-                            txtLog.SelectionStart = txtLog.TextLength;
-                            txtLog.ScrollToCaret();
-                        }));
+                        FileName = pythonExe,
+                        WorkingDirectory = projectDir,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        StandardOutputEncoding = Encoding.UTF8,
+                        StandardErrorEncoding = Encoding.UTF8
+                    };
+                    psi.Environment["PYTHONUTF8"] = "1";
+                    psi.Environment["PYTHONIOENCODING"] = "utf-8";
+                    psi.ArgumentList.Add(autoRegionScript);
+                    psi.ArgumentList.Add(imagePath);
+                    psi.ArgumentList.Add(pageDir);
+
+                    using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+                    var stdout = new StringBuilder();
+                    var stderr = new StringBuilder();
+                    var completion = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                    process.OutputDataReceived += (_, ev) =>
+                    {
+                        if (ev.Data == null) return;
+                        stdout.AppendLine(ev.Data);
+                    };
+
+                    process.ErrorDataReceived += (_, ev) =>
+                    {
+                        if (ev.Data == null) return;
+                        stderr.AppendLine(ev.Data);
+                    };
+
+                    process.Exited += (_, _) => completion.TrySetResult(process.ExitCode);
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    int exitCode = await completion.Task;
+
+                    string log = "[STDOUT]\r\n" + stdout + "\r\n[STDERR]\r\n" + stderr;
+                    File.WriteAllText(Path.Combine(pageDir, "ndlocr_run.log"), log, new UTF8Encoding(false));
+
+                    string pageJson = Path.Combine(pageDir, "page.json");
+                    string resultJson = Path.Combine(pageDir, "auto_layout.json");
+
+                    if (exitCode != 0)
+                    {
+                        failureCount++;
+                        txtLog.AppendText($"失敗: 終了コード {exitCode}" + Environment.NewLine);
+                        continue;
                     }
-                };
 
-                process.Exited += (_, _) => completion.TrySetResult(process.ExitCode);
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                int exitCode = await completion.Task;
-
-                string log = "[STDOUT]\r\n" + stdout + "\r\n[STDERR]\r\n" + stderr;
-                File.WriteAllText(Path.Combine(pageDir, "ndlocr_run.log"), log, new UTF8Encoding(false));
-
-                string pageJson = Path.Combine(pageDir, "page.json");
-                string resultJson = Path.Combine(pageDir, "auto_layout.json");
-
-                txtLog.AppendText($"\r\nNDLOCR-Lite終了コード: {exitCode}" + Environment.NewLine);
-
-                if (exitCode != 0)
-                {
-                    txtLog.AppendText("========== OCR失敗 ==========" + Environment.NewLine);
-                    return;
-                }
-
-                if (!File.Exists(pageJson))
-                {
-                    txtLog.AppendText($"page.json が見つかりません: {pageJson}" + Environment.NewLine);
-                    return;
-                }
-
-                if (!useUserRegions && !File.Exists(resultJson))
-                {
-                    txtLog.AppendText($"auto_layout.json が見つかりません: {resultJson}" + Environment.NewLine);
-                    return;
-                }
-
-                List<OcrDisplayItem> ocrItems = OcrJsonParser.LoadNdlocrPageJson(pageJson);
-                List<AutoLayoutRegion> autoRegions = useUserRegions
-                    ? new List<AutoLayoutRegion>()
-                    : OcrJsonParser.LoadAutoLayoutJson(resultJson);
-
-                txtLog.AppendText($"OCR項目数: {ocrItems.Count}" + Environment.NewLine);
-                txtLog.AppendText(useUserRegions
-                    ? $"領域判定: ユーザー指定領域 ({regions.Count}件)" + Environment.NewLine + Environment.NewLine
-                    : $"領域判定: 自動領域 ({autoRegions.Count}件)" + Environment.NewLine + Environment.NewLine);
-
-                nextAnnotationNumber = 1;
-
-                List<OcrDisplayItem> displayItems = OcrSorter.SortTableItemsForDisplay(
-                    ocrItems, regions, useUserRegions, autoRegions);
-
-                bool bodyStarted = false;
-                Dictionary<string, int> itemNumbers = new();
-
-                foreach (OcrDisplayItem item in displayItems)
-                {
-                    string type = useUserRegions
-                        ? OcrProcessor.FindUserRegionType(item, regions)
-                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
-
-                    if (type == "table") continue;
-
-                    string tabType = ocrResultTextBoxes.ContainsKey(type) ? type : "unclassified";
-
-                    if (tabType == "body")
+                    if (!File.Exists(pageJson))
                     {
-                        if (!bodyStarted)
+                        failureCount++;
+                        txtLog.AppendText("失敗: page.json が生成されませんでした。" + Environment.NewLine);
+                        continue;
+                    }
+
+                    bool useUserRegions = regions.Count > 0;
+                    if (!useUserRegions && !File.Exists(resultJson))
+                    {
+                        failureCount++;
+                        txtLog.AppendText("失敗: auto_layout.json が見つかりません。" + Environment.NewLine);
+                        continue;
+                    }
+
+                    List<OcrDisplayItem> ocrItems = OcrJsonParser.LoadNdlocrPageJson(pageJson);
+                    List<AutoLayoutRegion> autoRegions = useUserRegions
+                        ? new List<AutoLayoutRegion>()
+                        : OcrJsonParser.LoadAutoLayoutJson(resultJson);
+
+                    txtLog.AppendText($"OCR項目数: {ocrItems.Count}" + Environment.NewLine);
+
+                    // タイプ別に分類（OcrProcessorのNormalizeRegionTypeを一貫して使用）
+                    Dictionary<string, List<OcrDisplayItem>> itemsByType = new();
+                    foreach (OcrDisplayItem item in ocrItems)
+                    {
+                        string type = useUserRegions
+                            ? OcrProcessor.FindUserRegionType(item, regions)
+                            : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions);
+
+                        if (string.IsNullOrEmpty(type))
+                            type = "unclassified";
+
+                        if (!itemsByType.ContainsKey(type))
+                            itemsByType[type] = new List<OcrDisplayItem>();
+                        itemsByType[type].Add(item);
+                    }
+
+                    // 本文（段落として追記）
+                    if (itemsByType.TryGetValue("body", out List<OcrDisplayItem>? bodyList) && bodyList.Count > 0)
+                    {
+                        ocrResultTextBoxes["body"].AppendText($"\r\n--- ページ {pageIndex + 1} ---\r\n");
+                        foreach (OcrDisplayItem item in bodyList)
+                            ocrResultTextBoxes["body"].AppendText(item.Text + " ");
+                    }
+
+                    // 見出し
+                    if (itemsByType.TryGetValue("heading", out List<OcrDisplayItem>? headingList))
+                    {
+                        int n = 1;
+                        foreach (OcrDisplayItem item in headingList)
+                            ocrResultTextBoxes["heading"].AppendText($"[P{pageIndex + 1}-{n++:00}] {item.Text}" + Environment.NewLine);
+                    }
+
+                    // 注釈文
+                    if (itemsByType.TryGetValue("footnote", out List<OcrDisplayItem>? footnoteList))
+                    {
+                        int n = 1;
+                        foreach (OcrDisplayItem item in footnoteList)
+                            ocrResultTextBoxes["footnote"].AppendText($"[P{pageIndex + 1}-{n++:00}] {item.Text}" + Environment.NewLine);
+                    }
+
+                    // 図
+                    if (itemsByType.TryGetValue("image", out List<OcrDisplayItem>? imageList))
+                    {
+                        int n = 1;
+                        foreach (OcrDisplayItem item in imageList)
+                            ocrResultTextBoxes["image"].AppendText($"[P{pageIndex + 1}-{n++:00}] {item.Text}" + Environment.NewLine);
+                    }
+
+                    // 未分類
+                    if (itemsByType.TryGetValue("unclassified", out List<OcrDisplayItem>? unclassifiedList))
+                    {
+                        int n = 1;
+                        foreach (OcrDisplayItem item in unclassifiedList)
+                            ocrResultTextBoxes["unclassified"].AppendText($"[P{pageIndex + 1}-{n++:00}] {item.Text}" + Environment.NewLine);
+                    }
+
+                    // 表（DataGridViewに追記）
+                    if (itemsByType.TryGetValue("table", out List<OcrDisplayItem>? tableList) && tableList.Count > 0)
+                    {
+                        List<OcrDisplayItem> sortedTable = OcrSorter.SortTableItemsForDisplay(
+                            tableList, regions, useUserRegions, autoRegions);
+
+                        if (dgvOcrTable != null)
                         {
-                            ocrResultTextBoxes["body"].AppendText($"\r\n--- ページ {currentPage + 1} ---\r\n");
-                            bodyStarted = true;
+                            if (dgvOcrTable.Columns.Count == 0)
+                            {
+                                dgvOcrTable.Columns.Add("Page", "ページ");
+                                dgvOcrTable.Columns.Add("Index", "No.");
+                                dgvOcrTable.Columns.Add("Text", "OCR結果");
+                                dgvOcrTable.Columns["Page"]!.FillWeight = 15;
+                                dgvOcrTable.Columns["Index"]!.FillWeight = 15;
+                                dgvOcrTable.Columns["Text"]!.FillWeight = 70;
+                            }
+
+                            int startIndex = dgvOcrTable.Rows.Count;
+                            for (int i = 0; i < sortedTable.Count; i++)
+                                dgvOcrTable.Rows.Add(pageIndex + 1, startIndex + i + 1, sortedTable[i].Text);
                         }
-                        ocrResultTextBoxes["body"].AppendText(item.Text + " ");
                     }
-                    else
+
+                    // 読み順ファイル保存
+                    if (itemsByType.TryGetValue("body", out List<OcrDisplayItem>? bodyForSave))
                     {
-                        int number = itemNumbers.TryGetValue(tabType, out int currentNumber) ? currentNumber + 1 : 1;
-                        itemNumbers[tabType] = number;
-                        ocrResultTextBoxes[tabType].AppendText($"[{number:00}] {item.Text}" + Environment.NewLine);
+                        List<OcrDisplayItem> orderedBody = OcrSorter.SortBodyReadingOrder(bodyForSave);
+                        string bodyReadingOrderText = string.Join("", orderedBody.Select(item => item.Text));
+                        string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
+                        File.WriteAllText(bodyReadingOrderPath, bodyReadingOrderText, new UTF8Encoding(false));
                     }
+
+                    successCount++;
+                    txtLog.AppendText("完了" + Environment.NewLine + Environment.NewLine);
                 }
 
-                List<OcrDisplayItem> tableItems = displayItems.Where(item =>
-                    (useUserRegions
-                        ? OcrProcessor.FindUserRegionType(item, regions)
-                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions)) == "table")
-                    .ToList();
-
-                OcrTableDisplay.DisplayOcrTable(dgvOcrTable, tableItems);
-
-                List<OcrDisplayItem> bodyItems = ocrItems.Where(item =>
-                    (useUserRegions
-                        ? OcrProcessor.FindUserRegionType(item, regions)
-                        : OcrProcessor.FindAutoLayoutRegionType(item, autoRegions)) == "body")
-                    .ToList();
-
-                List<OcrDisplayItem> orderedBody = OcrSorter.SortBodyReadingOrder(bodyItems);
-
-                string bodyReadingOrderText = string.Join("", orderedBody.Select(item => item.Text));
-                string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
-                File.WriteAllText(bodyReadingOrderPath, bodyReadingOrderText, new UTF8Encoding(false));
+                txtLog.AppendText("========== 全ページOCR完了 ==========" + Environment.NewLine);
+                txtLog.AppendText($"成功: {successCount}ページ" + Environment.NewLine);
+                txtLog.AppendText($"失敗: {failureCount}ページ" + Environment.NewLine);
             }
             catch (Exception ex)
             {
@@ -1215,8 +1237,16 @@ namespace OCR_Translator
             }
             finally
             {
+                currentPage = originalPage;
+                LoadCurrentPageRegions();
+                ShowCurrentPage();
+
                 Cursor = Cursors.Default;
                 btnStartOcr.Enabled = true;
+                btnAutoLayout.Enabled = true;
+                btnOpenPdf.Enabled = true;
+                btnPrevPage.Enabled = true;
+                btnNextPage.Enabled = true;
             }
         }
 

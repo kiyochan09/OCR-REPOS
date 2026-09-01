@@ -167,7 +167,9 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                    return region.Type;
+                {
+                    return NormalizeRegionType(region.Type);
+                }
             }
             return "";
         }
@@ -181,9 +183,21 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                    return region.Type;
+                    return NormalizeRegionType(region.Type);
             }
             return "";
+        }
+
+        private static string NormalizeRegionType(string type)
+        {
+            if (string.IsNullOrWhiteSpace(type))
+                return "";
+            string lower = type.ToLowerInvariant().Trim();
+            return lower switch
+            {
+                "header" or "footer" or "map" or "ignore" => "body",
+                _ => lower
+            };
         }
     }
 }

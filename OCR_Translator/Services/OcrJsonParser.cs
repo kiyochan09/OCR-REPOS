@@ -15,7 +15,12 @@ namespace OCR_Translator.Services
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
             var result = new List<OcrDisplayItem>();
             CollectNdlocrItems(doc.RootElement, result);
-            return result;
+
+            // 重複排除：同じテキスト＋同じ座標のものを1つにまとめる
+            return result
+                .GroupBy(item => new { item.Text, item.X, item.Y, item.Width, item.Height, item.IsVertical })
+                .Select(g => g.First())
+                .ToList();
         }
 
         private static void CollectNdlocrItems(JsonElement element, List<OcrDisplayItem> result)
