@@ -12,15 +12,73 @@ namespace OCR_Translator.Services
             if (items.Count <= 1)
                 return new List<OcrDisplayItem>(items);
 
-            int verticalCount = items.Count(item => item.IsVertical);
-            bool isVertical = verticalCount * 2 >= items.Count;
+            // 重複排除（同じテキスト・重複座標）
+            var uniqueItems = items
+                .GroupBy(i => new { i.Text, i.X, i.Y, i.Width, i.Height, i.IsVertical })
+                .Select(g => g.First())
+                .ToList();
+
+            if (uniqueItems.Count <= 1)
+                return uniqueItems;
+
+            int verticalCount = uniqueItems.Count(item => item.IsVertical);
+            bool isVertical = verticalCount * 2 >= uniqueItems.Count;
 
             if (!isVertical)
-                return items.OrderBy(item => item.Y).ThenBy(item => item.X).ToList();
+            {
+                // 横書き：行グループ化（上から下、同じ行内は左から右）
+                var rows = new List<List<OcrDisplayItem>>();
+                foreach (OcrDisplayItem item in uniqueItems.OrderBy(i => i.Y + i.Height / 2.0))
+                {
+                    double centerY = item.Y + item.Height / 2.0;
+                    List<OcrDisplayItem>? targetRow = null;
+                    double bestDistance = double.MaxValue;
 
+                    foreach (List<OcrDisplayItem> row in rows)
+                    {
+                        double rowCenterY = row.Average(x => x.Y + x.Height / 2.0);
+                        double distance = Math.Abs(centerY - rowCenterY);
+                        double minHeight = Math.Min(item.Height, row.Min(r => r.Height));
+
+                        // 同一行判定：Y中心差が文字高さの35%以内で、X方向に重なりがないこと
+                        if (distance < minHeight * 0.35 && distance < bestDistance)
+                        {
+                            bool xOverlap = row.Any(r => Math.Max(item.X, r.X) < Math.Min(item.X + item.Width, r.X + r.Width));
+                            if (!xOverlap)
+                            {
+                                targetRow = row;
+                                bestDistance = distance;
+                            }
+                        }
+                    }
+
+                    if (targetRow == null)
+                    {
+                        targetRow = new List<OcrDisplayItem>();
+                        rows.Add(targetRow);
+                    }
+                    targetRow.Add(item);
+                }
+
+                foreach (List<OcrDisplayItem> row in rows)
+                {
+                    row.Sort((a, b) => a.X.CompareTo(b.X));
+                }
+
+                rows.Sort((a, b) =>
+                {
+                    double aY = a.Average(x => x.Y + x.Height / 2.0);
+                    double bY = b.Average(x => x.Y + x.Height / 2.0);
+                    return aY.CompareTo(bY);
+                });
+
+                return rows.SelectMany(row => row).ToList();
+            }
+
+            // 縦書き：列グループ化（右から左、同じ列内は上から下）
             var columns = new List<List<OcrDisplayItem>>();
 
-            foreach (OcrDisplayItem item in items.OrderByDescending(item => item.X + item.Width / 2))
+            foreach (OcrDisplayItem item in uniqueItems.OrderByDescending(item => item.X + item.Width / 2.0))
             {
                 double centerX = item.X + item.Width / 2.0;
                 List<OcrDisplayItem>? targetColumn = null;
@@ -30,13 +88,17 @@ namespace OCR_Translator.Services
                 {
                     double columnCenterX = column.Average(x => x.X + x.Width / 2.0);
                     double distance = Math.Abs(centerX - columnCenterX);
-                    double averageWidth = column.Average(x => x.Width);
-                    double tolerance = Math.Max(8.0, Math.Max(item.Width, averageWidth) * 1.5);
+                    double minWidth = Math.Min(item.Width, column.Min(c => c.Width));
 
-                    if (distance <= tolerance && distance < bestDistance)
+                    // 同一列判定：X中心差が文字幅の35%以内で、Y方向に重なりがないこと
+                    if (distance < minWidth * 0.35 && distance < bestDistance)
                     {
-                        targetColumn = column;
-                        bestDistance = distance;
+                        bool yOverlap = column.Any(c => Math.Max(item.Y, c.Y) < Math.Min(item.Y + item.Height, c.Y + c.Height));
+                        if (!yOverlap)
+                        {
+                            targetColumn = column;
+                            bestDistance = distance;
+                        }
                     }
                 }
 
@@ -50,18 +112,14 @@ namespace OCR_Translator.Services
 
             foreach (List<OcrDisplayItem> column in columns)
             {
-                column.Sort((a, b) =>
-                {
-                    int result = a.Y.CompareTo(b.Y);
-                    return result != 0 ? result : a.X.CompareTo(b.X);
-                });
+                column.Sort((a, b) => a.Y.CompareTo(b.Y));
             }
 
             columns.Sort((a, b) =>
             {
                 double aX = a.Average(x => x.X + x.Width / 2.0);
                 double bX = b.Average(x => x.X + x.Width / 2.0);
-                return bX.CompareTo(aX);
+                return bX.CompareTo(aX); // 右列（X大）から左列（X小）
             });
 
             return columns.SelectMany(column => column).ToList();
@@ -190,14 +248,7 @@ namespace OCR_Translator.Services
 
         private static string NormalizeRegionType(string type)
         {
-            if (string.IsNullOrWhiteSpace(type))
-                return "";
-            string lower = type.ToLowerInvariant().Trim();
-            return lower switch
-            {
-                "header" or "footer" or "map" or "ignore" => "body",
-                _ => lower
-            };
+            return OcrProcessor.NormalizeRegionType(type);
         }
     }
 }

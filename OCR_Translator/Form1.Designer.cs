@@ -1,4 +1,4 @@
-﻿namespace OCR_Translator
+namespace OCR_Translator
 {
     partial class Form1
     {
@@ -60,7 +60,6 @@
             ((System.ComponentModel.ISupportInitialize)numY).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numX).BeginInit();
             SuspendLayout();
-            this.btnStartOcr.Click += new System.EventHandler(this.btnStartOcr_Click);
             // 
             // tableLayoutPanel1
             // 

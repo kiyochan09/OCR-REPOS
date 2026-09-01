@@ -152,12 +152,18 @@ namespace OCR_Translator.Services
             return "";
         }
 
-        private static string NormalizeRegionType(string type)
+        public static string NormalizeRegionType(string type)
         {
-            return type switch
+            if (string.IsNullOrWhiteSpace(type)) return "";
+            string lower = type.ToLowerInvariant().Trim();
+            return lower switch
             {
-                "header" or "footer" or "map" or "ignore" => "body",
-                _ => type
+                "body" => "body",
+                "heading" => "heading",
+                "footnote" => "footnote",
+                "table" => "table",
+                "image" or "figure" => "image",
+                _ => lower
             };
         }
     }

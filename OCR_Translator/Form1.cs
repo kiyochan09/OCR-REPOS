@@ -719,6 +719,12 @@ namespace OCR_Translator
         {
             foreach (RichTextBox resultBox in ocrResultTextBoxes.Values)
                 resultBox.Clear();
+
+            if (dgvOcrTable != null)
+            {
+                dgvOcrTable.Rows.Clear();
+                dgvOcrTable.Columns.Clear();
+            }
         }
 
         private void btnAddAnnotationNumber_Click(object? sender, EventArgs e)
@@ -1021,6 +1027,7 @@ namespace OCR_Translator
             int successCount = 0;
             int failureCount = 0;
 
+            ClearOcrResultTabs();
             txtLog.Clear();
             txtLog.AppendText("========== 全ページOCR開始 ==========" + Environment.NewLine);
             txtLog.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
@@ -1149,12 +1156,19 @@ namespace OCR_Translator
                         itemsByType[type].Add(item);
                     }
 
-                    // 本文（段落として追記）
+                    // 本文（全ページ・本文領域のみを読み順に整列して表示）
                     if (itemsByType.TryGetValue("body", out List<OcrDisplayItem>? bodyList) && bodyList.Count > 0)
                     {
-                        ocrResultTextBoxes["body"].AppendText($"\r\n--- ページ {pageIndex + 1} ---\r\n");
-                        foreach (OcrDisplayItem item in bodyList)
-                            ocrResultTextBoxes["body"].AppendText(item.Text + " ");
+                        List<OcrDisplayItem> orderedBody = OcrSorter.SortBodyReadingOrder(bodyList);
+                        string separator = orderedBody.Any(i => i.IsVertical) ? "" : " ";
+                        string pageBodyText = string.Join(separator, orderedBody.Select(item => item.Text));
+
+                        if (ocrResultTextBoxes["body"].TextLength > 0)
+                        {
+                            ocrResultTextBoxes["body"].AppendText(Environment.NewLine + Environment.NewLine);
+                        }
+                        ocrResultTextBoxes["body"].AppendText($"--- ページ {pageIndex + 1} ---" + Environment.NewLine);
+                        ocrResultTextBoxes["body"].AppendText(pageBodyText);
                     }
 
                     // 見出し
@@ -1214,10 +1228,11 @@ namespace OCR_Translator
                     }
 
                     // 読み順ファイル保存
-                    if (itemsByType.TryGetValue("body", out List<OcrDisplayItem>? bodyForSave))
+                    if (itemsByType.TryGetValue("body", out List<OcrDisplayItem>? bodyForSave) && bodyForSave.Count > 0)
                     {
                         List<OcrDisplayItem> orderedBody = OcrSorter.SortBodyReadingOrder(bodyForSave);
-                        string bodyReadingOrderText = string.Join("", orderedBody.Select(item => item.Text));
+                        string separator = orderedBody.Any(i => i.IsVertical) ? "" : " ";
+                        string bodyReadingOrderText = string.Join(separator, orderedBody.Select(item => item.Text));
                         string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
                         File.WriteAllText(bodyReadingOrderPath, bodyReadingOrderText, new UTF8Encoding(false));
                     }
