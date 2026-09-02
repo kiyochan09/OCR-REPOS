@@ -2022,6 +2022,38 @@ def create_table_regions_from_cells(
                 }
             )
 
+        # 枠内の罫線（横・縦）座標を抽出
+        h_lines = set()
+        v_lines = set()
+        for cell in cells:
+            cy1 = cell["y"]
+            cy2 = cell["y"] + cell["height"]
+            cx1 = cell["x"]
+            cx2 = cell["x"] + cell["width"]
+            if table["y"] + 2 < cy1 < table["y"] + table["height"] - 2:
+                h_lines.add(cy1)
+            if table["y"] + 2 < cy2 < table["y"] + table["height"] - 2:
+                h_lines.add(cy2)
+            if table["x"] + 2 < cx1 < table["x"] + table["width"] - 2:
+                v_lines.add(cx1)
+            if table["x"] + 2 < cx2 < table["x"] + table["width"] - 2:
+                v_lines.add(cx2)
+
+        def cluster_coords(coords, tol=4):
+            if not coords:
+                return []
+            s = sorted(coords)
+            clusters = [[s[0]]]
+            for val in s[1:]:
+                if abs(val - sum(clusters[-1])/len(clusters[-1])) <= tol:
+                    clusters[-1].append(val)
+                else:
+                    clusters.append([val])
+            return [int(round(sum(c)/len(c))) for c in clusters]
+
+        horizontal_lines = cluster_coords(h_lines)
+        vertical_lines = cluster_coords(v_lines)
+
         regions.append(
             {
                 "name": f"表{table_index}",
@@ -2045,6 +2077,9 @@ def create_table_regions_from_cells(
                         for cell in cells
                     )
                 ),
+
+                "horizontal_lines": horizontal_lines,
+                "vertical_lines": vertical_lines,
 
                 "cells": cells
             }

@@ -1,7 +1,8 @@
-﻿# Visual Studio
+# Visual Studio
 .vs/
 bin/
 obj/
+*.user
 
 # Python
 ocr_engine/venv/
@@ -11,6 +12,11 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+# OCR 出力・一時ファイル
+ocr_engine/ocr_results/
+~$*.docx
+*.docx
 
 # その他よくあるもの
 *.log

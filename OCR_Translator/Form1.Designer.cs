@@ -32,25 +32,25 @@ namespace OCR_Translator
             richTextBox1 = new RichTextBox();
             pictureBox1 = new PictureBox();
             panelToolbar = new Panel();
+            lblDocTypeBadge = new Label();
+            lblOrientationBadge = new Label();
+            btnOptions = new Button();
+            btnAutoLayout = new Button();
             btnAddAnnotationNumber = new Button();
             btnExportWord = new Button();
             btnStartOcr = new Button();
+            btnRegionSettings = new Button();
             btnNextPage = new Button();
             btnPrevPage = new Button();
             btnOpenPdf = new Button();
             pnlRegionSettings = new Panel();
-            btnUpdateRegion = new Button();
             lstRegions = new ListBox();
             btnDeleteRegion = new Button();
-            btnSaveLayout = new Button();
-            btnAddRegion = new Button();
             numHeight = new NumericUpDown();
             numWidth = new NumericUpDown();
             numY = new NumericUpDown();
             numX = new NumericUpDown();
-            cmbRegionType = new ComboBox();
-            btnAutoLayout = new Button();
-            btnRegionSettings = new Button();
+            btnSaveLayout = new Button();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
             panelToolbar.SuspendLayout();
@@ -61,35 +61,114 @@ namespace OCR_Translator
             ((System.ComponentModel.ISupportInitialize)numX).BeginInit();
             SuspendLayout();
             // 
-            // tableLayoutPanel1
+            // pnlRegionSettings（画面左端）
             // 
+            pnlRegionSettings.AccessibleName = "pnlRegionSettings";
+            pnlRegionSettings.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
+            pnlRegionSettings.AutoScroll = true;
+            pnlRegionSettings.Controls.Add(lstRegions);
+            pnlRegionSettings.Controls.Add(btnDeleteRegion);
+            pnlRegionSettings.Controls.Add(numHeight);
+            pnlRegionSettings.Controls.Add(numWidth);
+            pnlRegionSettings.Controls.Add(numY);
+            pnlRegionSettings.Controls.Add(numX);
+            pnlRegionSettings.Controls.Add(btnSaveLayout);
+            pnlRegionSettings.Location = new Point(0, 78);
+            pnlRegionSettings.Name = "pnlRegionSettings";
+            pnlRegionSettings.Size = new Size(280, 674);
+            pnlRegionSettings.TabIndex = 5;
+            // 
+            // lstRegions
+            // 
+            lstRegions.FormattingEnabled = true;
+            lstRegions.Location = new Point(15, 15);
+            lstRegions.Name = "lstRegions";
+            lstRegions.Size = new Size(245, 115);
+            lstRegions.TabIndex = 9;
+            lstRegions.SelectedIndexChanged += lstRegions_SelectedIndexChanged;
+            // 
+            // btnDeleteRegion
+            // 
+            btnDeleteRegion.Location = new Point(15, 138);
+            btnDeleteRegion.Name = "btnDeleteRegion";
+            btnDeleteRegion.Size = new Size(245, 34);
+            btnDeleteRegion.TabIndex = 8;
+            btnDeleteRegion.Text = "－ 領域削除";
+            btnDeleteRegion.UseVisualStyleBackColor = true;
+            btnDeleteRegion.Click += btnDeleteRegion_Click;
+            // 
+            // numX
+            // 
+            numX.Location = new Point(15, 185);
+            numX.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            numX.Name = "numX";
+            numX.Size = new Size(118, 31);
+            numX.TabIndex = 1;
+            // 
+            // numY
+            // 
+            numY.Location = new Point(142, 185);
+            numY.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            numY.Name = "numY";
+            numY.Size = new Size(118, 31);
+            numY.TabIndex = 2;
+            // 
+            // numWidth
+            // 
+            numWidth.Location = new Point(15, 225);
+            numWidth.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            numWidth.Name = "numWidth";
+            numWidth.Size = new Size(118, 31);
+            numWidth.TabIndex = 3;
+            // 
+            // numHeight
+            // 
+            numHeight.Location = new Point(142, 225);
+            numHeight.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
+            numHeight.Name = "numHeight";
+            numHeight.Size = new Size(118, 31);
+            numHeight.TabIndex = 4;
+            // 
+            // btnSaveLayout
+            // 
+            btnSaveLayout.Location = new Point(15, 470);
+            btnSaveLayout.Name = "btnSaveLayout";
+            btnSaveLayout.Size = new Size(245, 36);
+            btnSaveLayout.TabIndex = 6;
+            btnSaveLayout.Text = "💾 設定を保存";
+            btnSaveLayout.UseVisualStyleBackColor = true;
+            btnSaveLayout.Click += btnSaveLayout_Click;
+            // 
+            // tableLayoutPanel1（中央〜右側）
+            // 
+            tableLayoutPanel1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             tableLayoutPanel1.ColumnCount = 2;
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel1.Controls.Add(richTextBox1, 1, 0);
             tableLayoutPanel1.Controls.Add(pictureBox1, 0, 0);
-            tableLayoutPanel1.Location = new Point(0, 74);
+            tableLayoutPanel1.Location = new Point(280, 78);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 1;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            tableLayoutPanel1.Size = new Size(1050, 678);
+            tableLayoutPanel1.Size = new Size(1099, 674);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // richTextBox1
             // 
             richTextBox1.Dock = DockStyle.Fill;
-            richTextBox1.Location = new Point(528, 3);
+            richTextBox1.Location = new Point(552, 3);
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(519, 672);
+            richTextBox1.Size = new Size(544, 668);
             richTextBox1.TabIndex = 1;
             richTextBox1.Text = "";
             // 
             // pictureBox1
             // 
+            pictureBox1.Dock = DockStyle.Fill;
             pictureBox1.Location = new Point(3, 3);
             pictureBox1.Name = "pictureBox1";
-            pictureBox1.Size = new Size(519, 669);
+            pictureBox1.Size = new Size(543, 668);
             pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
             pictureBox1.TabIndex = 0;
             pictureBox1.TabStop = false;
@@ -99,12 +178,15 @@ namespace OCR_Translator
             pictureBox1.MouseUp += pictureBox1_MouseUp;
             // 
             // panelToolbar
-            //
+            // 
+            panelToolbar.Controls.Add(lblDocTypeBadge);
+            panelToolbar.Controls.Add(lblOrientationBadge);
+            panelToolbar.Controls.Add(btnOptions);
             panelToolbar.Controls.Add(btnAutoLayout);
-            panelToolbar.Controls.Add(btnRegionSettings);
             panelToolbar.Controls.Add(btnAddAnnotationNumber);
             panelToolbar.Controls.Add(btnExportWord);
             panelToolbar.Controls.Add(btnStartOcr);
+            panelToolbar.Controls.Add(btnRegionSettings);
             panelToolbar.Controls.Add(btnNextPage);
             panelToolbar.Controls.Add(btnPrevPage);
             panelToolbar.Controls.Add(btnOpenPdf);
@@ -114,63 +196,91 @@ namespace OCR_Translator
             panelToolbar.Size = new Size(1379, 78);
             panelToolbar.TabIndex = 1;
             // 
-            // btnRegionSettings
+            // lblDocTypeBadge
             // 
-            btnRegionSettings.Location = new Point(515, 25);
-            btnRegionSettings.Name = "btnRegionSettings";
-            btnRegionSettings.Size = new Size(112, 34);
-            btnRegionSettings.TabIndex = 3;
-            btnRegionSettings.Text = "領域設定";
-            btnRegionSettings.UseVisualStyleBackColor = true;
-            btnRegionSettings.Click += btnRegionSettings_Click;
+            lblDocTypeBadge.Cursor = Cursors.Hand;
+            lblDocTypeBadge.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblDocTypeBadge.Location = new Point(1095, 22);
+            lblDocTypeBadge.Name = "lblDocTypeBadge";
+            lblDocTypeBadge.Size = new Size(130, 34);
+            lblDocTypeBadge.TabIndex = 9;
+            lblDocTypeBadge.Text = "🗾 和書(日本語)";
+            lblDocTypeBadge.TextAlign = ContentAlignment.MiddleCenter;
             // 
+            // lblOrientationBadge
             // 
-            // btnExportWord
+            lblOrientationBadge.Cursor = Cursors.Hand;
+            lblOrientationBadge.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblOrientationBadge.Location = new Point(965, 22);
+            lblOrientationBadge.Name = "lblOrientationBadge";
+            lblOrientationBadge.Size = new Size(125, 34);
+            lblOrientationBadge.TabIndex = 8;
+            lblOrientationBadge.Text = "↕ 縦書き優先";
+            lblOrientationBadge.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            btnExportWord.Location = new Point(771, 25);
-            btnExportWord.Name = "btnExportWord";
-            btnExportWord.Size = new Size(112, 34);
-            btnExportWord.TabIndex = 5;
-            btnExportWord.Text = "Word出力";
-            btnExportWord.UseVisualStyleBackColor = true;
-            
-            //
-            // btnAddAnnotationNumber
-            //
-            btnAddAnnotationNumber.Location = new Point(895, 25);
-            btnAddAnnotationNumber.Name = "btnAddAnnotationNumber";
-            btnAddAnnotationNumber.Size = new Size(120, 34);
-            btnAddAnnotationNumber.TabIndex = 6;
-            btnAddAnnotationNumber.Text = "注釈番号";
-            btnAddAnnotationNumber.UseVisualStyleBackColor = true;
-            btnAddAnnotationNumber.Click += btnAddAnnotationNumber_Click;
-            //
+            // btnOptions
+            // 
+            btnOptions.Location = new Point(845, 22);
+            btnOptions.Name = "btnOptions";
+            btnOptions.Size = new Size(110, 34);
+            btnOptions.TabIndex = 7;
+            btnOptions.Text = "オプション ⚙";
+            btnOptions.UseVisualStyleBackColor = true;
+            btnOptions.Click += btnOptions_Click;
             // 
             // btnAutoLayout
             // 
-            btnAutoLayout.Location = new Point(1030, 25);
+            btnAutoLayout.Location = new Point(720, 22);
             btnAutoLayout.Name = "btnAutoLayout";
-            btnAutoLayout.Size = new Size(140, 34);
+            btnAutoLayout.Size = new Size(120, 34);
             btnAutoLayout.TabIndex = 6;
             btnAutoLayout.Text = "領域自動判定";
             btnAutoLayout.UseVisualStyleBackColor = true;
             // 
+            // btnAddAnnotationNumber
+            // 
+            btnAddAnnotationNumber.Location = new Point(620, 22);
+            btnAddAnnotationNumber.Name = "btnAddAnnotationNumber";
+            btnAddAnnotationNumber.Size = new Size(95, 34);
+            btnAddAnnotationNumber.TabIndex = 6;
+            btnAddAnnotationNumber.Text = "注釈番号";
+            btnAddAnnotationNumber.UseVisualStyleBackColor = true;
+            btnAddAnnotationNumber.Click += btnAddAnnotationNumber_Click;
+            // 
+            // btnExportWord
+            // 
+            btnExportWord.Location = new Point(520, 22);
+            btnExportWord.Name = "btnExportWord";
+            btnExportWord.Size = new Size(95, 34);
+            btnExportWord.TabIndex = 5;
+            btnExportWord.Text = "Word出力";
+            btnExportWord.UseVisualStyleBackColor = true;
             // 
             // btnStartOcr
             // 
-            btnStartOcr.Location = new Point(645, 25);
+            btnStartOcr.Location = new Point(420, 22);
             btnStartOcr.Name = "btnStartOcr";
-            btnStartOcr.Size = new Size(112, 34);
+            btnStartOcr.Size = new Size(95, 34);
             btnStartOcr.TabIndex = 4;
             btnStartOcr.Text = "OCR開始";
             btnStartOcr.UseVisualStyleBackColor = true;
             btnStartOcr.Click += btnStartOcr_Click;
             // 
+            // btnRegionSettings
+            // 
+            btnRegionSettings.Location = new Point(320, 22);
+            btnRegionSettings.Name = "btnRegionSettings";
+            btnRegionSettings.Size = new Size(95, 34);
+            btnRegionSettings.TabIndex = 3;
+            btnRegionSettings.Text = "領域設定";
+            btnRegionSettings.UseVisualStyleBackColor = true;
+            btnRegionSettings.Click += btnRegionSettings_Click;
+            // 
             // btnNextPage
             // 
-            btnNextPage.Location = new Point(403, 25);
+            btnNextPage.Location = new Point(220, 22);
             btnNextPage.Name = "btnNextPage";
-            btnNextPage.Size = new Size(112, 34);
+            btnNextPage.Size = new Size(95, 34);
             btnNextPage.TabIndex = 2;
             btnNextPage.Text = "次のページ";
             btnNextPage.UseVisualStyleBackColor = true;
@@ -178,134 +288,23 @@ namespace OCR_Translator
             // 
             // btnPrevPage
             // 
-            btnPrevPage.Location = new Point(229, 25);
+            btnPrevPage.Location = new Point(120, 22);
             btnPrevPage.Name = "btnPrevPage";
-            btnPrevPage.Size = new Size(112, 34);
+            btnPrevPage.Size = new Size(95, 34);
             btnPrevPage.TabIndex = 1;
-            btnPrevPage.Text = " 前のページ";
+            btnPrevPage.Text = "前のページ";
             btnPrevPage.UseVisualStyleBackColor = true;
             btnPrevPage.Click += btnPrevPage_Click;
             // 
             // btnOpenPdf
             // 
-            btnOpenPdf.Location = new Point(59, 25);
+            btnOpenPdf.Location = new Point(15, 22);
             btnOpenPdf.Name = "btnOpenPdf";
-            btnOpenPdf.Size = new Size(112, 34);
+            btnOpenPdf.Size = new Size(100, 34);
             btnOpenPdf.TabIndex = 0;
             btnOpenPdf.Text = "PDFを開く";
             btnOpenPdf.UseVisualStyleBackColor = true;
             btnOpenPdf.Click += btnOpenPdf_Click;
-            // 
-            // pnlRegionSettings
-            // 
-            pnlRegionSettings.AccessibleName = "pnlRegionSettings";
-            pnlRegionSettings.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            pnlRegionSettings.Controls.Add(btnUpdateRegion);
-            pnlRegionSettings.Controls.Add(lstRegions);
-            pnlRegionSettings.Controls.Add(btnDeleteRegion);
-            pnlRegionSettings.Controls.Add(btnSaveLayout);
-            pnlRegionSettings.Controls.Add(btnAddRegion);
-            pnlRegionSettings.Controls.Add(numHeight);
-            pnlRegionSettings.Controls.Add(numWidth);
-            pnlRegionSettings.Controls.Add(numY);
-            pnlRegionSettings.Controls.Add(numX);
-            pnlRegionSettings.Controls.Add(cmbRegionType);
-            pnlRegionSettings.Location = new Point(1060, 74);
-            pnlRegionSettings.Name = "pnlRegionSettings";
-            pnlRegionSettings.Size = new Size(300, 678);
-            pnlRegionSettings.TabIndex = 5;
-            // 
-            // btnUpdateRegion
-            // 
-            btnUpdateRegion.Location = new Point(182, 576);
-            btnUpdateRegion.Name = "btnUpdateRegion";
-            btnUpdateRegion.Size = new Size(99, 42);
-            btnUpdateRegion.TabIndex = 10;
-            btnUpdateRegion.Text = "領域更新";
-            btnUpdateRegion.UseVisualStyleBackColor = true;
-            btnUpdateRegion.Click += btnUpdateRegion_Click;
-            // 
-            // lstRegions
-            // 
-            lstRegions.FormattingEnabled = true;
-            lstRegions.Location = new Point(72, 116);
-            lstRegions.Name = "lstRegions";
-            lstRegions.Size = new Size(180, 129);
-            lstRegions.TabIndex = 9;
-            lstRegions.SelectedIndexChanged += lstRegions_SelectedIndexChanged;
-            // 
-            // btnDeleteRegion
-            // 
-            btnDeleteRegion.Location = new Point(166, 268);
-            btnDeleteRegion.Name = "btnDeleteRegion";
-            btnDeleteRegion.RightToLeft = RightToLeft.Yes;
-            btnDeleteRegion.Size = new Size(112, 34);
-            btnDeleteRegion.TabIndex = 8;
-            btnDeleteRegion.Text = " 領域削除";
-            btnDeleteRegion.UseVisualStyleBackColor = true;
-            btnDeleteRegion.Click += btnDeleteRegion_Click;
-            // 
-            // btnSaveLayout
-            // 
-            btnSaveLayout.Location = new Point(71, 632);
-            btnSaveLayout.Name = "btnSaveLayout";
-            btnSaveLayout.Size = new Size(167, 34);
-            btnSaveLayout.TabIndex = 6;
-            btnSaveLayout.Text = " 設定を保存";
-            btnSaveLayout.UseVisualStyleBackColor = true;
-            btnSaveLayout.Click += btnSaveLayout_Click;
-            // 
-            // btnAddRegion
-            // 
-            btnAddRegion.Location = new Point(29, 264);
-            btnAddRegion.Name = "btnAddRegion";
-            btnAddRegion.Size = new Size(115, 43);
-            btnAddRegion.TabIndex = 5;
-            btnAddRegion.Text = "領域追加";
-            btnAddRegion.UseVisualStyleBackColor = true;
-            btnAddRegion.Click += btnAddRegion_Click;
-            // 
-            // numHeight
-            // 
-            numHeight.Location = new Point(65, 515);
-            numHeight.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
-            numHeight.Name = "numHeight";
-            numHeight.Size = new Size(180, 31);
-            numHeight.TabIndex = 4;
-            // 
-            // numWidth
-            // 
-            numWidth.Location = new Point(65, 460);
-            numWidth.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
-            numWidth.Name = "numWidth";
-            numWidth.Size = new Size(180, 31);
-            numWidth.TabIndex = 3;
-            // 
-            // numY
-            // 
-            numY.Location = new Point(62, 394);
-            numY.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
-            numY.Name = "numY";
-            numY.Size = new Size(180, 31);
-            numY.TabIndex = 2;
-            // 
-            // numX
-            // 
-            numX.Location = new Point(58, 334);
-            numX.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
-            numX.Name = "numX";
-            numX.Size = new Size(180, 31);
-            numX.TabIndex = 1;
-            // 
-            // cmbRegionType
-            // 
-            cmbRegionType.FormattingEnabled = true;
-            cmbRegionType.Items.AddRange(new object[] { "本文", "見出し", "注釈文", "表", "図" });
-            cmbRegionType.Location = new Point(62, 41);
-            cmbRegionType.Name = "cmbRegionType";
-            cmbRegionType.Size = new Size(182, 33);
-            cmbRegionType.TabIndex = 0;
-            cmbRegionType.Text = "本文";
             // 
             // Form1
             // 
@@ -341,19 +340,19 @@ namespace OCR_Translator
         private Button btnNextPage;
         private Button btnPrevPage;
         private Panel pnlRegionSettings;
-        private ComboBox cmbRegionType;
         private NumericUpDown numX;
         private NumericUpDown numWidth;
         private NumericUpDown numY;
         private Button btnSaveLayout;
-        private Button btnAddRegion;
         private NumericUpDown numHeight;
         private Button btnDeleteRegion;
         private ListBox lstRegions;
-        private Button btnUpdateRegion;
 
         private Button btnAutoLayout;
         private Button btnRegionSettings;
+        private Button btnOptions;
+        private Label lblOrientationBadge;
+        private Label lblDocTypeBadge;
 
     }
 }

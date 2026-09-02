@@ -158,7 +158,86 @@ namespace OCR_Translator.Services
                 }
             }
 
+            if (item.TryGetProperty("horizontal_lines", out JsonElement hLinesElement) && hLinesElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement h in hLinesElement.EnumerateArray())
+                {
+                    if (h.ValueKind == JsonValueKind.Number && h.TryGetInt32(out int y))
+                        region.HorizontalLines.Add(y);
+                }
+            }
+
+            if (item.TryGetProperty("vertical_lines", out JsonElement vLinesElement) && vLinesElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement v in vLinesElement.EnumerateArray())
+                {
+                    if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out int x))
+                        region.VerticalLines.Add(x);
+                }
+            }
+
+            if (region.Cells.Count > 0)
+            {
+                if (region.HorizontalLines.Count == 0)
+                {
+                    var hSet = new HashSet<int>();
+                    foreach (var c in region.Cells)
+                    {
+                        if (c.Y > region.Y + 2 && c.Y < region.Y + region.Height - 2)
+                            hSet.Add(c.Y);
+                        if (c.Y + c.Height > region.Y + 2 && c.Y + c.Height < region.Y + region.Height - 2)
+                            hSet.Add(c.Y + c.Height);
+                    }
+                    region.HorizontalLines = ClusterLines(hSet);
+                }
+
+                if (region.VerticalLines.Count == 0)
+                {
+                    var vSet = new HashSet<int>();
+                    foreach (var c in region.Cells)
+                    {
+                        if (c.X > region.X + 2 && c.X < region.X + region.Width - 2)
+                            vSet.Add(c.X);
+                        if (c.X + c.Width > region.X + 2 && c.X + c.Width < region.X + region.Width - 2)
+                            vSet.Add(c.X + c.Width);
+                    }
+                    region.VerticalLines = ClusterLines(vSet);
+                }
+            }
+
+            foreach (int y in region.HorizontalLines)
+            {
+                if (region.RuleLines.All(l => l.IsVertical || l.Pos != y))
+                    region.RuleLines.Add(new TableRuleLine(false, y, region.X, region.X + region.Width));
+            }
+
+            foreach (int x in region.VerticalLines)
+            {
+                if (region.RuleLines.All(l => !l.IsVertical || l.Pos != x))
+                    region.RuleLines.Add(new TableRuleLine(true, x, region.Y, region.Y + region.Height));
+            }
+
             result.Add(region);
+        }
+
+        private static List<int> ClusterLines(IEnumerable<int> lines, int tolerance = 4)
+        {
+            var sorted = lines.OrderBy(x => x).ToList();
+            var clusters = new List<List<int>>();
+
+            foreach (int val in sorted)
+            {
+                if (clusters.Count == 0 || Math.Abs(val - clusters.Last().Average()) > tolerance)
+                {
+                    clusters.Add(new List<int> { val });
+                }
+                else
+                {
+                    clusters.Last().Add(val);
+                }
+            }
+
+            return clusters.Select(c => (int)Math.Round(c.Average())).ToList();
         }
 
         private static string ReadJsonString(JsonElement obj, string lower, string upper)

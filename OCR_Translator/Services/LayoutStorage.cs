@@ -22,15 +22,18 @@ namespace OCR_Translator.Services
 
         public OcrRegion CloneRegion(OcrRegion source)
         {
-            return new OcrRegion
+            var r = new OcrRegion
             {
                 Name = source.Name,
                 Type = source.Type,
                 X = source.X,
                 Y = source.Y,
                 Width = source.Width,
-                Height = source.Height
+                Height = source.Height,
+                RuleLines = source.RuleLines.Select(l => l.Clone()).ToList()
             };
+            r.EnsureRuleLines();
+            return r;
         }
 
         public List<OcrRegion> CloneRegions(IEnumerable<OcrRegion> source)
@@ -61,6 +64,15 @@ namespace OCR_Translator.Services
                     a.Type != b.Type)
                 {
                     return false;
+                }
+
+                if (a.RuleLines.Count != b.RuleLines.Count)
+                    return false;
+
+                for (int j = 0; j < a.RuleLines.Count; j++)
+                {
+                    if (!a.RuleLines[j].EqualsLine(b.RuleLines[j]))
+                        return false;
                 }
             }
 

@@ -23,7 +23,9 @@ namespace OCR_Translator.Services
             string autoRegionScript,
             string projectDir,
             string imagePath,
-            string pageDir)
+            string pageDir,
+            string orientation = "auto",
+            string docType = "japanese")
         {
             var psi = new ProcessStartInfo
             {
@@ -42,6 +44,18 @@ namespace OCR_Translator.Services
             psi.ArgumentList.Add(autoRegionScript);
             psi.ArgumentList.Add(imagePath);
             psi.ArgumentList.Add(pageDir);
+
+            if (!string.IsNullOrEmpty(orientation))
+            {
+                psi.ArgumentList.Add("--orientation");
+                psi.ArgumentList.Add(orientation);
+            }
+
+            if (!string.IsNullOrEmpty(docType))
+            {
+                psi.ArgumentList.Add("--doc-type");
+                psi.ArgumentList.Add(docType);
+            }
 
             using var process = new Process
             {
@@ -100,15 +114,18 @@ namespace OCR_Translator.Services
         public static OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)
         {
             string type = NormalizeRegionType(source.Type);
-            return new OcrRegion
+            var r = new OcrRegion
             {
                 Name = GetRegionDisplayName(type),
                 Type = type,
                 X = source.X,
                 Y = source.Y,
                 Width = source.Width,
-                Height = source.Height
+                Height = source.Height,
+                RuleLines = source.RuleLines.Select(l => l.Clone()).ToList()
             };
+            r.EnsureRuleLines();
+            return r;
         }
 
         public static string GetRegionDisplayName(string type)
@@ -133,7 +150,12 @@ namespace OCR_Translator.Services
             {
                 if (centerX >= region.X && centerX <= region.X + region.Width &&
                     centerY >= region.Y && centerY <= region.Y + region.Height)
-                    return NormalizeRegionType(region.Type);
+                {
+                    string norm = NormalizeRegionType(region.Type);
+                    if (string.IsNullOrEmpty(norm) || norm == "unclassified")
+                        norm = NormalizeRegionType(region.Name);
+                    return norm;
+                }
             }
             return "";
         }
@@ -158,11 +180,11 @@ namespace OCR_Translator.Services
             string lower = type.ToLowerInvariant().Trim();
             return lower switch
             {
-                "body" => "body",
-                "heading" => "heading",
-                "footnote" => "footnote",
-                "table" => "table",
-                "image" or "figure" => "image",
+                "body" or "本文" or "text" => "body",
+                "heading" or "見出し" or "title" or "header" => "heading",
+                "footnote" or "注釈" or "注釈文" => "footnote",
+                "table" or "表" or "tabular" => "table",
+                "image" or "figure" or "図" or "画像" or "イラスト" or "写真" or "図版" => "image",
                 _ => lower
             };
         }

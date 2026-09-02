@@ -2342,6 +2342,38 @@ def create_table_regions_from_cells(
                 }
             )
 
+        # 枠内の罫線（横・縦）座標を抽出
+        h_lines = set()
+        v_lines = set()
+        for cell in cells:
+            cy1 = cell["y"]
+            cy2 = cell["y"] + cell["height"]
+            cx1 = cell["x"]
+            cx2 = cell["x"] + cell["width"]
+            if table["y"] + 2 < cy1 < table["y"] + table["height"] - 2:
+                h_lines.add(cy1)
+            if table["y"] + 2 < cy2 < table["y"] + table["height"] - 2:
+                h_lines.add(cy2)
+            if table["x"] + 2 < cx1 < table["x"] + table["width"] - 2:
+                v_lines.add(cx1)
+            if table["x"] + 2 < cx2 < table["x"] + table["width"] - 2:
+                v_lines.add(cx2)
+
+        def cluster_coords(coords, tol=4):
+            if not coords:
+                return []
+            s = sorted(coords)
+            clusters = [[s[0]]]
+            for val in s[1:]:
+                if abs(val - sum(clusters[-1])/len(clusters[-1])) <= tol:
+                    clusters[-1].append(val)
+                else:
+                    clusters.append([val])
+            return [int(round(sum(c)/len(c))) for c in clusters]
+
+        horizontal_lines = cluster_coords(h_lines)
+        vertical_lines = cluster_coords(v_lines)
+
         regions.append(
             {
                 "name": f"表{table_index}",
@@ -2365,6 +2397,9 @@ def create_table_regions_from_cells(
                         for cell in cells
                     )
                 ),
+
+                "horizontal_lines": horizontal_lines,
+                "vertical_lines": vertical_lines,
 
                 "cells": cells
             }
@@ -2438,7 +2473,9 @@ def remove_table_ocr(
 # =========================================================
 
 def create_body_regions(
-    body_results
+    body_results,
+    orientation_mode="auto",
+    doc_type="japanese"
 ):
     """
     表セルに割り当てられていないOCR結果から
@@ -2451,20 +2488,27 @@ def create_body_regions(
         return []
 
     # -----------------------------------------------------
-    # OCR結果を縦書き・横書きに分離
+    # OCR結果を縦書き・横書きに分離（設定による強制/自動）
     # -----------------------------------------------------
 
-    vertical_results = [
-        r
-        for r in body_results
-        if r.get("isVertical", False)
-    ]
+    if doc_type == "western" or orientation_mode == "horizontal":
+        vertical_results = []
+        horizontal_results = list(body_results)
+    elif orientation_mode == "vertical":
+        vertical_results = list(body_results)
+        horizontal_results = []
+    else:
+        vertical_results = [
+            r
+            for r in body_results
+            if r.get("isVertical", False)
+        ]
 
-    horizontal_results = [
-        r
-        for r in body_results
-        if not r.get("isVertical", False)
-    ]
+        horizontal_results = [
+            r
+            for r in body_results
+            if not r.get("isVertical", False)
+        ]
 
     regions = []
 
@@ -2668,31 +2712,19 @@ def main():
     # 引数確認
     # -----------------------------------------------------
 
-    if len(sys.argv) < 3:
+    import argparse
+    parser = argparse.ArgumentParser(description="NDLOCR Auto Region Extractor")
+    parser.add_argument("image_path", help="Path to input image")
+    parser.add_argument("output_dir", help="Path to output directory")
+    parser.add_argument("--orientation", choices=["auto", "vertical", "horizontal"], default="auto", help="Text orientation preference")
+    parser.add_argument("--doc-type", choices=["japanese", "western"], default="japanese", help="Document type")
 
-        print(
-            "Usage: "
-            "ndlocr_auto_region.py "
-            "<image> <output_dir>"
-        )
+    args, unknown = parser.parse_known_args()
 
-        sys.exit(1)
-
-    # -----------------------------------------------------
-    # 入力画像
-    # -----------------------------------------------------
-
-    image_path = Path(
-        sys.argv[1]
-    ).resolve()
-
-    # -----------------------------------------------------
-    # 出力フォルダ
-    # -----------------------------------------------------
-
-    output_dir = Path(
-        sys.argv[2]
-    ).resolve()
+    image_path = Path(args.image_path).resolve()
+    output_dir = Path(args.output_dir).resolve()
+    orientation_mode = args.orientation
+    doc_type = args.doc_type
 
     # -----------------------------------------------------
     # 入力画像確認
@@ -2748,6 +2780,9 @@ def main():
 
         "cpu"
     ]
+
+    if orientation_mode == "vertical" and doc_type != "western":
+        command.append("--enable-tcy")
 
     # -----------------------------------------------------
     # デバッグ情報
@@ -3242,7 +3277,9 @@ def main():
     # -----------------------------------------------------
 
     body_regions = create_body_regions(
-        body_results_without_captions
+        body_results_without_captions,
+        orientation_mode=orientation_mode,
+        doc_type=doc_type
     )
 
     print(
