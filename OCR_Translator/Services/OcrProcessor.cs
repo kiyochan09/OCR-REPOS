@@ -116,8 +116,9 @@ namespace OCR_Translator.Services
             string type = NormalizeRegionType(source.Type);
             var r = new OcrRegion
             {
-                Name = GetRegionDisplayName(type),
+                Name = !string.IsNullOrEmpty(source.Name) ? source.Name : GetRegionDisplayName(type),
                 Type = type,
+                Orientation = !string.IsNullOrEmpty(source.Orientation) ? source.Orientation : "auto",
                 X = source.X,
                 Y = source.Y,
                 Width = source.Width,
@@ -143,18 +144,38 @@ namespace OCR_Translator.Services
 
         public static string FindUserRegionType(OcrDisplayItem item, List<OcrRegion> userRegions)
         {
+            if (userRegions == null || userRegions.Count == 0) return "";
+
             int centerX = item.X + item.Width / 2;
             int centerY = item.Y + item.Height / 2;
+            Rectangle itemRect = new Rectangle(item.X, item.Y, Math.Max(1, item.Width), Math.Max(1, item.Height));
 
             foreach (OcrRegion region in userRegions)
             {
-                if (centerX >= region.X && centerX <= region.X + region.Width &&
-                    centerY >= region.Y && centerY <= region.Y + region.Height)
+                Rectangle regionRect = new Rectangle(region.X, region.Y, region.Width, region.Height);
+
+                // 1. 中心点が領域内に含まれるか
+                if (regionRect.Contains(centerX, centerY))
                 {
                     string norm = NormalizeRegionType(region.Type);
                     if (string.IsNullOrEmpty(norm) || norm == "unclassified")
                         norm = NormalizeRegionType(region.Name);
                     return norm;
+                }
+
+                // 2. バウンディングボックスが交差しているか
+                Rectangle inter = Rectangle.Intersect(regionRect, itemRect);
+                if (!inter.IsEmpty && inter.Width > 0 && inter.Height > 0)
+                {
+                    long interArea = (long)inter.Width * inter.Height;
+                    long itemArea = (long)itemRect.Width * itemRect.Height;
+                    if (itemArea > 0 && (interArea * 2 >= itemArea || interArea >= 100))
+                    {
+                        string norm = NormalizeRegionType(region.Type);
+                        if (string.IsNullOrEmpty(norm) || norm == "unclassified")
+                            norm = NormalizeRegionType(region.Name);
+                        return norm;
+                    }
                 }
             }
             return "";
@@ -162,14 +183,31 @@ namespace OCR_Translator.Services
 
         public static string FindAutoLayoutRegionType(OcrDisplayItem item, List<AutoLayoutRegion> regions)
         {
+            if (regions == null || regions.Count == 0) return "";
+
             int centerX = item.X + item.Width / 2;
             int centerY = item.Y + item.Height / 2;
+            Rectangle itemRect = new Rectangle(item.X, item.Y, Math.Max(1, item.Width), Math.Max(1, item.Height));
 
             foreach (AutoLayoutRegion region in regions)
             {
-                if (centerX >= region.X && centerX <= region.X + region.Width &&
-                    centerY >= region.Y && centerY <= region.Y + region.Height)
+                Rectangle regionRect = new Rectangle(region.X, region.Y, Math.Max(1, region.Width), Math.Max(1, region.Height));
+
+                // 1. 中心点が領域内に含まれるか
+                if (regionRect.Contains(centerX, centerY))
                     return NormalizeRegionType(region.Type);
+
+                // 2. バウンディングボックスが交差しているか
+                Rectangle inter = Rectangle.Intersect(regionRect, itemRect);
+                if (!inter.IsEmpty && inter.Width > 0 && inter.Height > 0)
+                {
+                    long interArea = (long)inter.Width * inter.Height;
+                    long itemArea = (long)itemRect.Width * itemRect.Height;
+                    if (itemArea > 0 && (interArea * 2 >= itemArea || interArea >= 100))
+                    {
+                        return NormalizeRegionType(region.Type);
+                    }
+                }
             }
             return "";
         }

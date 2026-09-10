@@ -17,28 +17,39 @@ namespace OCR_Translator.Services
             TopLeft, TopRight, BottomLeft, BottomRight
         }
 
-        public static Rectangle ScreenToImage(Rectangle screenRect, PictureBox pictureBox)
+        public static (float scale, float offsetX, float offsetY) GetScaleAndOffset(PictureBox pictureBox)
         {
-            if (pictureBox.Image == null) return Rectangle.Empty;
+            if (pictureBox.Image == null || pictureBox.Image.Width <= 0 || pictureBox.Image.Height <= 0)
+                return (1f, 0f, 0f);
 
             float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
             float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
             float scale = Math.Min(scaleX, scaleY);
+            if (scale <= 0) scale = 1f;
 
             float displayWidth = pictureBox.Image.Width * scale;
             float displayHeight = pictureBox.Image.Height * scale;
-            float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
-            float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
+            float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2f;
+            float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2f;
 
-            int x = (int)((screenRect.X - offsetX) / scale);
-            int y = (int)((screenRect.Y - offsetY) / scale);
-            int width = (int)(screenRect.Width / scale);
-            int height = (int)(screenRect.Height / scale);
+            return (scale, offsetX, offsetY);
+        }
 
-            x = Math.Max(0, x);
-            y = Math.Max(0, y);
-            width = Math.Min(width, pictureBox.Image.Width - x);
-            height = Math.Min(height, pictureBox.Image.Height - y);
+        public static Rectangle ScreenToImage(Rectangle screenRect, PictureBox pictureBox)
+        {
+            if (pictureBox.Image == null) return Rectangle.Empty;
+
+            var (scale, offsetX, offsetY) = GetScaleAndOffset(pictureBox);
+
+            int x = (int)Math.Round((screenRect.X - offsetX) / scale);
+            int y = (int)Math.Round((screenRect.Y - offsetY) / scale);
+            int width = (int)Math.Round(screenRect.Width / scale);
+            int height = (int)Math.Round(screenRect.Height / scale);
+
+            x = Math.Max(0, Math.Min(x, pictureBox.Image.Width));
+            y = Math.Max(0, Math.Min(y, pictureBox.Image.Height));
+            width = Math.Max(0, Math.Min(width, pictureBox.Image.Width - x));
+            height = Math.Max(0, Math.Min(height, pictureBox.Image.Height - y));
 
             return new Rectangle(x, y, width, height);
         }
@@ -47,20 +58,13 @@ namespace OCR_Translator.Services
         {
             if (pictureBox.Image == null) return Rectangle.Empty;
 
-            float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
-            float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
-            float scale = Math.Min(scaleX, scaleY);
-
-            float displayWidth = pictureBox.Image.Width * scale;
-            float displayHeight = pictureBox.Image.Height * scale;
-            float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
-            float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
+            var (scale, offsetX, offsetY) = GetScaleAndOffset(pictureBox);
 
             return new Rectangle(
-                (int)(offsetX + imageRect.X * scale),
-                (int)(offsetY + imageRect.Y * scale),
-                (int)(imageRect.Width * scale),
-                (int)(imageRect.Height * scale));
+                (int)Math.Round(offsetX + imageRect.X * scale),
+                (int)Math.Round(offsetY + imageRect.Y * scale),
+                (int)Math.Round(imageRect.Width * scale),
+                (int)Math.Round(imageRect.Height * scale));
         }
 
         public static int HitTestRegionNear(Point point, int tolerance, List<OcrRegion> regions, PictureBox pictureBox)
@@ -141,17 +145,10 @@ namespace OCR_Translator.Services
         {
             if (pictureBox.Image == null) return Point.Empty;
 
-            float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
-            float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
-            float scale = Math.Min(scaleX, scaleY);
+            var (scale, offsetX, offsetY) = GetScaleAndOffset(pictureBox);
 
-            float displayWidth = pictureBox.Image.Width * scale;
-            float displayHeight = pictureBox.Image.Height * scale;
-            float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
-            float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
-
-            int x = (int)((screenPoint.X - offsetX) / scale);
-            int y = (int)((screenPoint.Y - offsetY) / scale);
+            int x = (int)Math.Round((screenPoint.X - offsetX) / scale);
+            int y = (int)Math.Round((screenPoint.Y - offsetY) / scale);
 
             x = Math.Max(0, Math.Min(x, pictureBox.Image.Width));
             y = Math.Max(0, Math.Min(y, pictureBox.Image.Height));
@@ -163,18 +160,11 @@ namespace OCR_Translator.Services
         {
             if (pictureBox.Image == null) return Point.Empty;
 
-            float scaleX = (float)pictureBox.ClientSize.Width / pictureBox.Image.Width;
-            float scaleY = (float)pictureBox.ClientSize.Height / pictureBox.Image.Height;
-            float scale = Math.Min(scaleX, scaleY);
-
-            float displayWidth = pictureBox.Image.Width * scale;
-            float displayHeight = pictureBox.Image.Height * scale;
-            float offsetX = (pictureBox.ClientSize.Width - displayWidth) / 2;
-            float offsetY = (pictureBox.ClientSize.Height - displayHeight) / 2;
+            var (scale, offsetX, offsetY) = GetScaleAndOffset(pictureBox);
 
             return new Point(
-                (int)(offsetX + imagePoint.X * scale),
-                (int)(offsetY + imagePoint.Y * scale));
+                (int)Math.Round(offsetX + imagePoint.X * scale),
+                (int)Math.Round(offsetY + imagePoint.Y * scale));
         }
 
         public static RuleLineHitPart HitTestLinePart(

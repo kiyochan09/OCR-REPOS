@@ -43,6 +43,7 @@ namespace OCR_Translator.Models
     {
         public string Name { get; set; } = "本文";
         public string Type { get; set; } = "body";
+        public string Orientation { get; set; } = "auto";
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; }
@@ -141,6 +142,7 @@ namespace OCR_Translator.Models
     {
         public string Name { get; set; } = "";
         public string Type { get; set; } = "";
+        public string Orientation { get; set; } = "auto";
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; }

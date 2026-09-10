@@ -3,7 +3,21 @@
 # =========================================================
 
 import json
+import re
 from pathlib import Path
+
+
+def clean_runaway_repetition(text: str) -> str:
+    if not text:
+        return text
+    # 5回以上連続する同一文字（00000, 11111, ......, ------等）以降の暴走出力を除去
+    text = re.sub(r'([^\s])\1{4,}.*$', '', text).strip()
+    # 繰り返し単語の暴走（the the the the 等）を除去
+    text = re.sub(r'(\b\w+\b\s+)\1{3,}.*$', '', text).strip()
+    # 年号直後の括弧誤認識 (例: 2005al. -> 2005a]., 1997l. -> 1997].)
+    text = re.sub(r'(\b\d{4}[a-z]?)l\.', r'\1].', text)
+    text = re.sub(r'(\b\d{4}[a-z]?)1\.', r'\1].', text)
+    return text
 
 
 def find_json_file(output_dir: Path, image_path: Path) -> Path:
@@ -170,6 +184,7 @@ def parse_ndlocr_json(json_path: Path):
                 ""
             )
         )
+        text = clean_runaway_repetition(text)
 
         # -------------------------------------------------
         # confidence

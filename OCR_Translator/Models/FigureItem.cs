@@ -14,6 +14,7 @@ namespace OCR_Translator.Models
         public byte[] ImageBytes { get; set; } = Array.Empty<byte>();
         public string MimeType { get; set; } = "image/png";
         public double FileSizeKb => ImageBytes.Length / 1024.0;
+        [System.Text.Json.Serialization.JsonIgnore]
         public Image? Image { get; set; }
     }
 }

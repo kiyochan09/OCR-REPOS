@@ -309,10 +309,18 @@ namespace OCR_Translator.Services
                     e.Graphics.DrawLine(borderPen, e.CellBounds.Right - 1, e.CellBounds.Top, e.CellBounds.Right - 1, e.CellBounds.Bottom);
             }
 
-            // 3. テキストを描画（各セル描画時にtotalRectを渡すことで、どのセルが空白であってもクリッピング領域に綺麗に描画されます）
-            string text = !string.IsNullOrEmpty(span.MergedText)
-                ? span.MergedText
-                : (dgv.Rows[span.StartRow].Cells[span.StartCol].Value?.ToString() ?? "");
+            // 3. テキストを描画（最新のユーザー入力値であるセル値を最優先とし、未設定の場合はspan.MergedTextを使用）
+            string cellVal = (span.StartRow < dgv.RowCount && span.StartCol < dgv.ColumnCount)
+                ? (dgv.Rows[span.StartRow].Cells[span.StartCol].Value?.ToString() ?? "")
+                : "";
+            string text = !string.IsNullOrWhiteSpace(cellVal)
+                ? cellVal
+                : (!string.IsNullOrEmpty(span.MergedText) ? span.MergedText : "");
+
+            if (!string.IsNullOrEmpty(text) && span.MergedText != text)
+            {
+                span.MergedText = text;
+            }
 
             if (!string.IsNullOrEmpty(text))
             {
@@ -322,7 +330,8 @@ namespace OCR_Translator.Services
                     totalRect.Left + 4, totalRect.Top + 2,
                     totalRect.Width - 8, totalRect.Height - 4);
 
-                TextRenderer.DrawText(e.Graphics, text, dgv.Font, textRect, foreColor, flags);
+                Font cellFont = e.CellStyle.Font ?? dgv.DefaultCellStyle.Font ?? dgv.Font;
+                TextRenderer.DrawText(e.Graphics, text, cellFont, textRect, foreColor, flags);
             }
         }
 
@@ -357,7 +366,11 @@ namespace OCR_Translator.Services
                 }
                 foreach (var span in mergeSpans)
                 {
-                    tbl.MergeSpans.Add(new TableMergeSpan(span.StartCol, span.StartRow, span.ColSpan, span.RowSpan) { MergedText = span.MergedText });
+                    string spanVal = (span.StartRow < dgv.RowCount && span.StartCol < dgv.ColumnCount)
+                        ? (dgv.Rows[span.StartRow].Cells[span.StartCol].Value?.ToString() ?? "")
+                        : "";
+                    string spanText = !string.IsNullOrWhiteSpace(spanVal) ? spanVal : span.MergedText;
+                    tbl.MergeSpans.Add(new TableMergeSpan(span.StartCol, span.StartRow, span.ColSpan, span.RowSpan) { MergedText = spanText });
                 }
                 tables.Add(tbl);
                 return tables;
@@ -440,9 +453,13 @@ namespace OCR_Translator.Services
                         {
                             int colSpan = Math.Min(span.ColSpan, maxColsInGroup - relCol);
                             int rowSpan = Math.Min(span.RowSpan, rows.Count - relRow);
+                            string spanVal = (span.StartRow < dgv.RowCount && span.StartCol < dgv.ColumnCount)
+                                ? (dgv.Rows[span.StartRow].Cells[span.StartCol].Value?.ToString() ?? "")
+                                : "";
+                            string spanText = !string.IsNullOrWhiteSpace(spanVal) ? spanVal : span.MergedText;
                             sTable.MergeSpans.Add(new TableMergeSpan(relCol, relRow, colSpan, rowSpan)
                             {
-                                MergedText = span.MergedText
+                                MergedText = spanText
                             });
                         }
                     }
@@ -495,9 +512,10 @@ namespace OCR_Translator.Services
                                 continue;
                             }
 
-                            string text = !string.IsNullOrEmpty(span.MergedText)
-                                ? span.MergedText
-                                : (c < row.Cells.Count ? row.Cells[c] : "");
+                            string cellVal = (c < row.Cells.Count) ? row.Cells[c] : "";
+                            string text = !string.IsNullOrWhiteSpace(cellVal)
+                                ? cellVal
+                                : (!string.IsNullOrEmpty(span.MergedText) ? span.MergedText : "");
 
                             string encoded = System.Web.HttpUtility.HtmlEncode(text).Replace("\n", "<br>");
                             string spanAttr = "";
@@ -616,7 +634,15 @@ namespace OCR_Translator.Services
                 sb.AppendLine("<h2>本文</h2>");
                 foreach (var para in bodyText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    sb.AppendLine($"<p>{System.Web.HttpUtility.HtmlEncode(para).Replace("\n", "<br>")}</p>");
+                    string trimmedPara = para.Trim();
+                    if (OcrSorter.IsSubheadingText(trimmedPara))
+                    {
+                        sb.AppendLine($"<h3 style=\"margin-top: 16px; margin-bottom: 6px; font-weight: bold; color: #1e293b;\">{System.Web.HttpUtility.HtmlEncode(trimmedPara)}</h3>");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"<p>{System.Web.HttpUtility.HtmlEncode(para).Replace("\n", "<br>")}</p>");
+                    }
                 }
             }
 
@@ -639,9 +665,10 @@ namespace OCR_Translator.Services
                             {
                                 if (!span.IsTopLeft(c, r)) continue;
 
-                                string text = !string.IsNullOrEmpty(span.MergedText)
-                                    ? span.MergedText
-                                    : (c < row.Cells.Count ? row.Cells[c] : "");
+                                string cellVal = (c < row.Cells.Count) ? row.Cells[c] : "";
+                                string text = !string.IsNullOrWhiteSpace(cellVal)
+                                    ? cellVal
+                                    : (!string.IsNullOrEmpty(span.MergedText) ? span.MergedText : "");
 
                                 string spanAttr = "";
                                 if (span.ColSpan > 1) spanAttr += $" colspan=\"{span.ColSpan}\"";
@@ -698,5 +725,600 @@ namespace OCR_Translator.Services
         {
             return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
         }
+
+        /// <summary>
+        /// DataGridView内のすべての表ブロック（連続した行グループ）を走査して一覧化します。
+        /// </summary>
+        public static List<TableGridItemInfo> ScanTablesFromDataGridView(DataGridView dgv)
+        {
+            var result = new List<TableGridItemInfo>();
+            if (dgv == null || dgv.RowCount == 0) return result;
+
+            bool hasMeta = dgv.Columns.Count > 3 &&
+                           dgv.Columns[0].Name == "Page" &&
+                           dgv.Columns[1].Name == "Table" &&
+                           dgv.Columns[2].Name == "Row";
+            int startCol = hasMeta ? 3 : 0;
+
+            TableGridItemInfo? currentTable = null;
+
+            for (int r = 0; r < dgv.RowCount; r++)
+            {
+                var row = dgv.Rows[r];
+                if (row.IsNewRow) continue;
+
+                int pageNum = 1;
+                string tableName = "表1";
+
+                if (hasMeta)
+                {
+                    if (row.Cells["Page"]?.Value != null && int.TryParse(row.Cells["Page"].Value?.ToString(), out int p))
+                        pageNum = p;
+
+                    if (row.Cells["Table"]?.Value != null)
+                        tableName = row.Cells["Table"].Value?.ToString()?.Trim() ?? "表1";
+                }
+
+                if (string.IsNullOrWhiteSpace(tableName)) tableName = "表1";
+
+                // この行の有効列数を計算
+                int validCols = 0;
+                for (int c = dgv.ColumnCount - 1; c >= startCol; c--)
+                {
+                    if (!string.IsNullOrWhiteSpace(row.Cells[c].Value?.ToString()))
+                    {
+                        validCols = c - startCol + 1;
+                        break;
+                    }
+                }
+
+                if (currentTable == null || currentTable.PageNumber != pageNum || !string.Equals(currentTable.TableName, tableName, StringComparison.OrdinalIgnoreCase))
+                {
+                    currentTable = new TableGridItemInfo
+                    {
+                        StartRowIndex = r,
+                        PageNumber = pageNum,
+                        TableName = tableName,
+                        RowCount = 0,
+                        ColumnCount = validCols
+                    };
+                    result.Add(currentTable);
+                }
+
+                currentTable.Rows.Add(row);
+                currentTable.RowCount++;
+                if (validCols > currentTable.ColumnCount)
+                {
+                    currentTable.ColumnCount = validCols;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// StructuredTable のリストに基づいて DataGridView の列・行および結合スパンを一括展開します。
+        /// </summary>
+        public static void PopulateDataGridViewWithTables(
+            DataGridView dgv,
+            List<StructuredTable> tables,
+            List<TableMergeSpan> mergeSpans)
+        {
+            if (dgv == null) return;
+
+            dgv.Rows.Clear();
+            mergeSpans.Clear();
+
+            if (tables == null || tables.Count == 0) return;
+
+            int maxCols = tables.Max(t => t.ColumnCount);
+            if (maxCols < 1) maxCols = 1;
+
+            int currentDataCols = dgv.Columns.Count > 3 ? dgv.Columns.Count - 3 : 0;
+
+            if (dgv.Columns.Count == 0)
+            {
+                dgv.Columns.Clear();
+                dgv.Columns.Add("Page", "ページ");
+                dgv.Columns.Add("Table", "表名");
+                dgv.Columns.Add("Row", "行");
+                dgv.Columns["Page"]!.FillWeight = 8;
+                dgv.Columns["Table"]!.FillWeight = 12;
+                dgv.Columns["Row"]!.FillWeight = 8;
+                dgv.Columns["Page"]!.ReadOnly = true;
+                dgv.Columns["Table"]!.ReadOnly = true;
+                dgv.Columns["Row"]!.ReadOnly = true;
+
+                for (int c = 1; c <= maxCols; c++)
+                {
+                    int colIdx = dgv.Columns.Add($"Col{c}", $"列{c}");
+                    dgv.Columns[colIdx]!.FillWeight = Math.Max(15, 72 / maxCols);
+                }
+            }
+            else if (maxCols > currentDataCols)
+            {
+                for (int c = currentDataCols + 1; c <= maxCols; c++)
+                {
+                    int colIdx = dgv.Columns.Add($"Col{c}", $"列{c}");
+                    dgv.Columns[colIdx]!.FillWeight = Math.Max(15, 72 / maxCols);
+                }
+            }
+
+            int colOffset = dgv.Columns.Count > 3 && dgv.Columns[0].Name == "Page" ? 3 : 0;
+
+            foreach (var sTable in tables)
+            {
+                int baseRow = dgv.Rows.Count;
+                foreach (var sRow in sTable.Rows)
+                {
+                    var rowCells = new object[dgv.Columns.Count];
+                    if (colOffset >= 3)
+                    {
+                        rowCells[0] = sTable.PageNumber;
+                        rowCells[1] = sTable.TableName;
+                        rowCells[2] = sRow.RowIndex;
+                    }
+
+                    for (int c = 0; c < sRow.Cells.Count && (c + colOffset) < rowCells.Length; c++)
+                    {
+                        rowCells[c + colOffset] = sRow.Cells[c];
+                    }
+
+                    int addedIdx = dgv.Rows.Add(rowCells);
+                    dgv.Rows[addedIdx].Tag = new TableRowMeta
+                    {
+                        OriginalPage = sRow.PageNumber > 0 ? sRow.PageNumber : sTable.PageNumber,
+                        OriginalTable = !string.IsNullOrEmpty(sRow.TableName) ? sRow.TableName : sTable.TableName,
+                        OriginalRowIndex = sRow.RowIndex
+                    };
+                }
+
+                foreach (var span in sTable.MergeSpans)
+                {
+                    mergeSpans.Add(new TableMergeSpan(colOffset + span.StartCol, baseRow + span.StartRow, span.ColSpan, span.RowSpan)
+                    {
+                        MergedText = span.MergedText
+                    });
+                }
+            }
+
+            dgv.Invalidate();
+        }
+
+        /// <summary>
+        /// 複数の構造化表を縦方向（行追加）または横方向（列追加）に連結・統合します。
+        /// </summary>
+        public static bool ConcatenateTables(
+            DataGridView dgv,
+            List<TableMergeSpan> mergeSpans,
+            List<TableGridItemInfo> sourceTables,
+            bool isVertical,
+            bool skipDuplicateHeader,
+            string newTableName)
+        {
+            if (dgv == null || sourceTables == null || sourceTables.Count < 2) return false;
+
+            // 既存のすべてのテーブルを抽出
+            var allTables = ExtractTablesFromDataGridView(dgv, mergeSpans);
+            if (allTables.Count == 0) return false;
+
+            var primarySource = sourceTables[0];
+            int primaryPage = primarySource.PageNumber;
+            string finalName = string.IsNullOrWhiteSpace(newTableName) ? primarySource.TableName : newTableName.Trim();
+
+            // sourceTables に該当する StructuredTable を allTables から取得
+            var tablesToMerge = new List<StructuredTable>();
+            foreach (var st in sourceTables)
+            {
+                var match = allTables.FirstOrDefault(at => at.PageNumber == st.PageNumber && string.Equals(at.TableName, st.TableName, StringComparison.OrdinalIgnoreCase));
+                if (match != null && !tablesToMerge.Contains(match))
+                {
+                    tablesToMerge.Add(match);
+                }
+            }
+
+            if (tablesToMerge.Count < 2) return false;
+
+            StructuredTable combinedTable;
+
+            if (isVertical)
+            {
+                // 縦方向（行追加）
+                int maxCols = tablesToMerge.Max(t => t.ColumnCount);
+                combinedTable = new StructuredTable
+                {
+                    PageNumber = primaryPage,
+                    TableName = finalName,
+                    ColumnCount = maxCols
+                };
+
+                // 1つ目のテーブルの行とスパンを追加
+                var firstTbl = tablesToMerge[0];
+                foreach (var row in firstTbl.Rows)
+                {
+                    var newRow = new StructuredTableRow
+                    {
+                        PageNumber = row.PageNumber > 0 ? row.PageNumber : firstTbl.PageNumber,
+                        TableName = finalName,
+                        RowIndex = combinedTable.Rows.Count + 1,
+                        Cells = new List<string>(row.Cells)
+                    };
+                    while (newRow.Cells.Count < maxCols) newRow.Cells.Add("");
+                    combinedTable.Rows.Add(newRow);
+                }
+
+                foreach (var span in firstTbl.MergeSpans)
+                {
+                    combinedTable.MergeSpans.Add(new TableMergeSpan(span.StartCol, span.StartRow, span.ColSpan, span.RowSpan)
+                    {
+                        MergedText = span.MergedText
+                    });
+                }
+
+                // 2つ目以降のテーブルの行とスパンを追加
+                for (int i = 1; i < tablesToMerge.Count; i++)
+                {
+                    var nextTbl = tablesToMerge[i];
+                    int baseRowOffset = combinedTable.Rows.Count;
+                    bool isDupHeader = skipDuplicateHeader && nextTbl.Rows.Count > 1 &&
+                                       firstTbl.Rows.Count > 0 &&
+                                       IsDuplicateHeaderRow(firstTbl.Rows[0], nextTbl.Rows[0]);
+                    int startR = isDupHeader ? 1 : 0;
+
+                    for (int r = startR; r < nextTbl.Rows.Count; r++)
+                    {
+                        var row = nextTbl.Rows[r];
+                        var newRow = new StructuredTableRow
+                        {
+                            PageNumber = row.PageNumber > 0 ? row.PageNumber : nextTbl.PageNumber,
+                            TableName = finalName,
+                            RowIndex = combinedTable.Rows.Count + 1,
+                            Cells = new List<string>(row.Cells)
+                        };
+                        while (newRow.Cells.Count < maxCols) newRow.Cells.Add("");
+                        combinedTable.Rows.Add(newRow);
+                    }
+
+                    foreach (var span in nextTbl.MergeSpans)
+                    {
+                        if (isDupHeader && span.StartRow == 0) continue;
+
+                        int adjustedRow = baseRowOffset + (span.StartRow - startR);
+                        if (adjustedRow >= 0)
+                        {
+                            combinedTable.MergeSpans.Add(new TableMergeSpan(span.StartCol, adjustedRow, span.ColSpan, span.RowSpan)
+                            {
+                                MergedText = span.MergedText
+                            });
+                        }
+                    }
+                }
+
+                combinedTable.RowCount = combinedTable.Rows.Count;
+            }
+            else
+            {
+                // 横方向（列追加）
+                int totalCols = tablesToMerge.Sum(t => t.ColumnCount);
+                int maxRows = tablesToMerge.Max(t => t.RowCount);
+
+                combinedTable = new StructuredTable
+                {
+                    PageNumber = primaryPage,
+                    TableName = finalName,
+                    ColumnCount = totalCols,
+                    RowCount = maxRows
+                };
+
+                for (int r = 0; r < maxRows; r++)
+                {
+                    combinedTable.Rows.Add(new StructuredTableRow
+                    {
+                        PageNumber = primaryPage,
+                        TableName = finalName,
+                        RowIndex = r + 1,
+                        Cells = new List<string>(new string[totalCols])
+                    });
+                }
+
+                int currentColOffset = 0;
+                for (int i = 0; i < tablesToMerge.Count; i++)
+                {
+                    var tbl = tablesToMerge[i];
+                    for (int r = 0; r < tbl.Rows.Count && r < maxRows; r++)
+                    {
+                        for (int c = 0; c < tbl.Rows[r].Cells.Count && (currentColOffset + c) < totalCols; c++)
+                        {
+                            combinedTable.Rows[r].Cells[currentColOffset + c] = tbl.Rows[r].Cells[c];
+                        }
+                    }
+
+                    foreach (var span in tbl.MergeSpans)
+                    {
+                        combinedTable.MergeSpans.Add(new TableMergeSpan(currentColOffset + span.StartCol, span.StartRow, span.ColSpan, span.RowSpan)
+                        {
+                            MergedText = span.MergedText
+                        });
+                    }
+
+                    currentColOffset += tbl.ColumnCount;
+                }
+            }
+
+            // allTables を更新: 最初の結合対象テーブルの位置を combinedTable に置き換え、他の結合対象テーブルを削除
+            int primaryIdx = allTables.IndexOf(tablesToMerge[0]);
+            if (primaryIdx >= 0)
+            {
+                allTables[primaryIdx] = combinedTable;
+                for (int i = 1; i < tablesToMerge.Count; i++)
+                {
+                    allTables.Remove(tablesToMerge[i]);
+                }
+            }
+            else
+            {
+                foreach (var t in tablesToMerge) allTables.Remove(t);
+                allTables.Add(combinedTable);
+            }
+
+            // DataGridView を再構築
+            PopulateDataGridViewWithTables(dgv, allTables, mergeSpans);
+            return true;
+        }
+
+        /// <summary>
+        /// 選択セルの文字列を空白で分割し、後半を右隣の列に設定（または既存値に追記）します。
+        /// </summary>
+        public static bool SplitSelectedCellBySpace(DataGridView dgv, List<TableMergeSpan> mergeSpans, int dataStartCol = 3)
+        {
+            if (dgv.CurrentCell == null) return false;
+            int r = dgv.CurrentCell.RowIndex;
+            int c = dgv.CurrentCell.ColumnIndex;
+
+            if (r < 0 || c < dataStartCol || c >= dgv.ColumnCount) return false;
+
+            string fullText = dgv.Rows[r].Cells[c].Value?.ToString() ?? "";
+            if (string.IsNullOrWhiteSpace(fullText)) return false;
+
+            int splitIdx = FindBestCellSplitIndex(fullText);
+            if (splitIdx <= 0 || splitIdx >= fullText.Length) return false;
+
+            string leftText = fullText.Substring(0, splitIdx).Trim();
+            int rightStart = splitIdx;
+            while (rightStart < fullText.Length && (char.IsWhiteSpace(fullText[rightStart]) || fullText[rightStart] == '　'))
+                rightStart++;
+
+            string rightText = rightStart < fullText.Length ? fullText.Substring(rightStart).Trim() : "";
+            if (string.IsNullOrEmpty(rightText)) return false;
+
+            if (c + 1 >= dgv.ColumnCount)
+            {
+                int newColIdx = dgv.Columns.Add($"Col{dgv.ColumnCount - dataStartCol + 1}", $"列{dgv.ColumnCount - dataStartCol + 1}");
+                dgv.Columns[newColIdx].FillWeight = 20;
+            }
+
+            string existingRight = dgv.Rows[r].Cells[c + 1].Value?.ToString()?.Trim() ?? "";
+            string combinedRight = string.IsNullOrEmpty(existingRight) ? rightText : (rightText + " " + existingRight);
+
+            mergeSpans.RemoveAll(s => s.Contains(c, r) || s.Contains(c + 1, r));
+
+            dgv.Rows[r].Cells[c].Value = leftText;
+            dgv.Rows[r].Cells[c + 1].Value = combinedRight;
+            dgv.Invalidate();
+            return true;
+        }
+
+        /// <summary>
+        /// 選択セルの値を右隣の列へ移動（または既存値に追記）します。
+        /// </summary>
+        public static bool ShiftSelectedCellValueRight(DataGridView dgv, List<TableMergeSpan> mergeSpans, int dataStartCol = 3)
+        {
+            if (dgv.CurrentCell == null) return false;
+            int r = dgv.CurrentCell.RowIndex;
+            int c = dgv.CurrentCell.ColumnIndex;
+
+            if (r < 0 || c < dataStartCol || c >= dgv.ColumnCount) return false;
+
+            string curText = dgv.Rows[r].Cells[c].Value?.ToString()?.Trim() ?? "";
+            if (string.IsNullOrEmpty(curText)) return false;
+
+            if (c + 1 >= dgv.ColumnCount)
+            {
+                int newColIdx = dgv.Columns.Add($"Col{dgv.ColumnCount - dataStartCol + 1}", $"列{dgv.ColumnCount - dataStartCol + 1}");
+                dgv.Columns[newColIdx].FillWeight = 20;
+            }
+
+            string existingRight = dgv.Rows[r].Cells[c + 1].Value?.ToString()?.Trim() ?? "";
+            string combinedRight = string.IsNullOrEmpty(existingRight) ? curText : (curText + " " + existingRight);
+
+            mergeSpans.RemoveAll(s => s.Contains(c, r) || s.Contains(c + 1, r));
+
+            dgv.Rows[r].Cells[c].Value = "";
+            dgv.Rows[r].Cells[c + 1].Value = combinedRight;
+            dgv.CurrentCell = dgv.Rows[r].Cells[c + 1];
+            dgv.Invalidate();
+            return true;
+        }
+
+        /// <summary>
+        /// 選択セルの値を左隣の列へ移動（または既存値に追記）します。
+        /// </summary>
+        public static bool ShiftSelectedCellValueLeft(DataGridView dgv, List<TableMergeSpan> mergeSpans, int dataStartCol = 3)
+        {
+            if (dgv.CurrentCell == null) return false;
+            int r = dgv.CurrentCell.RowIndex;
+            int c = dgv.CurrentCell.ColumnIndex;
+
+            if (r < 0 || c <= dataStartCol || c >= dgv.ColumnCount) return false;
+
+            string curText = dgv.Rows[r].Cells[c].Value?.ToString()?.Trim() ?? "";
+            if (string.IsNullOrEmpty(curText)) return false;
+
+            string existingLeft = dgv.Rows[r].Cells[c - 1].Value?.ToString()?.Trim() ?? "";
+            string combinedLeft = string.IsNullOrEmpty(existingLeft) ? curText : (existingLeft + " " + curText);
+
+            mergeSpans.RemoveAll(s => s.Contains(c, r) || s.Contains(c - 1, r));
+
+            dgv.Rows[r].Cells[c].Value = "";
+            dgv.Rows[r].Cells[c - 1].Value = combinedLeft;
+            dgv.CurrentCell = dgv.Rows[r].Cells[c - 1];
+            dgv.Invalidate();
+            return true;
+        }
+
+        private static int FindBestCellSplitIndex(string text)
+        {
+            if (string.IsNullOrEmpty(text) || text.Length <= 1) return -1;
+
+            var wsIndices = new List<int>();
+            for (int i = 1; i < text.Length - 1; i++)
+            {
+                if (char.IsWhiteSpace(text[i]) || text[i] == '　')
+                {
+                    if (!char.IsWhiteSpace(text[i - 1]) && text[i - 1] != '　')
+                    {
+                        wsIndices.Add(i);
+                    }
+                }
+            }
+
+            if (wsIndices.Count == 0) return -1;
+            if (wsIndices.Count == 1) return wsIndices[0];
+
+            // 1. 閉じ括弧直後の空白（日付や注釈の直後）
+            for (int i = wsIndices.Count - 1; i >= 0; i--)
+            {
+                int idx = wsIndices[i];
+                char prev = text[idx - 1];
+                if (prev == ')' || prev == '）' || prev == ']' || prev == '］' || prev == '}' || prev == '｝')
+                {
+                    return idx;
+                }
+            }
+
+            // 2. 和文と欧文・英数字の境界にある空白
+            foreach (int idx in wsIndices)
+            {
+                char prev = text[idx - 1];
+                int nextIdx = idx;
+                while (nextIdx < text.Length && (char.IsWhiteSpace(text[nextIdx]) || text[nextIdx] == '　'))
+                    nextIdx++;
+                if (nextIdx < text.Length)
+                {
+                    char next = text[nextIdx];
+                    if (IsCjk(prev) != IsCjk(next))
+                    {
+                        return idx;
+                    }
+                }
+            }
+
+            // 3. 文字幅換算で中央に最も近い空白
+            double totalWeight = text.Sum(c => c <= 127 ? 1.0 : 2.0);
+            double halfWeight = totalWeight / 2.0;
+
+            int bestIdx = wsIndices[0];
+            double minDiff = double.MaxValue;
+            double curWeight = 0;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                curWeight += text[i] <= 127 ? 1.0 : 2.0;
+                if (wsIndices.Contains(i))
+                {
+                    double diff = Math.Abs(curWeight - halfWeight);
+                    if (diff < minDiff)
+                    {
+                        minDiff = diff;
+                        bestIdx = i;
+                    }
+                }
+            }
+
+            return bestIdx;
+        }
+
+        private static bool IsCjk(char c)
+        {
+            return (c >= 0x4E00 && c <= 0x9FFF) ||
+                   (c >= 0x3040 && c <= 0x309F) ||
+                   (c >= 0x30A0 && c <= 0x30FF) ||
+                   (c >= 0x3400 && c <= 0x4DBF);
+        }
+
+        /// <summary>
+        /// 2つ目以降のテーブルの先頭行が、最初のテーブルのヘッダー行（重複見出し）であるかを判定します。
+        /// </summary>
+        public static bool IsDuplicateHeaderRow(StructuredTableRow firstHeaderRow, StructuredTableRow candidateRow)
+        {
+            if (firstHeaderRow == null || candidateRow == null) return false;
+            var c1 = firstHeaderRow.Cells;
+            var c2 = candidateRow.Cells;
+            if (c1 == null || c2 == null || c1.Count == 0 || c2.Count == 0) return false;
+
+            int matchCount = 0;
+            int comparedCount = 0;
+            for (int i = 0; i < Math.Min(c1.Count, c2.Count); i++)
+            {
+                string v1 = (c1[i] ?? "").Trim();
+                string v2 = (c2[i] ?? "").Trim();
+                if (!string.IsNullOrEmpty(v1) && !string.IsNullOrEmpty(v2))
+                {
+                    comparedCount++;
+                    if (string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchCount++;
+                    }
+                }
+            }
+
+            return comparedCount > 0 && ((double)matchCount / comparedCount >= 0.5);
+        }
+
+        /// <summary>
+        /// DataGridViewRow ベースで、2つ目以降のテーブルの先頭行がヘッダー行と一致するか判定します。
+        /// </summary>
+        public static bool IsDuplicateHeaderRow(DataGridViewRow firstHeaderRow, DataGridViewRow candidateRow, int startCol, int colCount)
+        {
+            if (firstHeaderRow == null || candidateRow == null) return false;
+            int matchCount = 0;
+            int comparedCount = 0;
+            for (int c = 0; c < colCount; c++)
+            {
+                int colIdx = startCol + c;
+                if (colIdx >= firstHeaderRow.Cells.Count || colIdx >= candidateRow.Cells.Count) break;
+
+                string v1 = (firstHeaderRow.Cells[colIdx].Value?.ToString() ?? "").Trim();
+                string v2 = (candidateRow.Cells[colIdx].Value?.ToString() ?? "").Trim();
+                if (!string.IsNullOrEmpty(v1) && !string.IsNullOrEmpty(v2))
+                {
+                    comparedCount++;
+                    if (string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchCount++;
+                    }
+                }
+            }
+
+            return comparedCount > 0 && ((double)matchCount / comparedCount >= 0.5);
+        }
+    }
+
+    public class TableRowMeta
+    {
+        public int OriginalPage { get; set; }
+        public string OriginalTable { get; set; } = "";
+        public int OriginalRowIndex { get; set; }
+    }
+
+    public class TableGridItemInfo
+    {
+        public int StartRowIndex { get; set; }
+        public int RowCount { get; set; }
+        public int PageNumber { get; set; }
+        public string TableName { get; set; } = "";
+        public int ColumnCount { get; set; }
+        public string DisplayTitle => $"P.{PageNumber} 【{TableName}】 ({ColumnCount}列 × {RowCount}行)";
+        public List<DataGridViewRow> Rows { get; set; } = new();
     }
 }

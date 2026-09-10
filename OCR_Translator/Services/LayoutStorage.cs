@@ -26,6 +26,7 @@ namespace OCR_Translator.Services
             {
                 Name = source.Name,
                 Type = source.Type,
+                Orientation = source.Orientation,
                 X = source.X,
                 Y = source.Y,
                 Width = source.Width,
@@ -216,6 +217,73 @@ namespace OCR_Translator.Services
             }
 
             return result;
+        }
+
+        // =========================================================
+        // 領域の他ページ一括コピー
+        // =========================================================
+
+        /// <summary>
+        /// 指定された対象ページ群に領域設定を一括コピー
+        /// </summary>
+        public int CopyRegionsToPages(
+            Dictionary<int, List<OcrRegion>> pageRegions,
+            int sourcePage,
+            IEnumerable<int> targetPages,
+            List<OcrRegion> sourceRegions)
+        {
+            int copiedCount = 0;
+            foreach (int targetPage in targetPages)
+            {
+                if (targetPage == sourcePage)
+                    continue;
+
+                pageRegions[targetPage] = CloneRegions(sourceRegions);
+                ForceSavePageRegions(targetPage, pageRegions[targetPage], pageRegions);
+                copiedCount++;
+            }
+            return copiedCount;
+        }
+
+        /// <summary>
+        /// カンマ・ハイフン区切りのページ指定文字列（例: "1-5, 8, 10-12"）を0始まりインデックスリストにパース
+        /// </summary>
+        public static List<int> ParsePageRange(string input, int minPage1Based, int maxPage1Based)
+        {
+            var result = new HashSet<int>();
+            if (string.IsNullOrWhiteSpace(input))
+                return result.ToList();
+
+            string[] tokens = input.Split(new[] { ',', '、', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var token in tokens)
+            {
+                string trimmed = token.Trim();
+                if (trimmed.Contains('-') || trimmed.Contains('〜') || trimmed.Contains('~'))
+                {
+                    char sep = trimmed.Contains('-') ? '-' : (trimmed.Contains('〜') ? '〜' : '~');
+                    string[] rangeParts = trimmed.Split(sep);
+                    if (rangeParts.Length == 2 &&
+                        int.TryParse(rangeParts[0].Trim(), out int start) &&
+                        int.TryParse(rangeParts[1].Trim(), out int end))
+                    {
+                        int low = Math.Max(minPage1Based, Math.Min(start, end));
+                        int high = Math.Min(maxPage1Based, Math.Max(start, end));
+                        for (int p = low; p <= high; p++)
+                        {
+                            result.Add(p - 1);
+                        }
+                    }
+                }
+                else if (int.TryParse(trimmed, out int singlePage))
+                {
+                    if (singlePage >= minPage1Based && singlePage <= maxPage1Based)
+                    {
+                        result.Add(singlePage - 1);
+                    }
+                }
+            }
+
+            return result.OrderBy(p => p).ToList();
         }
     }
 }

@@ -12,9 +12,34 @@ namespace OCR_Translator.Services
     {
         public static List<OcrDisplayItem> LoadNdlocrPageJson(string path)
         {
+            if (!File.Exists(path)) return new List<OcrDisplayItem>();
+
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
             var result = new List<OcrDisplayItem>();
-            CollectNdlocrItems(doc.RootElement, result);
+
+            JsonElement root = doc.RootElement;
+
+            // 1. auto_regions.json 形式 (root has "results": [ { x, y, width, height, text, isVertical } ])
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("results", out JsonElement resultsElem) && resultsElem.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement item in resultsElem.EnumerateArray())
+                {
+                    if (TryParseNdlocrItem(item, out OcrDisplayItem? displayItem) && displayItem != null)
+                    {
+                        result.Add(displayItem);
+                    }
+                }
+                if (result.Count > 0)
+                {
+                    return result
+                        .GroupBy(item => new { item.Text, item.X, item.Y, item.Width, item.Height, item.IsVertical })
+                        .Select(g => g.First())
+                        .ToList();
+                }
+            }
+
+            // 2. NDLOCR-Lite raw / page.json 形式
+            CollectNdlocrItems(root, result);
 
             // 重複排除：同じテキスト＋同じ座標のものを1つにまとめる
             return result
@@ -27,6 +52,16 @@ namespace OCR_Translator.Services
         {
             if (element.ValueKind == JsonValueKind.Object)
             {
+                if (element.TryGetProperty("results", out JsonElement resArr) && resArr.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement elem in resArr.EnumerateArray())
+                    {
+                        if (TryParseNdlocrItem(elem, out OcrDisplayItem? parsed) && parsed != null)
+                            result.Add(parsed);
+                    }
+                    if (result.Count > 0) return;
+                }
+
                 bool isTextline = false;
                 if (element.TryGetProperty("isTextline", out JsonElement tl))
                 {
@@ -35,9 +70,9 @@ namespace OCR_Translator.Services
                                   string.Equals(tl.GetString(), "true", StringComparison.OrdinalIgnoreCase));
                 }
 
-                if (isTextline && TryParseNdlocrItem(element, out OcrDisplayItem? item))
+                if ((isTextline || element.TryGetProperty("text", out _)) && TryParseNdlocrItem(element, out OcrDisplayItem? parsedItem))
                 {
-                    result.Add(item!);
+                    result.Add(parsedItem!);
                     return;
                 }
 
@@ -54,14 +89,37 @@ namespace OCR_Translator.Services
         private static bool TryParseNdlocrItem(JsonElement obj, out OcrDisplayItem? result)
         {
             result = null;
-            if (!obj.TryGetProperty("text", out JsonElement textElement) || textElement.ValueKind != JsonValueKind.String)
-                return false;
+            if (obj.ValueKind != JsonValueKind.Object) return false;
 
-            string text = textElement.GetString() ?? "";
+            string text = ReadJsonString(obj, "text", "Text");
             if (string.IsNullOrWhiteSpace(text)) return false;
 
+            // 信頼度0かつ極小ノイズ（記号1〜3文字のみ等の検出ゴミ）を除外
+            // ※有意な文字列が含まれる行（ブロック補完行やConfidence未設定エンジン）は正当な行として保護
+            if (obj.TryGetProperty("confidence", out JsonElement confProp) || obj.TryGetProperty("Confidence", out confProp))
+            {
+                if (confProp.ValueKind == JsonValueKind.Number && confProp.TryGetDouble(out double confVal))
+                {
+                    string trimmed = text.Trim();
+                    if (confVal <= 0.01 && (trimmed.Length <= 1 || (trimmed.Length <= 3 && trimmed.All(c => char.IsPunctuation(c) || char.IsWhiteSpace(c) || "._,-~|'`\"^*:;・+=/\\()[]{}<>ー".Contains(c)))))
+                    {
+                        return false;
+                    }
+                }
+            }
+
             int x = 0, y = 0, width = 0, height = 0;
-            if (obj.TryGetProperty("boundingBox", out JsonElement box) && box.ValueKind == JsonValueKind.Array)
+
+            // 1. Direct x, y, width, height (from auto_regions.json)
+            if (obj.TryGetProperty("x", out _) || obj.TryGetProperty("X", out _))
+            {
+                x = ReadJsonInt(obj, "x", "X");
+                y = ReadJsonInt(obj, "y", "Y");
+                width = ReadJsonInt(obj, "width", "Width");
+                height = ReadJsonInt(obj, "height", "Height");
+            }
+            // 2. BoundingBox array [[x1,y1],[x2,y2],...]
+            else if (obj.TryGetProperty("boundingBox", out JsonElement box) && box.ValueKind == JsonValueKind.Array)
             {
                 var points = new List<(int X, int Y)>();
                 foreach (JsonElement point in box.EnumerateArray())
@@ -82,6 +140,23 @@ namespace OCR_Translator.Services
                     y = points.Min(p => p.Y);
                     width = Math.Max(0, points.Max(p => p.X) - x);
                     height = Math.Max(0, points.Max(p => p.Y) - y);
+                }
+            }
+            // 3. Flat bbox array [x, y, w, h] or [x1, y1, x2, y2]
+            else if (obj.TryGetProperty("bbox", out JsonElement bbox) && bbox.ValueKind == JsonValueKind.Array)
+            {
+                var values = new List<int>();
+                foreach (JsonElement value in bbox.EnumerateArray())
+                {
+                    if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int n))
+                        values.Add(n);
+                }
+                if (values.Count >= 4)
+                {
+                    x = values[0];
+                    y = values[1];
+                    width = values[2] >= values[0] ? values[2] - values[0] : values[2];
+                    height = values[3] >= values[1] ? values[3] - values[1] : values[3];
                 }
             }
 

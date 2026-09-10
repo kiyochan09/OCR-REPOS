@@ -23,9 +23,9 @@ namespace OCR_Translator
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool AllowClose { get; set; }
 
-        public ProgressForm(int totalPages)
+        public ProgressForm(int totalPages, string title = "進行状況", string mainText = "処理を実行しています。")
         {
-            Text = "領域自動判定 - 進行状況";
+            Text = title;
             ClientSize = new Size(520, 190);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -39,7 +39,7 @@ namespace OCR_Translator
                 Location = new Point(20, 18),
                 Size = new Size(480, 28),
                 Font = new Font(SystemFonts.DefaultFont, FontStyle.Bold),
-                Text = "全ページの領域自動判定を実行しています。"
+                Text = mainText
             };
 
             progressBar = new ProgressBar

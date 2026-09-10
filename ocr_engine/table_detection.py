@@ -11,6 +11,43 @@ from ocr_utils import find_json_file, parse_ndlocr_json
 import cv2
 import numpy as np
 
+# Windows環境における日本語/Unicodeファイルパス対応 (OpenCV cv2.imread / cv2.imwrite)
+_orig_cv2_imread = cv2.imread
+_orig_cv2_imwrite = cv2.imwrite
+
+def _unicode_safe_imread(filename, flags=cv2.IMREAD_COLOR):
+    try:
+        p_str = str(filename)
+        if all(ord(c) < 128 for c in p_str):
+            res = _orig_cv2_imread(p_str, flags)
+            if res is not None:
+                return res
+        with open(p_str, 'rb') as f:
+            buf = f.read()
+        return cv2.imdecode(np.frombuffer(buf, dtype=np.uint8), flags)
+    except Exception:
+        return None
+
+def _unicode_safe_imwrite(filename, img, params=None):
+    try:
+        p_str = str(filename)
+        if all(ord(c) < 128 for c in p_str):
+            res = _orig_cv2_imwrite(p_str, img, params)
+            if res:
+                return True
+        ext = Path(p_str).suffix or '.png'
+        success, buf = cv2.imencode(ext, img, params)
+        if success:
+            with open(p_str, 'wb') as f:
+                f.write(buf)
+            return True
+        return False
+    except Exception:
+        return False
+
+cv2.imread = _unicode_safe_imread
+cv2.imwrite = _unicode_safe_imwrite
+
 
 def detect_lines(
     image_path: Path,
