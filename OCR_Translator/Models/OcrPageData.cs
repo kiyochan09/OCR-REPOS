@@ -12,6 +12,7 @@ namespace OCR_Translator.Models
     {
         public int PageNumber { get; set; }
         public List<string> Headings { get; set; } = new();
+        public List<string> Subheadings { get; set; } = new();
         public List<string> RemovedHeadings { get; set; } = new();
         public List<string> BodyParagraphs { get; set; } = new();
         public List<StructuredTable> Tables { get; set; } = new();

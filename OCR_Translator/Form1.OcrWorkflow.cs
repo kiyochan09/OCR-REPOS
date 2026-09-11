@@ -632,8 +632,7 @@ namespace OCR_Translator
                     string cleanP = p.Trim();
                     pageData.BodyParagraphs.Add(cleanP);
 
-                    // 本文内の小見出し（IsSubheadingText）または大見出し（IsMajorHeading）を検出して登録
-                    // 大見出し（章タイトル等）はAutoDetectSubheadingsの設定にかかわらず常に登録
+                    // 本文内の小見出し（第2階層・子見出し）を検出して登録
                     foreach (var line in cleanP.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
                     {
                         string trimmedLine = line.Trim();
@@ -642,18 +641,14 @@ namespace OCR_Translator
                             string cleanH = DocxExporter.RemovePagePrefix(trimmedLine);
                             if (string.IsNullOrWhiteSpace(cleanH)) continue;
 
-                            bool isMajor = IsMajorChapterHeading(cleanH);
                             bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
                             bool isSub = appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmedLine);
 
-                            if (isMajor || isSection || isSub)
+                            if (isSection || isSub)
                             {
-                                if (!pageData.Headings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                if (!pageData.Subheadings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
                                 {
-                                    if (isMajor)
-                                        pageData.Headings.Insert(0, cleanH);
-                                    else
-                                        pageData.Headings.Add(cleanH);
+                                    pageData.Subheadings.Add(cleanH);
                                 }
                             }
                         }
@@ -661,36 +656,61 @@ namespace OCR_Translator
                 }
             }
 
-            // 見出し（明示的なheading領域がある場合もマージ）
+            // 見出し領域（明示的なheading領域がある場合: 第1階層の親見出しとして登録）
             if (itemsByType.TryGetValue("heading", out List<OcrDisplayItem>? headingList) && headingList.Count > 0)
             {
                 foreach (OcrDisplayItem item in headingList)
                 {
                     string cleanH = DocxExporter.RemovePagePrefix(item.Text.Trim());
-                    if (!string.IsNullOrWhiteSpace(cleanH) && !pageData.Headings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(cleanH))
                     {
-                        pageData.Headings.Add(cleanH);
+                        bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+[節項条回]") ||
+                                         Regex.IsMatch(cleanH, @"^(?:Section|Sec\.)\s+[0-9IVXLCDMivxlcdm]+", RegexOptions.IgnoreCase);
+                        if (isSection)
+                        {
+                            if (!pageData.Subheadings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                pageData.Subheadings.Add(cleanH);
+                        }
+                        else
+                        {
+                            if (!pageData.Headings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                pageData.Headings.Add(cleanH);
+                        }
                     }
                 }
             }
 
-            // 本文タブへの展開（小見出しを青色太字で強調表示）
+            // 本文タブへの展開（見出し・小見出しを青色太字で強調表示）
             if (!string.IsNullOrEmpty(pageBodyText) && ocrResultTextBoxes.TryGetValue("body", out var bBox))
             {
                 if (bBox.TextLength > 0)
                 {
                     bBox.AppendText(Environment.NewLine + Environment.NewLine);
                 }
-                AppendColoredBodyToTextBox(bBox, $"--- ページ {pageIndex + 1} ---" + Environment.NewLine + pageBodyText, pageData.Headings, appSettings.AutoDetectSubheadings);
+                var allHeadingsForHighlight = (pageData.Headings ?? new List<string>()).Concat(pageData.Subheadings ?? new List<string>()).ToList();
+                AppendColoredBodyToTextBox(bBox, $"--- ページ {pageIndex + 1} ---" + Environment.NewLine + pageBodyText, allHeadingsForHighlight, appSettings.AutoDetectSubheadings);
             }
 
-            // 見出しタブへの展開
-            if (ocrResultTextBoxes.TryGetValue("heading", out var hBox) && pageData.Headings.Count > 0)
+            // 見出しタブへの展開（第1階層・親見出しはインデントなし、第2階層・子見出しは半角4文字分インデント）
+            if (ocrResultTextBoxes.TryGetValue("heading", out var hBox) && hBox != null)
             {
-                int n = 1;
-                foreach (var h in pageData.Headings)
+                if ((pageData.Headings != null && pageData.Headings.Count > 0) || (pageData.Subheadings != null && pageData.Subheadings.Count > 0))
                 {
-                    hBox.AppendText($"[P{pageIndex + 1}-{n++:00}] {h}" + Environment.NewLine);
+                    int n = 1;
+                    if (pageData.Headings != null)
+                    {
+                        foreach (var h in pageData.Headings)
+                        {
+                            hBox.AppendText($"[P{pageIndex + 1}-{n++:00}] {h}" + Environment.NewLine);
+                        }
+                    }
+                    if (pageData.Subheadings != null)
+                    {
+                        foreach (var sh in pageData.Subheadings)
+                        {
+                            hBox.AppendText($"[P{pageIndex + 1}-{n++:00}]     {sh}" + Environment.NewLine);
+                        }
+                    }
                 }
             }
 

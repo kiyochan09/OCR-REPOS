@@ -123,6 +123,33 @@ namespace OCR_Translator.Services
                     .Where(h => !removedSet.Contains(h))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
+
+                // 1. 同一ページ内の前方一致フラグメント除去（例: 「第2章 クリミ」と「第2章 クリミア自治共和国の形成」）
+                data.Headings.RemoveAll(h1 => data.Headings.Any(h2 => h2.Length > h1.Length && h2.StartsWith(h1, StringComparison.OrdinalIgnoreCase)));
+
+                // 2. Headings に誤混入した小見出し（例: (2)沿ドニエストル 等）を Subheadings へ移動
+                var misclassified = data.Headings.Where(h => OcrSorter.IsSubheadingText(h) && !OcrSorter.IsMajorHeading(h)).ToList();
+                if (misclassified.Count > 0)
+                {
+                    if (data.Subheadings == null) data.Subheadings = new List<string>();
+                    foreach (var msh in misclassified)
+                    {
+                        if (!data.Subheadings.Contains(msh, StringComparer.OrdinalIgnoreCase))
+                            data.Subheadings.Add(msh);
+                        data.Headings.Remove(msh);
+                    }
+                }
+            }
+
+            if (data.Subheadings != null && data.Subheadings.Count > 0)
+            {
+                data.Subheadings = data.Subheadings
+                    .Select(sh => DocxExporter.RemovePagePrefix(sh.Trim()))
+                    .Where(sh => !string.IsNullOrWhiteSpace(sh) && sh.Length <= 80 && !sh.Contains("。") && !System.Text.RegularExpressions.Regex.IsMatch(sh, @"^【(?:注釈文|注)\d+】"))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                data.Subheadings.RemoveAll(s1 => data.Subheadings.Any(s2 => s2.Length > s1.Length && s2.StartsWith(s1, StringComparison.OrdinalIgnoreCase)));
             }
 
             // 段落内が1行ごとに改行されているレガシーデータを段落単位へ自動正規化
@@ -556,12 +583,10 @@ namespace OCR_Translator.Services
             if (pages == null || pages.Count == 0) return false;
 
             bool isByMajorHeading = settings?.FootnoteNumberingScope == "majorHeading";
-            int noteCounter = 1;
+            int bodyCounter = 1;
+            int footnoteCounter = 1;
             int lastNoteNum = 1;
             bool anyChanged = false;
-
-            // 全体（または大見出し単位）での注釈番号マッピング
-            var keyToGlobalMap = new Dictionary<string, int>();
             string? currentChapterKey = null;
 
             foreach (var page in pages.OrderBy(p => p.PageNumber))
@@ -583,8 +608,8 @@ namespace OCR_Translator.Services
                     if (pageChapterKey != null && pageChapterKey != currentChapterKey)
                     {
                         currentChapterKey = pageChapterKey;
-                        keyToGlobalMap.Clear();
-                        noteCounter = 1;
+                        bodyCounter = 1;
+                        footnoteCounter = 1;
                         lastNoteNum = 1;
                     }
                 }
@@ -616,35 +641,7 @@ namespace OCR_Translator.Services
                     }
                 }
 
-                void CollectNoteKeys(string text)
-                {
-                    if (string.IsNullOrEmpty(text)) return;
-                    var matches = Regex.Matches(text, @"【(?:注釈文|注)(\d+|__NEW__)】");
-                    foreach (Match m in matches)
-                    {
-                        string key = m.Groups[1].Value;
-                        if (!keyToGlobalMap.ContainsKey(key))
-                        {
-                            keyToGlobalMap[key] = noteCounter++;
-                        }
-                    }
-                }
-
-                // 1. 本文を走査して注釈タグの登場順に採番キーを収集
-                if (page.BodyParagraphs != null)
-                {
-                    foreach (var p in page.BodyParagraphs) CollectNoteKeys(p);
-                }
-
-                // 2. 注釈文リストを走査（本文にタグのない注釈文も収集）
-                if (page.Footnotes != null)
-                {
-                    foreach (var f in page.Footnotes) CollectNoteKeys(f);
-                }
-
-                if (keyToGlobalMap.Count == 0) continue;
-
-                // 3. 本文段落内の注釈番号を更新
+                // 1. 本文段落内の注釈番号を登場順に1から連番で再採番
                 if (page.BodyParagraphs != null)
                 {
                     for (int i = 0; i < page.BodyParagraphs.Count; i++)
@@ -652,10 +649,7 @@ namespace OCR_Translator.Services
                         string original = page.BodyParagraphs[i];
                         string updated = Regex.Replace(original, @"【(?:注釈文|注)(\d+|__NEW__)】", m =>
                         {
-                            string key = m.Groups[1].Value;
-                            int globalNum = keyToGlobalMap.TryGetValue(key, out int g) ? g : (int.TryParse(key, out int n) ? n : 1);
-                            bool isFn = m.Value.Contains("注釈文");
-                            return isFn ? $"【注釈文{globalNum}】" : $"【注{globalNum}】";
+                            return $"【注{bodyCounter++}】";
                         });
 
                         if (original != updated)
@@ -666,7 +660,7 @@ namespace OCR_Translator.Services
                     }
                 }
 
-                // 4. 注釈文リスト内の注釈番号を更新
+                // 2. 注釈文リスト内の注釈番号を登場順に1から連番で再採番
                 if (page.Footnotes != null)
                 {
                     for (int i = 0; i < page.Footnotes.Count; i++)
@@ -674,9 +668,7 @@ namespace OCR_Translator.Services
                         string original = page.Footnotes[i];
                         string updated = Regex.Replace(original, @"【(?:注釈文|注)(\d+|__NEW__)】", m =>
                         {
-                            string key = m.Groups[1].Value;
-                            int globalNum = keyToGlobalMap.TryGetValue(key, out int g) ? g : (int.TryParse(key, out int n) ? n : 1);
-                            return $"【注釈文{globalNum}】";
+                            return $"【注釈文{footnoteCounter++}】";
                         });
 
                         if (original != updated)

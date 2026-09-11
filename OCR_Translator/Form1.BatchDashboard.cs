@@ -390,125 +390,50 @@ namespace OCR_Translator
                     {
                         string fullPageBody = $"--- ページ {p} ---" + Environment.NewLine +
                                               string.Join(Environment.NewLine + Environment.NewLine, pageData.BodyParagraphs) + Environment.NewLine + Environment.NewLine;
-                        AppendColoredBodyToTextBox(bBox, fullPageBody, pageData.Headings, appSettings.AutoDetectSubheadings);
+                        var allHeadingsForHighlight = (pageData.Headings ?? new List<string>()).Concat(pageData.Subheadings ?? new List<string>()).ToList();
+                        AppendColoredBodyToTextBox(bBox, fullPageBody, allHeadingsForHighlight, appSettings.AutoDetectSubheadings);
                     }
                 }
 
-                // 見出しタブ
-                if (ocrResultTextBoxes.TryGetValue("heading", out var hBox))
+                // 見出しタブ（第1階層: 親見出しはインデントなし、第2階層: 小見出しは半角4文字分インデント）
+                if (ocrResultTextBoxes.TryGetValue("heading", out var hBox) && hBox != null)
                 {
-                    if (pageData.Headings == null) pageData.Headings = new List<string>();
-                    bool headingsChanged = false;
-
-                    // 1. 本文から大見出し（章タイトル等）および小見出しの自動検出
-                    // 大見出し（IsMajorHeading）は小見出し自動認識設定のオン/オフにかかわらず常に自動検出
-                    // 小見出し（IsSubheadingText）は appSettings.AutoDetectSubheadings が有効な場合に自動検出
-                    if (pageData.BodyParagraphs != null && pageData.BodyParagraphs.Count > 0)
+                    if (pageData.Headings != null && pageData.Headings.Count > 0)
                     {
-                        foreach (var para in pageData.BodyParagraphs)
+                        var uniqueHeadings = pageData.Headings
+                            .Select(h => DocxExporter.RemovePagePrefix(h).Trim())
+                            .Where(h => !string.IsNullOrWhiteSpace(h) && !DocxExporter.IsGarbageOrNoiseHeading(h))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+
+                        uniqueHeadings.RemoveAll(h1 => uniqueHeadings.Any(h2 => h2.Length > h1.Length && h2.StartsWith(h1, StringComparison.OrdinalIgnoreCase)));
+
+                        foreach (var cleanH in uniqueHeadings)
                         {
-                            foreach (var line in para.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+                            string? chKey = OcrSorter.ExtractMajorHeadingKey(cleanH);
+                            if (chKey != null && currentRunningChapter != null &&
+                                string.Equals(chKey, OcrSorter.ExtractMajorHeadingKey(currentRunningChapter), StringComparison.OrdinalIgnoreCase))
                             {
-                                string trimmedLine = line.Trim();
-                                if (trimmedLine.Length > 80 || trimmedLine.Contains("。") || Regex.IsMatch(trimmedLine, @"^【(?:注釈文|注)\d+】") || DocxExporter.IsGarbageOrNoiseHeading(trimmedLine)) continue;
-
-                                string cleanH = DocxExporter.RemovePagePrefix(trimmedLine);
-                                if (string.IsNullOrWhiteSpace(cleanH)) continue;
-
-                                bool isMajor = IsMajorChapterHeading(cleanH);
-                                bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-                                bool isSub = appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmedLine);
-
-                                if (isMajor || isSection || (!IsHeadingRemoved(pageData, p, cleanH) && isSub))
-                                {
-                                    if (isMajor || isSection)
-                                    {
-                                        pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                        userRemovedHeadings.Remove($"{p}::{cleanH}");
-                                    }
-
-                                    if (!pageData.Headings.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                    {
-                                        if (isMajor)
-                                        {
-                                            pageData.Headings.Insert(0, cleanH);
-                                            currentRunningChapter = cleanH;
-                                        }
-                                        else
-                                        {
-                                            pageData.Headings.Add(cleanH);
-                                        }
-                                        headingsChanged = true;
-                                    }
-                                }
+                                // 前ページから継続している同一章の重複（柱・ランニングヘッダー）は除外
+                                continue;
                             }
-                        }
-                    }
-
-                    // 2. ページ上部の見出し（章タイトル・柱）から大見出しを検出（BodyParagraphsに含まれていなかった場合）
-                    if (!pageData.Headings.Any(IsMajorChapterHeading))
-                    {
-                        string pageJsonPath = Path.Combine(pageDir, "page.json");
-                        if (File.Exists(pageJsonPath))
-                        {
-                            try
-                            {
-                                string jsonText = File.ReadAllText(pageJsonPath, Encoding.UTF8);
-                                using var doc = System.Text.Json.JsonDocument.Parse(jsonText);
-                                if (doc.RootElement.TryGetProperty("results", out var resultsElem))
-                                {
-                                    foreach (var item in resultsElem.EnumerateArray())
-                                    {
-                                        int y = item.TryGetProperty("y", out var yElem) ? yElem.GetInt32() : 9999;
-                                        if (y > 250) continue; // ページ上部（250px未満）の見出し・柱のみを対象
-
-                                        string text = item.TryGetProperty("text", out var tElem) ? tElem.GetString() ?? "" : "";
-                                        string cleanText = DocxExporter.RemovePagePrefix(text.Trim());
-                                        // 末尾のページ番号を除去（例: "序章 民族自決運動の比較政治史 3" -> "序章 民族自決運動の比較政治史"）
-                                        cleanText = Regex.Replace(cleanText, @"[\s　・:]*\d+$", "").Trim();
-
-                                        if (IsMajorChapterHeading(cleanText) && !IsHeadingRemoved(pageData, p, cleanText))
-                                        {
-                                            // 前ページまでの章タイトルと異なる新しい大見出し（章開始）である場合のみ登録
-                                            if (string.IsNullOrEmpty(currentRunningChapter) ||
-                                                (!cleanText.Equals(currentRunningChapter, StringComparison.OrdinalIgnoreCase) &&
-                                                 !cleanText.StartsWith(currentRunningChapter, StringComparison.OrdinalIgnoreCase) &&
-                                                 !currentRunningChapter.StartsWith(cleanText, StringComparison.OrdinalIgnoreCase)))
-                                            {
-                                                if (!pageData.Headings.Contains(cleanText, StringComparer.OrdinalIgnoreCase))
-                                                {
-                                                    pageData.Headings.Insert(0, cleanText);
-                                                    currentRunningChapter = cleanText;
-                                                    headingsChanged = true;
-                                                }
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            catch { }
-                        }
-                    }
-
-                    if (headingsChanged)
-                    {
-                        OcrPageDataService.SavePageData(pageDir, pageData);
-                    }
-
-                    // 現在の章タイトルを更新
-                    var existingMajor = pageData.Headings.FirstOrDefault(IsMajorChapterHeading);
-                    if (!string.IsNullOrEmpty(existingMajor))
-                    {
-                        currentRunningChapter = existingMajor;
-                    }
-
-                    foreach (var h in pageData.Headings.ToList())
-                    {
-                        string cleanH = DocxExporter.RemovePagePrefix(h);
-                        if (!string.IsNullOrWhiteSpace(cleanH) && !DocxExporter.IsGarbageOrNoiseHeading(cleanH))
-                        {
+                            if (chKey != null) currentRunningChapter = cleanH;
                             hBox.AppendText($"[P{p}] {cleanH}" + Environment.NewLine);
+                        }
+                    }
+                    if (pageData.Subheadings != null && pageData.Subheadings.Count > 0)
+                    {
+                        var uniqueSubheadings = pageData.Subheadings
+                            .Select(sh => DocxExporter.RemovePagePrefix(sh).Trim())
+                            .Where(sh => !string.IsNullOrWhiteSpace(sh) && !DocxExporter.IsGarbageOrNoiseHeading(sh))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+
+                        uniqueSubheadings.RemoveAll(s1 => uniqueSubheadings.Any(s2 => s2.Length > s1.Length && s2.StartsWith(s1, StringComparison.OrdinalIgnoreCase)));
+
+                        foreach (var cleanSH in uniqueSubheadings)
+                        {
+                            hBox.AppendText($"[P{p}]     {cleanSH}" + Environment.NewLine);
                         }
                     }
                 }
@@ -698,19 +623,70 @@ namespace OCR_Translator
 
             try
             {
-                Directory.Delete(ocrResultsDir, true);
+                // 外部プロセス（エディタ等）で一部がロックされていても可能な限り個別削除を実行
+                DeleteDirectoryRecursive(ocrResultsDir);
 
-                ocrPageDataList.Clear();
-                ClearOcrResultTabs();
-                RefreshBatchList();
+                if (!Directory.Exists(ocrResultsDir))
+                {
+                    ocrPageDataList.Clear();
+                    ClearOcrResultTabs();
+                    RefreshBatchList();
 
-                txtLog.AppendText($"【OCR生データ削除】「{pdfName}」の全OCR生データフォルダを削除し、ディスク容量を解放しました。" + Environment.NewLine);
-                MessageBox.Show("OCR生データ（画像・JSON）をディスクから完全に削除しました。\nディスク容量が解放されました。", "削除完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    txtLog.AppendText($"【OCR生データ削除】「{pdfName}」の全OCR生データフォルダを削除し、ディスク容量を解放しました。" + Environment.NewLine);
+                    MessageBox.Show("OCR生データ（画像・JSON）をディスクから完全に削除しました。\nディスク容量が解放されました。", "削除完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    // 一部のフォルダ/ファイルが外部エディタ（Mery、メモ帳等）やエクスプローラーで開かれている場合
+                    RefreshBatchList();
+                    MessageBox.Show(
+                        "一部のファイルまたはフォルダが外部プロセス（テキストエディタ「Mery」やメモ帳、エクスプローラー等）で使用中のため、完全には削除できませんでした。\n\n" +
+                        "該当のアプリケーションを終了してから、再度「OCR生データ削除」を実行してください。",
+                        "一部削除完了（ロック中の項目あり）",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("削除中にエラーが発生しました。\n" + ex.Message, "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                RefreshBatchList();
+                MessageBox.Show(
+                    "削除中にエラーが発生しました。\n\n" +
+                    ex.Message + "\n\n" +
+                    "※ テキストエディタ（Mery、メモ帳等）やエクスプローラー等で対象フォルダのファイルを開いている場合は、該当のアプリを終了してから再度お試しください。",
+                    "エラー",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// 外部プロセスでロックされた項目があっても、削除可能なファイル・ディレクトリを可能な限り個別に再帰削除します。
+        /// </summary>
+        private static void DeleteDirectoryRecursive(string path)
+        {
+            if (!Directory.Exists(path)) return;
+
+            foreach (string file in Directory.GetFiles(path))
+            {
+                try
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Delete(file);
+                }
+                catch { }
+            }
+
+            foreach (string dir in Directory.GetDirectories(path))
+            {
+                DeleteDirectoryRecursive(dir);
+            }
+
+            try
+            {
+                Directory.Delete(path, false);
+            }
+            catch { }
         }
     }
 }

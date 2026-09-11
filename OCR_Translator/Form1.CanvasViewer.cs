@@ -367,13 +367,13 @@ namespace OCR_Translator
             string footnoteText = ocrResultTextBoxes.TryGetValue("footnote", out var fBox) ? fBox.Text : "";
 
             var bodyByPage = ParseBodyTextByPages(bodyText);
-            var headingsByPage = ParseItemsByPages(headingText);
+            var headingsByPageWithLevels = ParseHeadingsByPagesWithLevels(headingText);
             var footnotesByPage = OcrPageDataService.ParseFootnotesByPages(footnoteText);
 
             // 保存対象のページ番号セット（現在ページ ＋ UIに存在する全ページ）
             var pagesToSave = new HashSet<int> { currentPage + 1 };
             foreach (var k in bodyByPage.Keys) pagesToSave.Add(k);
-            foreach (var k in headingsByPage.Keys) pagesToSave.Add(k);
+            foreach (var k in headingsByPageWithLevels.Keys) pagesToSave.Add(k);
             foreach (var k in footnotesByPage.Keys) pagesToSave.Add(k);
             foreach (var p in ocrPageDataList.ToList()) pagesToSave.Add(p.PageNumber);
 
@@ -406,73 +406,54 @@ namespace OCR_Translator
                 }
 
                 // 見出しタブの同期（UIの見出しタブに該当ページの見出しがある場合、ユーザーの手動編集を最優先で反映）
-                if (headingsByPage.TryGetValue(pNum, out var userHeadings))
+                if (headingsByPageWithLevels.TryGetValue(pNum, out var levelHeadings))
                 {
-                    var newHeadings = userHeadings
-                        .Select(h => DocxExporter.RemovePagePrefix(h))
-                        .Where(h => !string.IsNullOrWhiteSpace(h) && h.Length <= 80 && !h.Contains("。") && !System.Text.RegularExpressions.Regex.IsMatch(h, @"^【(?:注釈文|注)\d+】") && !DocxExporter.IsGarbageOrNoiseHeading(h))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
+                    var newHeadings = levelHeadings.Headings.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                    var newSubheadings = levelHeadings.Subheadings.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                    var allUserHeadings = newHeadings.Concat(newSubheadings).ToList();
 
                     // ユーザーが見出しタブに明示的に記載した見出しは、RemovedHeadings から削除（復活）
                     if (pageData.RemovedHeadings != null)
                     {
-                        pageData.RemovedHeadings.RemoveAll(rh => newHeadings.Any(nh =>
+                        pageData.RemovedHeadings.RemoveAll(rh => allUserHeadings.Any(nh =>
                             nh.Equals(rh, StringComparison.OrdinalIgnoreCase) ||
                             DocxExporter.NormalizeForComparison(nh) == DocxExporter.NormalizeForComparison(rh)));
                     }
-                    foreach (var nh in newHeadings)
+                    foreach (var nh in allUserHeadings)
                     {
                         userRemovedHeadings.Remove($"{pNum}::{nh}");
                     }
 
                     // ユーザーが見出しタブから手動削除した見出しを検出し、RemovedHeadings に追加して本文の強調を解除
-                    if (pageData.Headings != null)
+                    var existingCombined = (pageData.Headings ?? new List<string>()).Concat(pageData.Subheadings ?? new List<string>()).ToList();
+                    foreach (var oldH in existingCombined)
                     {
-                        foreach (var oldH in pageData.Headings.ToList())
+                        string cleanOld = DocxExporter.RemovePagePrefix(oldH);
+                        if (!allUserHeadings.Contains(cleanOld, StringComparer.OrdinalIgnoreCase))
                         {
-                            string cleanOld = DocxExporter.RemovePagePrefix(oldH);
-                            bool isChOrSec = System.Text.RegularExpressions.Regex.IsMatch(cleanOld, @"^(?:序章|終章|第[0-9０-９一二三四五六七八九十百千万]+[章節編部])");
-                            if (isChOrSec) continue; // 章や節は手動削除保護
-
-                            if (!newHeadings.Contains(cleanOld, StringComparer.OrdinalIgnoreCase))
+                            if (pageData.RemovedHeadings == null) pageData.RemovedHeadings = new List<string>();
+                            if (!pageData.RemovedHeadings.Contains(cleanOld, StringComparer.OrdinalIgnoreCase))
                             {
-                                if (pageData.RemovedHeadings == null) pageData.RemovedHeadings = new List<string>();
-                                if (!pageData.RemovedHeadings.Contains(cleanOld, StringComparer.OrdinalIgnoreCase))
-                                {
-                                    pageData.RemovedHeadings.Add(cleanOld);
-                                }
-                                userRemovedHeadings.Add($"{pNum}::{cleanOld}");
-                                UnmarkHeadingInBodyRichTextBox(pNum, cleanOld);
+                                pageData.RemovedHeadings.Add(cleanOld);
                             }
+                            userRemovedHeadings.Add($"{pNum}::{cleanOld}");
+                            UnmarkHeadingInBodyRichTextBox(pNum, cleanOld);
                         }
                     }
 
-                    // 章や節が万一 userHeadings に含まれていなかった場合でも保護して保持
-                    var protectedChOrSec = (pageData.Headings ?? new List<string>())
-                        .Where(h => System.Text.RegularExpressions.Regex.IsMatch(DocxExporter.RemovePagePrefix(h), @"^(?:序章|終章|第[0-9０-９一二三四五六七八九十百千万]+[章節編部])"))
-                        .Select(h => DocxExporter.RemovePagePrefix(h));
-                    foreach (var ch in protectedChOrSec)
-                    {
-                        if (!newHeadings.Contains(ch, StringComparer.OrdinalIgnoreCase))
-                        {
-                            newHeadings.Insert(0, ch);
-                        }
-                    }
                     pageData.Headings = newHeadings;
+                    pageData.Subheadings = newSubheadings;
                 }
                 else if (tabOcrResult?.SelectedTab?.Text.Contains("見出し") == true &&
                          bodyByPage.ContainsKey(pNum) &&
                          !isSyncingHeadings &&
-                         pageData.Headings != null && pageData.Headings.Count > 0)
+                         ((pageData.Headings != null && pageData.Headings.Count > 0) || (pageData.Subheadings != null && pageData.Subheadings.Count > 0)))
                 {
-                    // 該当ページが現在UIにロードされており、かつ見出しタブが選択された状態で該当ページの見出しが1件もない場合のみ全削除とみなす
-                    foreach (var oldH in pageData.Headings.ToList())
+                    // 該当ページが現在UIにロードされており、かつ見出しタブが選択された状態で該当ページの見出しが1件もない場合（ユーザーが全削除した場合）
+                    var existingCombined = (pageData.Headings ?? new List<string>()).Concat(pageData.Subheadings ?? new List<string>()).ToList();
+                    foreach (var oldH in existingCombined)
                     {
                         string cleanOld = DocxExporter.RemovePagePrefix(oldH);
-                        bool isChOrSec = System.Text.RegularExpressions.Regex.IsMatch(cleanOld, @"^(?:序章|終章|第[0-9０-９一二三四五六七八九十百千万]+[章節編部])");
-                        if (isChOrSec) continue; // 章や節は全削除の対象外
-
                         if (pageData.RemovedHeadings == null) pageData.RemovedHeadings = new List<string>();
                         if (!pageData.RemovedHeadings.Contains(cleanOld, StringComparer.OrdinalIgnoreCase))
                         {
@@ -481,7 +462,8 @@ namespace OCR_Translator
                         userRemovedHeadings.Add($"{pNum}::{cleanOld}");
                         UnmarkHeadingInBodyRichTextBox(pNum, cleanOld);
                     }
-                    pageData.Headings.RemoveAll(h => !System.Text.RegularExpressions.Regex.IsMatch(DocxExporter.RemovePagePrefix(h), @"^(?:序章|終章|第[0-9０-９一二三四五六七八九十百千万]+[章節編部])"));
+                    pageData.Headings?.Clear();
+                    pageData.Subheadings?.Clear();
                 }
 
                 // 注釈文タブの同期（UIに該当ページの注釈文がある場合のみ更新）

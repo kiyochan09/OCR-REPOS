@@ -253,9 +253,10 @@ namespace OCR_Translator.Services
                         if (!isRemoved && trimmed.Length <= 80 && !trimmed.Contains("。") &&
                             !Regex.IsMatch(trimmed, @"^【(?:注釈文|注)\d+】"))
                         {
-                            if (page.Headings != null)
+                            var combinedHeadings = (page.Headings ?? new List<string>()).Concat(page.Subheadings ?? new List<string>()).ToList();
+                            if (combinedHeadings.Count > 0)
                             {
-                                isSub = page.Headings.Any(h => !string.IsNullOrWhiteSpace(h) && (
+                                isSub = combinedHeadings.Any(h => !string.IsNullOrWhiteSpace(h) && (
                                            h.Trim().Equals(trimmed, StringComparison.OrdinalIgnoreCase) ||
                                            trimmed.Equals(RemovePagePrefix(h), StringComparison.OrdinalIgnoreCase) ||
                                            (!string.IsNullOrEmpty(normLine) && NormalizeForComparison(RemovePagePrefix(h)) == normLine)));
@@ -877,6 +878,7 @@ namespace OCR_Translator.Services
                 {
                     PageNumber = page.PageNumber,
                     Headings = filteredHeadings,
+                    Subheadings = page.Subheadings != null ? new List<string>(page.Subheadings) : new List<string>(),
                     BodyParagraphs = page.BodyParagraphs != null ? new List<string>(page.BodyParagraphs) : new List<string>(),
                     Tables = new List<StructuredTable>(),
                     Figures = new List<FigureItem>(),

@@ -739,6 +739,24 @@ namespace OCR_Translator.Services
                 }
             }
 
+            // 5. 節・項・条・回・Section等の小見出し、括弧付き見出し、枝番見出しは除外（大見出しキーではない）
+            if (!IsMajorHeading(trimmed) && (
+                IsSubheadingText(trimmed) ||
+                System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^第[0-9０-９一二三四五六七八九十百千万]+[節項条回]") ||
+                System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^(?:Section|Sec\.)\s+[0-9IVXLCDMivxlcdm]+", System.Text.RegularExpressions.RegexOptions.IgnoreCase) ||
+                System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[（\(\[【①-⑳❶-❿]") ||
+                System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^\d+(?:\.\d+)+")))
+            {
+                return null;
+            }
+
+            // 6. 洋書・一般見出し領域（ユーザーがキャンバス上で「見出し」領域として設定した任意のテキスト）
+            // 「章」の文字に限定せず、見出し領域として設定された単位で注釈番号を振り直す（例: "this is first" 等）
+            if (!string.IsNullOrWhiteSpace(trimmed) && trimmed.Length <= 80)
+            {
+                return DocxExporter.NormalizeForComparison(trimmed);
+            }
+
             return null;
         }
 

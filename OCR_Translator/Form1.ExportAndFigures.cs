@@ -454,6 +454,61 @@ namespace OCR_Translator
             return result;
         }
 
+        /// <summary>
+        /// 見出しタブの全テキストをページごとに解析し、第1階層（見出し領域・インデントなし）と第2階層（本文小見出し・インデントあり）に分類して返します。
+        /// </summary>
+        public static Dictionary<int, (List<string> Headings, List<string> Subheadings)> ParseHeadingsByPagesWithLevels(string fullText)
+        {
+            var result = new Dictionary<int, (List<string> Headings, List<string> Subheadings)>();
+            if (string.IsNullOrWhiteSpace(fullText)) return result;
+
+            var lines = fullText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            int curPage = 1;
+            foreach (var line in lines)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(line, @"^\[P(\d+)(?:-\d+)?\]\s*(.*)$");
+                if (match.Success && int.TryParse(match.Groups[1].Value, out int pageNum))
+                {
+                    curPage = pageNum;
+                    string rawContent = match.Groups[2].Value;
+                    if (!result.ContainsKey(curPage)) result[curPage] = (new List<string>(), new List<string>());
+
+                    bool isIndented = rawContent.StartsWith("    ") || rawContent.StartsWith("　") || rawContent.StartsWith("\t") || rawContent.StartsWith("  ");
+                    string clean = DocxExporter.RemovePagePrefix(rawContent.Trim());
+                    if (!string.IsNullOrEmpty(clean) && clean.Length <= 80 && !clean.Contains("。") &&
+                        !System.Text.RegularExpressions.Regex.IsMatch(clean, @"^【(?:注釈文|注)\d+】") && !DocxExporter.IsGarbageOrNoiseHeading(clean))
+                    {
+                        bool isSection = System.Text.RegularExpressions.Regex.IsMatch(clean, @"^第[0-9０-９一二三四五六七八九十百千万]+[節項条回]") ||
+                                         System.Text.RegularExpressions.Regex.IsMatch(clean, @"^(?:Section|Sec\.)\s+[0-9IVXLCDMivxlcdm]+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        bool isSub = isIndented || isSection || OcrSorter.IsSubheadingText(clean);
+                        if (isSub && !OcrSorter.IsMajorHeading(clean))
+                            result[curPage].Subheadings.Add(clean);
+                        else
+                            result[curPage].Headings.Add(clean);
+                    }
+                }
+                else
+                {
+                    if (!result.ContainsKey(curPage)) result[curPage] = (new List<string>(), new List<string>());
+                    bool isIndented = line.StartsWith("    ") || line.StartsWith("　") || line.StartsWith("\t") || line.StartsWith("  ");
+                    string clean = DocxExporter.RemovePagePrefix(line.Trim());
+                    if (!string.IsNullOrEmpty(clean) && clean.Length <= 80 && !clean.Contains("。") &&
+                        !System.Text.RegularExpressions.Regex.IsMatch(clean, @"^【(?:注釈文|注)\d+】") && !DocxExporter.IsGarbageOrNoiseHeading(clean))
+                    {
+                        bool isSection = System.Text.RegularExpressions.Regex.IsMatch(clean, @"^第[0-9０-９一二三四五六七八九十百千万]+[節項条回]") ||
+                                         System.Text.RegularExpressions.Regex.IsMatch(clean, @"^(?:Section|Sec\.)\s+[0-9IVXLCDMivxlcdm]+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        bool isSub = isIndented || isSection || OcrSorter.IsSubheadingText(clean);
+                        if (isSub && !OcrSorter.IsMajorHeading(clean))
+                            result[curPage].Subheadings.Add(clean);
+                        else
+                            result[curPage].Headings.Add(clean);
+                    }
+                }
+            }
+
+            return result;
+        }
+
         private List<OcrPageData> BuildExportPages()
         {
             var allFigures = GetAllFigureItems();
@@ -1248,235 +1303,147 @@ namespace OCR_Translator
                         }
                     }
 
-                    var pageHeadingList = new List<string>();
+                    var pageHeadingList = new List<string>();       // 第1階層: 見出し領域（親見出し）
+                    var pageSubheadingList = new List<string>();    // 第2階層: 本文小見出し（子見出し）
 
+                    // 1. 既存の pageData.Headings および pageData.Subheadings を分類・保持
+                    if (pageData.Headings != null)
+                    {
+                        foreach (var h in pageData.Headings.ToList())
+                        {
+                            string cleanH = DocxExporter.RemovePagePrefix(h);
+                            if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
+
+                            bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
+                            bool isSub = isSection || OcrSorter.IsSubheadingText(cleanH);
+                            if (isSub && !OcrSorter.IsMajorHeading(cleanH))
+                            {
+                                if (!pageSubheadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                    pageSubheadingList.Add(cleanH);
+                            }
+                            else
+                            {
+                                if (!pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                    pageHeadingList.Add(cleanH);
+                            }
+                        }
+                    }
+
+                    if (pageData.Subheadings != null)
+                    {
+                        foreach (var sh in pageData.Subheadings.ToList())
+                        {
+                            string cleanSH = DocxExporter.RemovePagePrefix(sh);
+                            if (!string.IsNullOrWhiteSpace(cleanSH) && !DocxExporter.IsGarbageOrNoiseHeading(cleanSH))
+                            {
+                                if (!pageSubheadingList.Contains(cleanSH, StringComparer.OrdinalIgnoreCase))
+                                    pageSubheadingList.Add(cleanSH);
+                            }
+                        }
+                    }
+
+                    // 2. 本文段落からの小見出し（第2階層）抽出
+                    var parasToCheck = new List<string>();
                     if (bodyByPage.TryGetValue(pNum, out var paras) && paras.Count > 0)
                     {
-                        HashSet<string>? blueSet = null;
-                        blueHeadingsByPage?.TryGetValue(pNum, out blueSet);
-
-                        // 本文タブに現在表示されているページ: 本文の各段落・各行から小見出しを抽出
-                        foreach (var para in paras)
-                        {
-                            var lines = para.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                            foreach (var line in lines)
-                            {
-                                string trimmed = line.Trim();
-                                if (string.IsNullOrWhiteSpace(trimmed)) continue;
-
-                                string cleanH = DocxExporter.RemovePagePrefix(trimmed);
-                                bool isMajor = IsMajorChapterHeading(cleanH);
-                                bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-
-                                if (isMajor || isSection)
-                                {
-                                    pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                    userRemovedHeadings.Remove($"{pNum}::{cleanH}");
-                                }
-                                else
-                                {
-                                    bool isRemoved = IsHeadingRemoved(pageData, pNum, cleanH);
-                                    if (isRemoved)
-                                    {
-                                        UnmarkHeadingInBodyRichTextBox(pNum, cleanH);
-                                        continue; // ユーザーが明示的に解除した小見出しは除外
-                                    }
-                                }
-
-                                // 見出しの妥当性検査: 80文字以下 かつ 句点「。」を含まない行のみが見出し候補
-                                if (cleanH.Length <= 80 && !cleanH.Contains("。") && !Regex.IsMatch(cleanH, @"^【(?:注釈文|注)\d+】") && !DocxExporter.IsGarbageOrNoiseHeading(cleanH))
-                                {
-                                    bool isBlueInUI = blueSet != null && (blueSet.Contains(trimmed) || blueSet.Contains(cleanH));
-
-                                    if (isMajor || isSection || isBlueInUI || (blueSet == null && appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmed)))
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(cleanH) && !pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                        {
-                                            if (isMajor)
-                                                pageHeadingList.Insert(0, cleanH);
-                                            else
-                                                pageHeadingList.Add(cleanH);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // 大見出し（章タイトル等）および手動追加/既存の見出しを保持
-                        if (pageData.Headings != null)
-                        {
-                            foreach (var h in pageData.Headings.ToList())
-                            {
-                                string cleanH = DocxExporter.RemovePagePrefix(h);
-                                if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
-
-                                bool isMajor = IsMajorChapterHeading(cleanH);
-                                bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-
-                                if (isMajor || isSection)
-                                {
-                                    pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                    userRemovedHeadings.Remove($"{pNum}::{cleanH}");
-                                }
-                                else if (IsHeadingRemoved(pageData, pNum, cleanH))
-                                {
-                                    continue;
-                                }
-
-                                // 長すぎる文章（80文字超）や句点「。」を含む段落本文は混入誤認のため除外
-                                if (!string.IsNullOrWhiteSpace(cleanH) &&
-                                    cleanH.Length <= 80 &&
-                                    !cleanH.Contains("。") &&
-                                    !Regex.IsMatch(cleanH, @"^【(?:注釈文|注)\d+】") &&
-                                    !pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                {
-                                    if (isMajor)
-                                        pageHeadingList.Insert(0, cleanH);
-                                    else
-                                        pageHeadingList.Add(cleanH);
-                                }
-                            }
-                        }
-
-                        // 本文段落から大見出し、および(オプション有効時)小見出しを補完
-                        if (pageData.BodyParagraphs != null && pageData.BodyParagraphs.Count > 0)
-                        {
-                            foreach (var para in pageData.BodyParagraphs)
-                            {
-                                var lines = para.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                                foreach (var line in lines)
-                                {
-                                    string trimmed = line.Trim();
-                                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length > 80 || trimmed.Contains("。") || Regex.IsMatch(trimmed, @"^【(?:注釈文|注)\d+】")) continue;
-                                    string cleanH = DocxExporter.RemovePagePrefix(trimmed);
-                                    if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
-
-                                    bool isMajor = IsMajorChapterHeading(cleanH);
-                                    bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-
-                                    if (isMajor || isSection)
-                                    {
-                                        pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                        userRemovedHeadings.Remove($"{pNum}::{cleanH}");
-                                    }
-                                    else if (IsHeadingRemoved(pageData, pNum, cleanH))
-                                    {
-                                        continue;
-                                    }
-
-                                    bool isSub = appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmed);
-
-                                    if (isMajor || isSection || isSub)
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(cleanH) && !pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                        {
-                                            if (isMajor)
-                                                pageHeadingList.Insert(0, cleanH);
-                                            else
-                                                pageHeadingList.Add(cleanH);
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        parasToCheck = paras;
                     }
-                    else
+                    else if (pageData.BodyParagraphs != null && pageData.BodyParagraphs.Count > 0)
                     {
-                        // 本文がUIにロードされていないページ: pageDataの既存見出し、またはBodyParagraphsから抽出
-                        if (pageData.Headings != null && pageData.Headings.Count > 0)
+                        parasToCheck = pageData.BodyParagraphs;
+                    }
+
+                    HashSet<string>? blueSet = null;
+                    blueHeadingsByPage?.TryGetValue(pNum, out blueSet);
+
+                    foreach (var para in parasToCheck)
+                    {
+                        var lines = para.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                        foreach (var line in lines)
                         {
-                            foreach (var h in pageData.Headings.ToList())
+                            string trimmed = line.Trim();
+                            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length > 80 || trimmed.Contains("。") || Regex.IsMatch(trimmed, @"^【(?:注釈文|注)\d+】")) continue;
+
+                            string cleanH = DocxExporter.RemovePagePrefix(trimmed);
+                            if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
+
+                            bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
+                            bool isBlueInUI = blueSet != null && (blueSet.Contains(trimmed) || blueSet.Contains(cleanH));
+                            bool isSub = isBlueInUI || (blueSet == null && appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmed));
+
+                            if (isSection)
                             {
-                                string cleanH = DocxExporter.RemovePagePrefix(h);
-                                if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
-
-                                bool isMajor = IsMajorChapterHeading(cleanH);
-                                bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-
-                                if (isMajor || isSection)
+                                pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
+                                userRemovedHeadings.Remove($"{pNum}::{cleanH}");
+                                if (!pageSubheadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                    pageSubheadingList.Add(cleanH);
+                            }
+                            else if (isSub)
+                            {
+                                bool isRemoved = IsHeadingRemoved(pageData, pNum, cleanH);
+                                if (isRemoved)
                                 {
-                                    pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                    userRemovedHeadings.Remove($"{pNum}::{cleanH}");
-                                }
-                                else if (IsHeadingRemoved(pageData, pNum, cleanH))
-                                {
+                                    UnmarkHeadingInBodyRichTextBox(pNum, cleanH);
                                     continue;
                                 }
-
-                                if (!string.IsNullOrWhiteSpace(cleanH) &&
-                                    cleanH.Length <= 80 &&
-                                    !cleanH.Contains("。") &&
-                                    !Regex.IsMatch(cleanH, @"^【(?:注釈文|注)\d+】") &&
-                                    !pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                {
-                                    if (isMajor)
-                                        pageHeadingList.Insert(0, cleanH);
-                                    else
-                                        pageHeadingList.Add(cleanH);
-                                }
-                            }
-                        }
-                        
-                        // 本文段落から大見出し、および(オプション有効時)小見出しを補完
-                        if (pageData.BodyParagraphs != null && pageData.BodyParagraphs.Count > 0)
-                        {
-                            foreach (var para in pageData.BodyParagraphs)
-                            {
-                                var lines = para.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-                                foreach (var line in lines)
-                                {
-                                    string trimmed = line.Trim();
-                                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length > 80 || trimmed.Contains("。") || Regex.IsMatch(trimmed, @"^【(?:注釈文|注)\d+】")) continue;
-                                    string cleanH = DocxExporter.RemovePagePrefix(trimmed);
-                                    if (DocxExporter.IsGarbageOrNoiseHeading(cleanH)) continue;
-
-                                    bool isMajor = IsMajorChapterHeading(cleanH);
-                                    bool isSection = Regex.IsMatch(cleanH, @"^第[0-9０-９一二三四五六七八九十百千万]+節(?:[\s　・:：].*)?$");
-
-                                    if (isMajor || isSection)
-                                    {
-                                        pageData.RemovedHeadings?.RemoveAll(rh => rh.Equals(cleanH, StringComparison.OrdinalIgnoreCase) || DocxExporter.NormalizeForComparison(rh) == DocxExporter.NormalizeForComparison(cleanH));
-                                        userRemovedHeadings.Remove($"{pNum}::{cleanH}");
-                                    }
-                                    else if (IsHeadingRemoved(pageData, pNum, cleanH))
-                                    {
-                                        continue;
-                                    }
-
-                                    bool isSub = appSettings.AutoDetectSubheadings && OcrSorter.IsSubheadingText(trimmed);
-
-                                    if (isMajor || isSection || isSub)
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(cleanH) && !pageHeadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
-                                        {
-                                            if (isMajor)
-                                                pageHeadingList.Insert(0, cleanH);
-                                            else
-                                                pageHeadingList.Add(cleanH);
-                                        }
-                                    }
-                                }
+                                if (!pageSubheadingList.Contains(cleanH, StringComparer.OrdinalIgnoreCase))
+                                    pageSubheadingList.Add(cleanH);
                             }
                         }
                     }
+
+                    // 前方一致フラグメントの除去
+                    pageHeadingList.RemoveAll(h1 => pageHeadingList.Any(h2 => h2.Length > h1.Length && h2.StartsWith(h1, StringComparison.OrdinalIgnoreCase)));
+                    pageSubheadingList.RemoveAll(s1 => pageSubheadingList.Any(s2 => s2.Length > s1.Length && s2.StartsWith(s1, StringComparison.OrdinalIgnoreCase)));
 
                     pageData.Headings = pageHeadingList.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                    pageData.Subheadings = pageSubheadingList.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
                 }
 
                 if (updateHeadingTab && ocrResultTextBoxes.TryGetValue("heading", out var currentHBox) && currentHBox != null)
                 {
                     var sb = new StringBuilder();
+                    var seenChapterKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var pData in ocrPageDataList.ToList().OrderBy(p => p.PageNumber))
                     {
+                        // 1. 第1階層: 見出し領域（親見出し） -> インデントなし
                         if (pData.Headings != null && pData.Headings.Count > 0)
                         {
-                            foreach (var h in pData.Headings.ToList())
+                            var uniqueHeadings = pData.Headings
+                                .Select(h => DocxExporter.RemovePagePrefix(h).Trim())
+                                .Where(h => !string.IsNullOrWhiteSpace(h) && !DocxExporter.IsGarbageOrNoiseHeading(h))
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+
+                            uniqueHeadings.RemoveAll(h1 => uniqueHeadings.Any(h2 => h2.Length > h1.Length && h2.StartsWith(h1, StringComparison.OrdinalIgnoreCase)));
+
+                            foreach (var cleanH in uniqueHeadings)
                             {
-                                string cleanH = DocxExporter.RemovePagePrefix(h);
-                                if (!string.IsNullOrWhiteSpace(cleanH))
+                                string? chKey = OcrSorter.ExtractMajorHeadingKey(cleanH);
+                                if (chKey != null && seenChapterKeys.Contains(chKey))
                                 {
-                                    sb.AppendLine($"[P{pData.PageNumber}] {cleanH}");
+                                    // 既に前のページで登場した章の重複（柱・ランニングヘッダー）は除外
+                                    continue;
                                 }
+                                if (chKey != null) seenChapterKeys.Add(chKey);
+                                sb.AppendLine($"[P{pData.PageNumber}] {cleanH}");
+                            }
+                        }
+
+                        // 2. 第2階層: 本文小見出し（子見出し） -> 半角4文字分インデント
+                        if (pData.Subheadings != null && pData.Subheadings.Count > 0)
+                        {
+                            var uniqueSubheadings = pData.Subheadings
+                                .Select(sh => DocxExporter.RemovePagePrefix(sh).Trim())
+                                .Where(sh => !string.IsNullOrWhiteSpace(sh) && !DocxExporter.IsGarbageOrNoiseHeading(sh))
+                                .Distinct(StringComparer.OrdinalIgnoreCase)
+                                .ToList();
+
+                            uniqueSubheadings.RemoveAll(s1 => uniqueSubheadings.Any(s2 => s2.Length > s1.Length && s2.StartsWith(s1, StringComparison.OrdinalIgnoreCase)));
+
+                            foreach (var cleanSH in uniqueSubheadings)
+                            {
+                                sb.AppendLine($"[P{pData.PageNumber}]     {cleanSH}");
                             }
                         }
                     }
