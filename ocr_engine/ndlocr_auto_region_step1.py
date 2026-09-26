@@ -2210,8 +2210,9 @@ def create_body_regions(
 
     if vertical_results:
 
+        # 縦書き和書：右から左（X降順）にソートして、右側のブロックを第1領域にする
         vertical_results.sort(
-            key=lambda r: r["x"]
+            key=lambda r: -r["x"]
         )
 
         groups = []
@@ -2251,6 +2252,9 @@ def create_body_regions(
             groups.append(
                 current_group
             )
+
+        # 各グループの平均X座標で降順（右から左）に確実に整列
+        groups.sort(key=lambda g: -np.mean([r["x"] for r in g]) if g else 0)
 
         # -------------------------------------------------
         # 最大グループを本文候補とする

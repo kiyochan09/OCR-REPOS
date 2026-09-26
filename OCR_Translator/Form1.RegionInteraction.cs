@@ -50,6 +50,7 @@ namespace OCR_Translator
             lstRegions.Items[index] = newName;
             pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
             _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+            regionModifiedPages.Add(currentPage);
             UpdateTableLineControlsState();
             pictureBox1.Invalidate();
 
@@ -97,6 +98,7 @@ namespace OCR_Translator
 
                 pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
                 _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                regionModifiedPages.Add(currentPage);
                 UpdateTableLineControlsState();
                 pictureBox1.Invalidate();
 
@@ -263,6 +265,8 @@ namespace OCR_Translator
             regions.RemoveAt(index);
             lstRegions.Items.RemoveAt(index);
             pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
+            _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+            regionModifiedPages.Add(currentPage);
             lstRegions.ClearSelected();
 
             isUpdatingNumericValues = true;
@@ -296,6 +300,7 @@ namespace OCR_Translator
 
             pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
             _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+            regionModifiedPages.Add(currentPage);
             pictureBox1.Invalidate();
         }
 
@@ -734,6 +739,9 @@ namespace OCR_Translator
             if (resizeMode != ResizeMode.None)
             {
                 resizeMode = ResizeMode.None;
+                pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
+                _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                regionModifiedPages.Add(currentPage);
                 pictureBox1.Cursor = Cursors.Default;
                 pictureBox1.Invalidate();
                 return;
@@ -742,6 +750,9 @@ namespace OCR_Translator
             if (movingRegionIndex >= 0)
             {
                 movingRegionIndex = -1;
+                pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
+                _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                regionModifiedPages.Add(currentPage);
                 pictureBox1.Cursor = Cursors.Default;
                 pictureBox1.Invalidate();
                 return;
@@ -823,6 +834,11 @@ namespace OCR_Translator
                     currentPage,
                     form.SelectedTargetPages,
                     regions);
+
+                foreach (var p in form.SelectedTargetPages)
+                {
+                    regionModifiedPages.Add(p);
+                }
 
                 string targetSummary = string.Join(", ", form.SelectedTargetPages.Select(p => $"P.{p + 1}"));
                 txtLog.AppendText($"✔ 第 {currentPage + 1} ページの領域設定（{regions.Count}件）を {copiedCount} ページ（{targetSummary}）に一括コピー・保存しました。\n");

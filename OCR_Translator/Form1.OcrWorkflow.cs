@@ -179,6 +179,7 @@ namespace OCR_Translator
                         List<OcrRegion> divided = ApplyDeckDivision(converted, appSettings.DeckCount, appSettings.DocumentType, appSettings.TextOrientation);
                         autoPageRegions[pageIndex] = divided;
                         pageRegions[pageIndex] = _layoutStorage.CloneRegions(divided);
+                        regionModifiedPages.Add(pageIndex);
 
                         successCount++;
                         txtLog.AppendText($"成功: 自動領域 {divided.Count}件 検出" + (appSettings.DeckCount >= 2 ? $" ({appSettings.DeckCount}段組分割適用)" : "") + Environment.NewLine);
@@ -263,26 +264,36 @@ namespace OCR_Translator
                 return;
             }
 
+            using var ocrModal = new OcrExecutionForm(
+                currentPage,
+                (int)numPageStart.Value,
+                (int)numPageEnd.Value,
+                pdfDocument.PageCount,
+                regionModifiedPages,
+                Path.GetFileName(currentPdfPath)
+            );
+
+            if (ocrModal.ShowDialog(this) != DialogResult.OK || ocrModal.SelectedPages.Count == 0)
+            {
+                return;
+            }
+
+            List<int> targetPages = ocrModal.SelectedPages;
+            int targetPageCount = targetPages.Count;
             string pdfName = Path.GetFileNameWithoutExtension(currentPdfPath);
             int originalPage = currentPage;
             int successCount = 0;
             int failureCount = 0;
-            int startPage = Math.Max(0, (int)numPageStart.Value - 1);
-            int endPage = Math.Min(pdfDocument.PageCount - 1, (int)numPageEnd.Value - 1);
-            if (startPage > endPage)
-            {
-                int tmp = startPage;
-                startPage = endPage;
-                endPage = tmp;
-            }
-            int targetPageCount = endPage - startPage + 1;
 
             SaveCurrentPageRegions();
             SaveCurrentPageData();
             txtLog.Clear();
-            txtLog.AppendText($"========== OCR処理開始 (P.{startPage + 1} 〜 P.{endPage + 1} / 全{pdfDocument.PageCount}ページ) ==========" + Environment.NewLine);
+            string pagesSummary = targetPageCount == 1
+                ? $"P.{targetPages[0] + 1}"
+                : $"P.{targetPages.Min() + 1} 〜 P.{targetPages.Max() + 1} ({targetPageCount} ページ)";
+            txtLog.AppendText($"========== OCR処理開始 ({pagesSummary} / 全{pdfDocument.PageCount}ページ) ==========" + Environment.NewLine);
             txtLog.AppendText($"PDF: {Path.GetFileName(currentPdfPath)}" + Environment.NewLine);
-            txtLog.AppendText($"処理範囲: {startPage + 1} 〜 {endPage + 1} ページ ({targetPageCount} ページ)" + Environment.NewLine + Environment.NewLine);
+            txtLog.AppendText($"処理対象: {pagesSummary}" + Environment.NewLine + Environment.NewLine);
 
             ProgressForm? progressForm = null;
 
@@ -304,9 +315,10 @@ namespace OCR_Translator
                 progressForm.Show(this);
                 progressForm.UpdateProgress(0, targetPageCount, "準備中...");
 
-                for (int pageIndex = startPage; pageIndex <= endPage; pageIndex++)
+                for (int stepIdx = 0; stepIdx < targetPages.Count; stepIdx++)
                 {
-                    int currentStep = pageIndex - startPage;
+                    int pageIndex = targetPages[stepIdx];
+                    int currentStep = stepIdx;
                     string pageMessage = $"ページ {pageIndex + 1} / {pdfDocument.PageCount} (範囲内: {currentStep + 1}/{targetPageCount}) を処理しています...";
                     currentPage = pageIndex;
                     LoadCurrentPageRegions();
@@ -424,6 +436,7 @@ namespace OCR_Translator
 
                     ProcessPageOcrResult(pageIndex, pageDir, imagePath, textJson, resultJson, useUserRegions, regions, autoRegions);
 
+                    regionModifiedPages.Remove(pageIndex);
                     successCount++;
                     txtLog.AppendText("完了 (page_data.json 保存・右画面反映済)" + Environment.NewLine + Environment.NewLine);
                     progressForm?.UpdateProgress(currentStep + 1, targetPageCount,
@@ -459,7 +472,8 @@ namespace OCR_Translator
                 RefreshFigureGalleryView();
                 RefreshBatchList();
 
-                currentPage = startPage;
+                int finalDisplayPage = targetPages.Contains(originalPage) ? originalPage : targetPages[0];
+                currentPage = finalDisplayPage;
                 float postZoom = ParseZoomFactor(appSettings.PostOcrZoomRatio);
                 SetZoom(postZoom, true); // OCR完了後はオプション設定倍率 (初期値: 75%) を適用
                 LoadCurrentPageRegions();
@@ -467,7 +481,7 @@ namespace OCR_Translator
 
                 // 対象バッチの全ページを展開（OCR実行ページは最新結果で安全に上書き反映）
                 int batchSize = Math.Max(5, appSettings.BatchPageSize);
-                int batchStart = (startPage / batchSize) * batchSize + 1;
+                int batchStart = (finalDisplayPage / batchSize) * batchSize + 1;
                 int batchEnd = Math.Min(pdfDocument.PageCount, batchStart + batchSize - 1);
                 LoadBatchDataToUi(batchStart, batchEnd);
 
@@ -475,7 +489,7 @@ namespace OCR_Translator
                 {
                     tabOcrResult.SelectedTab = tabOcrText;
                 }
-                ScrollOcrResultToPage(startPage + 1);
+                ScrollOcrResultToPage(finalDisplayPage + 1);
 
                 Cursor = Cursors.Default;
                 btnStartOcr.Enabled = true;
@@ -578,7 +592,7 @@ namespace OCR_Translator
                     continue;
 
                 // 手動領域設定時：領域外のテキストはOCR対象外として完全に除外（設定領域のみをOCR）
-                if (useUserRegions && curUserRegions.Count > 0)
+                if (useUserRegions)
                 {
                     if (string.IsNullOrEmpty(type) || type == "unclassified")
                     {
@@ -587,10 +601,19 @@ namespace OCR_Translator
                 }
                 else
                 {
-                    // 自動判定時：未分類テキストは本文へフォールバックして文字欠落を防止
+                    // 自動判定時：
                     if (string.IsNullOrEmpty(type) || type == "unclassified")
                     {
-                        type = "body";
+                        // 領域が1つ以上検出されている場合、領域外のテキストは除外
+                        if (autoRegions != null && autoRegions.Count > 0)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            // 領域が全く未検出のページのみ本文へフォールバック
+                            type = "body";
+                        }
                     }
                 }
 
@@ -1339,11 +1362,23 @@ namespace OCR_Translator
                     r.Orientation == "horizontal" ||
                     r.Name.Contains("横") ||
                     r.Name.Contains("左段") ||
-                    r.Name.Contains("右段") ||
-                    r.Name.Contains("左ページ") ||
-                    r.Name.Contains("右ページ"));
+                    r.Name.Contains("右段"));
+                bool hasVerticalHint = sourceRegions.Any(r =>
+                    r.Orientation == "vertical" ||
+                    r.Name.Contains("縦"));
 
-                isHorizontal = hasHorizontalHint;
+                if (hasVerticalHint)
+                {
+                    isHorizontal = false;
+                }
+                else if (hasHorizontalHint)
+                {
+                    isHorizontal = true;
+                }
+                else
+                {
+                    isHorizontal = (docType == "western");
+                }
             }
 
             int minX = bodyRegions.Min(r => r.X);

@@ -95,20 +95,31 @@ namespace OCR_Translator.Services
 
         public static string FindOcrEngineDirectory()
         {
-            string? dir = AppContext.BaseDirectory;
-            while (!string.IsNullOrEmpty(dir))
+            var startDirs = new List<string?>
             {
-                string candidate = Path.Combine(dir, "ocr_engine");
-                if (File.Exists(Path.Combine(candidate, "ndlocr_auto_region.py")))
-                    return candidate;
-                DirectoryInfo? parent = Directory.GetParent(dir);
-                if (parent == null) break;
-                dir = parent.FullName;
+                Path.GetDirectoryName(typeof(OcrProcessor).Assembly.Location),
+                AppContext.BaseDirectory,
+                Directory.GetCurrentDirectory(),
+                @"C:\Users\natur\source\repos\OCR_Translator"
+            };
+
+            foreach (var startDir in startDirs)
+            {
+                if (string.IsNullOrEmpty(startDir) || !Directory.Exists(startDir)) continue;
+                string? dir = startDir;
+                while (!string.IsNullOrEmpty(dir))
+                {
+                    string candidate = Path.Combine(dir, "ocr_engine");
+                    if (File.Exists(Path.Combine(candidate, "ndlocr_auto_region.py")) || Directory.Exists(candidate))
+                        return candidate;
+
+                    DirectoryInfo? parent = Directory.GetParent(dir);
+                    if (parent == null) break;
+                    dir = parent.FullName;
+                }
             }
 
-            string fallback = Path.GetFullPath(Path.Combine(
-                AppContext.BaseDirectory, "..", "..", "..", "..", "ocr_engine"));
-            return fallback;
+            return @"C:\Users\natur\source\repos\OCR_Translator\ocr_engine";
         }
 
         public static OcrRegion ConvertAutoLayoutRegion(AutoLayoutRegion source)

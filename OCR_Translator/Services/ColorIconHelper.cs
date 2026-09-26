@@ -79,6 +79,9 @@ namespace OCR_Translator.Services
                     case "options":
                         DrawSettingsGear(g, s, Color.FromArgb(59, 130, 246));
                         break;
+                    case "user_dict":
+                        DrawUserDict(g, s);
+                        break;
                     default:
                         DrawDefault(g, s);
                         break;
@@ -475,6 +478,47 @@ namespace OCR_Translator.Services
             using (var pGrip = new Pen(Color.FromArgb(148, 163, 184), 1.4f * s) { StartCap = LineCap.Round, EndCap = LineCap.Round })
             {
                 g.DrawLine(pGrip, handleStartX + 2.5f * s, handleStartY + 2.5f * s, handleEndX - 1.5f * s, handleEndY - 1.5f * s);
+            }
+        }
+
+        private static void DrawUserDict(Graphics g, float s)
+        {
+            // Book cover / pages
+            using (var bCover = new SolidBrush(Color.FromArgb(67, 56, 202)))
+            {
+                g.FillPath(bCover, RoundedRect(4 * s, 5 * s, 24 * s, 22 * s, 3 * s));
+            }
+            using (var bPages = new SolidBrush(Color.FromArgb(243, 244, 246)))
+            {
+                g.FillRectangle(bPages, 7 * s, 7 * s, 18 * s, 18 * s);
+            }
+            // Spine & separator
+            using (var pSpine = new Pen(Color.FromArgb(99, 102, 241), 1.5f * s))
+            {
+                g.DrawLine(pSpine, 16 * s, 7 * s, 16 * s, 25 * s);
+            }
+            // Text lines in book
+            using (var pText = new Pen(Color.FromArgb(156, 163, 175), 1.2f * s))
+            {
+                g.DrawLine(pText, 9 * s, 11 * s, 14 * s, 11 * s);
+                g.DrawLine(pText, 9 * s, 15 * s, 14 * s, 15 * s);
+                g.DrawLine(pText, 9 * s, 19 * s, 13 * s, 19 * s);
+
+                g.DrawLine(pText, 18 * s, 11 * s, 23 * s, 11 * s);
+                g.DrawLine(pText, 18 * s, 15 * s, 23 * s, 15 * s);
+                g.DrawLine(pText, 18 * s, 19 * s, 22 * s, 19 * s);
+            }
+            // Bookmark ribbon (Amber)
+            using (var bRibbon = new SolidBrush(Color.FromArgb(245, 158, 11)))
+            {
+                PointF[] ribbon = {
+                    new PointF(15 * s, 5 * s),
+                    new PointF(17 * s, 5 * s),
+                    new PointF(17 * s, 13 * s),
+                    new PointF(16 * s, 11 * s),
+                    new PointF(15 * s, 13 * s)
+                };
+                g.FillPolygon(bRibbon, ribbon);
             }
         }
 

@@ -34,10 +34,14 @@ namespace OCR_Translator.Services
                 string jsonString = JsonSerializer.Serialize(data, JsonOptions);
                 File.WriteAllText(jsonPath, jsonString, Encoding.UTF8);
 
+                string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
                 if (data.BodyParagraphs != null && data.BodyParagraphs.Count > 0)
                 {
-                    string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
                     File.WriteAllText(bodyReadingOrderPath, string.Join(Environment.NewLine + Environment.NewLine, data.BodyParagraphs), Encoding.UTF8);
+                }
+                else if (File.Exists(bodyReadingOrderPath))
+                {
+                    File.Delete(bodyReadingOrderPath);
                 }
             }
             catch
@@ -48,8 +52,8 @@ namespace OCR_Translator.Services
 
         /// <summary>
         /// 指定されたページディレクトリから page_data.json を読み込みます。
-        /// page_data.json が存在しない場合や BodyParagraphs が空の場合は、
-        /// 同ディレクトリ内の body_reading_order.txt から自動復元（自己修復）します。
+        /// page_data.json が存在しないレガシーデータの場合のみ、
+        /// 同ディレクトリ内の body_reading_order.txt から自動復元します。
         /// </summary>
         public static OcrPageData? LoadPageData(string pageDir)
         {
@@ -57,8 +61,9 @@ namespace OCR_Translator.Services
 
             string jsonPath = Path.Combine(pageDir, "page_data.json");
             OcrPageData? data = null;
+            bool jsonExisted = File.Exists(jsonPath);
 
-            if (File.Exists(jsonPath))
+            if (jsonExisted)
             {
                 try
                 {
@@ -76,29 +81,28 @@ namespace OCR_Translator.Services
                 {
                     data.PageNumber = pNum;
                 }
-            }
 
-            // 自己修復 / フォールバック: BodyParagraphs が空の場合、body_reading_order.txt から本文段落を復元
-            if (data.BodyParagraphs == null || data.BodyParagraphs.Count == 0)
-            {
-                string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
-                if (File.Exists(bodyReadingOrderPath))
+                // page_data.json が存在しなかったレガシープロジェクトのみ body_reading_order.txt から復元
+                if (!jsonExisted)
                 {
-                    try
+                    string bodyReadingOrderPath = Path.Combine(pageDir, "body_reading_order.txt");
+                    if (File.Exists(bodyReadingOrderPath))
                     {
-                        string bodyTxt = File.ReadAllText(bodyReadingOrderPath, Encoding.UTF8);
-                        if (!string.IsNullOrWhiteSpace(bodyTxt))
+                        try
                         {
-                            data.BodyParagraphs = bodyTxt.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(p => p.Trim())
-                                .Where(p => !string.IsNullOrEmpty(p))
-                                .ToList();
+                            string bodyTxt = File.ReadAllText(bodyReadingOrderPath, Encoding.UTF8);
+                            if (!string.IsNullOrWhiteSpace(bodyTxt))
+                            {
+                                data.BodyParagraphs = bodyTxt.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(p => p.Trim())
+                                    .Where(p => !string.IsNullOrEmpty(p))
+                                    .ToList();
 
-                            // 復元した完全なデータを page_data.json へ再保存してディスクを自己修復
-                            SavePageData(pageDir, data);
+                                SavePageData(pageDir, data);
+                            }
                         }
+                        catch { }
                     }
-                    catch { }
                 }
             }
 

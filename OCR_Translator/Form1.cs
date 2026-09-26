@@ -29,6 +29,7 @@ namespace OCR_Translator
         private List<OcrRegion> regions = new List<OcrRegion>();
         private Dictionary<int, List<OcrRegion>> pageRegions = new();
         private Dictionary<int, List<OcrRegion>> autoPageRegions = new();
+        private readonly HashSet<int> regionModifiedPages = new();
 
         // 領域マウスインタラクション状態
         private bool isDrawingRegion = false;
@@ -217,6 +218,7 @@ namespace OCR_Translator
             SetButtonColorIcon(btnExportWord, "export_word");
             SetButtonColorIcon(btnSearchBatch, "search");
             SetButtonColorIcon(btnOptions, "options");
+            SetButtonColorIcon(btnUserDict, "user_dict");
         }
 
         private void InitializeZoomControls()
@@ -331,9 +333,9 @@ namespace OCR_Translator
                 }
                 else if (text.Contains("注釈"))
                 {
-                    accentColor = Color.FromArgb(115, 125, 135); // Gray (注釈文枠線色)
-                    lightBg = Color.FromArgb(245, 246, 248);
-                    darkText = Color.FromArgb(70, 75, 85);
+                    accentColor = Color.FromArgb(21, 128, 61);   // Green (注釈文枠線色)
+                    lightBg = Color.FromArgb(236, 253, 245);
+                    darkText = Color.FromArgb(22, 101, 52);
                 }
                 else if (text.Contains("図"))
                 {
@@ -451,6 +453,15 @@ namespace OCR_Translator
                 {
                     SyncHeadings(null, updateHeadingTab: true);
                     if (ocrResultTextBoxes.TryGetValue("heading", out var currentBox))
+                    {
+                        ApplyMarginsToOcrTextBox(currentBox);
+                    }
+                    SaveCurrentPageData();
+                }
+                else if (tabOcrResult.SelectedTab?.Text.Contains("注釈") == true)
+                {
+                    SyncAndRenumberAllFootnotesUi();
+                    if (ocrResultTextBoxes.TryGetValue("footnote", out var currentBox))
                     {
                         ApplyMarginsToOcrTextBox(currentBox);
                     }
@@ -1011,6 +1022,12 @@ namespace OCR_Translator
                     $"{(appSettings.FontBold ? " (太字)" : "")} / 組方向: {orientationName} / 書籍種別: {docTypeName} / 1行文字数: {(appSettings.LineCharCount > 0 ? $"{appSettings.LineCharCount}文字" : "段落単位")} / 注釈採番: {(appSettings.FootnoteNumberingScope == "majorHeading" ? "大見出し単位" : "通し番号")} / 小見出し自動認識: {(appSettings.AutoDetectSubheadings ? "する" : "しない")} / バッチサイズ: {appSettings.BatchPageSize}P / OCR後倍率: {appSettings.PostOcrZoomRatio} / 移動: {navScopeName}" +
                     Environment.NewLine);
             }
+        }
+
+        private void btnUserDict_Click(object? sender, EventArgs e)
+        {
+            using var dlg = new UserDictionaryForm();
+            dlg.ShowDialog(this);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

@@ -399,10 +399,10 @@ namespace OCR_Translator
                     ocrPageDataList.Add(pageData);
                 }
 
-                // 本文の同期（UIに該当ページの本文がある場合のみ更新）
-                if (bodyByPage.TryGetValue(pNum, out var paras) && paras.Count > 0)
+                // 本文の同期（UIの本文タブの状態を反映）
+                if (bodyByPage.TryGetValue(pNum, out var paras))
                 {
-                    pageData.BodyParagraphs = paras;
+                    pageData.BodyParagraphs = paras ?? new List<string>();
                 }
 
                 // 見出しタブの同期（UIの見出しタブに該当ページの見出しがある場合、ユーザーの手動編集を最優先で反映）

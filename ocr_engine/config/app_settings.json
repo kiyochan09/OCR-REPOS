@@ -1,0 +1,18 @@
+{
+  "font_family": "Meiryo UI",
+  "font_size": 12,
+  "font_bold": false,
+  "ocr_zoom": "Fit",
+  "ocr_orientation": "auto",
+  "book_type": "和書",
+  "render_dpi": 300,
+  "column_deck": "auto",
+  "enable_tcy": true,
+  "chars_per_line": 0,
+  "annotation_numbering": "通し番号",
+  "insert_page_break": true,
+  "default_export_dir": "",
+  "window_geometry": "3840x2054+342+342",
+  "last_pdf_path": "C:\\Users\\natur\\.gemini\\antigravity\\brain\\c4026580-bd26-4846-8f57-3795f710ea94\\.user_uploaded\\media_1789122267284.pdf",
+  "batch_size": 20
+}

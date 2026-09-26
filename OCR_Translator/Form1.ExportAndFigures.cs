@@ -1748,6 +1748,14 @@ namespace OCR_Translator
             mnuSearch.Font = new Font(menu.Font, FontStyle.Bold);
             mnuSearch.ForeColor = Color.FromArgb(15, 23, 42);
 
+            var mnuUserDict = new ToolStripMenuItem("📖 ユーザー辞書に登録・管理...", null, (s, e) =>
+            {
+                string? selected = rtb.SelectionLength > 0 ? rtb.SelectedText.Trim() : null;
+                using var dictForm = new Forms.UserDictionaryForm(selected);
+                dictForm.ShowDialog(this);
+            });
+            mnuUserDict.ForeColor = Color.FromArgb(67, 56, 202);
+
             menu.Items.Add(mnuHeading);
             menu.Items.Add(mnuClearHeading);
             menu.Items.Add(mnuSyncHeadings);
@@ -1755,6 +1763,8 @@ namespace OCR_Translator
             menu.Items.Add(mnuFootnote);
             menu.Items.Add(mnuNoteNum);
             menu.Items.Add(mnuSyncFootnotes);
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(mnuUserDict);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(mnuReloadBatch);
             menu.Items.Add(new ToolStripSeparator());

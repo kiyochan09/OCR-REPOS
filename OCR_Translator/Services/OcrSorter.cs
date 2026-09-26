@@ -565,11 +565,91 @@ namespace OCR_Translator.Services
             // 繰り返し単語・パターンの暴走（the the the the や ( ) ( ) 等）を除去
             text = System.Text.RegularExpressions.Regex.Replace(text, @"(\b\w+\b\s+)\1{3,}.*$", "").Trim();
             text = System.Text.RegularExpressions.Regex.Replace(text, @"((?:\([^\)]*\)|\S+)\s*)\1{3,}.*$", "").Trim();
-            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^[\s\(\)\[\]\{\}\.,・:：1l|]+$")) return "";
             // 年号直後の括弧誤認識 (例: 2005al. -> 2005a]., 1997l. -> 1997].)
             text = System.Text.RegularExpressions.Regex.Replace(text, @"(\b\d{4}[a-z]?)l\.", "$1].");
             text = System.Text.RegularExpressions.Regex.Replace(text, @"(\b\d{4}[a-z]?)1\.", "$1].");
+
+            // 9/11・サウジアラビア等の頻出OCRノイズ修復
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"[9り]{2,}/11", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"9\s*9/11", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"私たちはり\s*9/11", "私たちは9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])9\s*[/／]\s*[I日口1Uu]1?(?=同時多発テロ)", "9/11");
+
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／][I日口1Uu]1?(?=同時多発テロ)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／]11(?=同時多発テロ)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9A-Za-z])I(?=同時多発テロ)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])9\s*[/／]\s*[I日口1Uu]1?(?=攻撃)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／][I日口1Uu]1?(?=攻撃)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／]11(?=攻撃)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[9り]\s*[/／]\s*[I日口1Uu]1?(?=以[後降])", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／][I日口1Uu]1?(?=以[後降])", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／]11(?=以[後降])", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[9り]\s*[・･/／]\s*[I日口1Uu]1?(?=[以攻テ同チェ]|への|の|で|に|から|直後|事件|と[同ち]|と同じ|では|も)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[/／][I日口1Uu]1?(?=[以攻テ同チェ]|への|の|で|に|から|直後|事件|と[同ち]|と同じ|では|も)", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9])[9り]\s*[・･]\s*[I日口1Uu](?![0-9])", "9/11");
+            text = text.Replace("9/Uと同じ", "9/11と同じ").Replace("9/Uと", "9/11と").Replace("9/U", "9/11").Replace("9・口では", "9/11では").Replace("9・口", "9/11");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"Dプラス[ワン1]", "19プラスワン");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"サ{2,}ウジアラビア", "サウジアラビア");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<=、)サ+(?=ウジアラビア)", "サ");
+
+            // G20・サミット修復
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"サンクトペテルブルク\s*G\s*(?=会合|サミット|首脳|のために)", "サンクトペテルブルクG20");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])G\s*M(?=サミット|首脳|会合|財務相|のために|で|に)", "G20");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])G\s+20(?=サミット|首脳|会合|財務相|メンバー|国|カ国|のために|で|に)", "G20");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])G\s+(?=会合|サミット|のために)", "G20");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"九月の\s*G\s*(?=のために)", "九月のG20");
+            text = text.Replace("GMサミット", "G20サミット").Replace("G 会合", "G20会合").Replace("九月のG のために", "九月のG20のために").Replace("九月のGのために", "九月のG20のために");
+
+            // 3M14T巡航ミサイル・SS-20ミサイル修復
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])3\s*M\s*(?:M|14|W|H)?\s*T(?=巡航ミサイル|ミサイル|対地|\b)", "3M14T");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])3\s*M\s*5\s*4(?=巡航ミサイル|ミサイル|\b)", "3M-54");
+            text = text.Replace("3MMT巡航ミサイル", "3M14T巡航ミサイル").Replace("3MMT", "3M14T");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([ソ]?連の\s*SS)\s+(?=がアメリカのパーシング|と対峙|とアメリカ)", "$120");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])SS\s+(?=がアメリカのパーシング|とアメリカのパーシング|と対峙)", "SS20");
+            text = text.Replace("連のSS がアメリカ", "連のSS20がアメリカ").Replace("ソ連のSS がアメリカ", "ソ連のSS20がアメリカ");
+
+            // AK-47 修復
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"AK[\-ー\s]*[卯]", "AK-47");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"AK[\-ー\s]*4\s*7(?=で武装|小銃|突撃銃|自動小銃|\b)", "AK-47");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])AK[\-ー\s]*(?=で武装)", "AK-47");
+
+            // 軍用機・部隊・偵察機修復 (An-26, 第53対空ミサイル旅団, U-2)
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"ウクライナの\s*An[\-ー\s]*(?![0-9])(?=市の東|軍事輸送機)", "ウクライナのAn-26軍事輸送機が、");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9A-Za-z])An[\-ー\s]*(?![0-9])(?=軍事輸送機|輸送機|を撃墜|旅客機)", "An-26");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9A-Za-z])An[\-ー\s]*[3\sー]*(?![0-9])(?=などではなく)", "An-26");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"同じく\s*An[\-ー\s]*(?![0-9])(?=を撃墜)", "同じくAn-26");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"第3(?=対空ミサイル旅団)", "第53");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"第3(?=対空ミサイ)", "第53");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9\-])U(?=[\s\r\n]*偵察機)", "U-2");
+            text = text.Replace("U-2-2", "U-2");
+
+            // MH17便修復
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![0-9A-Za-z])MH\s*[UF口日I\s]{0,3}(?=便|撃墜|の惨事|航空機|旅客機)", "MH17");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<=マレーシア航空)\s*MH(?!\s*17)", "MH17");
+            text = text.Replace("MH1717", "MH17").Replace("MH 便", "MH17便").Replace("MHUF便", "MH17便").Replace("MHU口便", "MH17便").Replace("MHIU便", "MH17便");
+
+            // カタカナ人名・語句のスタッター・暴走繰り返し除去 (例: ロナロナロナルド -> ロナルド)
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?:ロナ)+ロナルド", "ロナルド");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:サ)+サウジアラビア", "$1サウジアラビア");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:プ)+プーチン", "$1プーチン");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:エリ)+エリツィン", "$1エリツィン");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:クリ)+クリントン", "$1クリントン");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:ブレ)+ブレア", "$1ブレア");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:トラ)+トランプ", "$1トランプ");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:バイ)+バイデン", "$1バイデン");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"([^ァ-ヶ]|^)(?:ゴル)+ゴルバチョフ", "$1ゴルバチョフ");
+
+            // 公式ウェブサイト・URL表記補正 (www.kremlin.ru, www.en.kremlin.ru 等)
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?:クレムリンのウェブサイト\s*)?w+\.kremlin(?:\.ru|\.n)*", "クレムリンのウェブサイトwww.kremlin.ru");
+            text = text.Replace("クレムリンのウェブサイトクレムリンのウェブサイト", "クレムリンのウェブサイト");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(?<![A-Za-z0-9])w+\.en\.kremlin(?:\.ru|\.n)*", "www.en.kremlin.ru");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"(www\.(?:en\.)?kremlin\.ru)(?:\.ru)+", "$1");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"w{4,}\.", "www.");
+            text = text.Replace("ウェブサイトw.kremlin", "ウェブサイトwww.kremlin.ru").Replace("w.en.kremlin.n", "www.en.kremlin.ru");
+
             return text;
+
+
         }
 
         /// <summary>

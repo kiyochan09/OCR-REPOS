@@ -86,6 +86,7 @@ namespace OCR_Translator
                         selectedRuleLineIndices.Clear();
                         pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
                         _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                        regionModifiedPages.Add(currentPage);
                         UpdateTableLineControlsState();
                         pictureBox1.Invalidate();
                         return;
@@ -117,6 +118,7 @@ namespace OCR_Translator
                         selectedRuleLineIndices.Clear();
                         pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
                         _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                        regionModifiedPages.Add(currentPage);
                         UpdateTableLineControlsState();
                         pictureBox1.Invalidate();
                     }
@@ -778,6 +780,7 @@ namespace OCR_Translator
                     }
                     pageRegions[currentPage] = _layoutStorage.CloneRegions(regions);
                     _layoutStorage.ForceSavePageRegions(currentPage, regions, pageRegions);
+                    regionModifiedPages.Add(currentPage);
                 }
                 ruleLineDragMode = RuleLineDragMode.None;
                 draggingRuleLineIndex = -1;

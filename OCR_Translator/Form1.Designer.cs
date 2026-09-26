@@ -63,6 +63,7 @@ namespace OCR_Translator
             btnExportWord = new Button();
             btnSearchBatch = new Button();
             btnOptions = new Button();
+            btnUserDict = new Button();
             lblOrientationBadge = new Label();
             lblDocTypeBadge = new Label();
             lblDeckBadge = new Label();
@@ -93,6 +94,7 @@ namespace OCR_Translator
             pnlRegionSettings.AccessibleName = "pnlRegionSettings";
             pnlRegionSettings.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left;
             pnlRegionSettings.AutoScroll = true;
+            pnlRegionSettings.Visible = false;
             pnlRegionSettings.Controls.Add(lstRegions);
             pnlRegionSettings.Controls.Add(btnDeleteRegion);
             pnlRegionSettings.Controls.Add(numHeight);
@@ -198,11 +200,11 @@ namespace OCR_Translator
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             tableLayoutPanel1.Controls.Add(pnlCanvasContainer, 0, 0);
             tableLayoutPanel1.Controls.Add(richTextBox1, 1, 0);
-            tableLayoutPanel1.Location = new Point(285, 84);
+            tableLayoutPanel1.Location = new Point(0, 84);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 1;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tableLayoutPanel1.Size = new Size(1094, 668);
+            tableLayoutPanel1.Size = new Size(1379, 668);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // pnlCanvasContainer
@@ -260,19 +262,11 @@ namespace OCR_Translator
             panelToolbar.Controls.Add(btnZoomOut);
             panelToolbar.Controls.Add(cmbZoom);
             panelToolbar.Controls.Add(btnZoomIn);
-            panelToolbar.Controls.Add(btnRegionSettings);
-            panelToolbar.Controls.Add(btnReorderMode);
-            panelToolbar.Controls.Add(btnAutoLayout);
             panelToolbar.Controls.Add(btnStartOcr);
-            panelToolbar.Controls.Add(btnAddHeading);
-            panelToolbar.Controls.Add(btnAddFootnote);
-            panelToolbar.Controls.Add(btnAddAnnotationNumber);
             panelToolbar.Controls.Add(btnExportWord);
             panelToolbar.Controls.Add(btnSearchBatch);
             panelToolbar.Controls.Add(btnOptions);
-            panelToolbar.Controls.Add(lblOrientationBadge);
-            panelToolbar.Controls.Add(lblDocTypeBadge);
-            panelToolbar.Controls.Add(lblDeckBadge);
+            panelToolbar.Controls.Add(btnUserDict);
             panelToolbar.Dock = DockStyle.Top;
             panelToolbar.FlowDirection = FlowDirection.LeftToRight;
             panelToolbar.Location = new Point(0, 0);
@@ -548,7 +542,7 @@ namespace OCR_Translator
             btnAddHeading.Name = "btnAddHeading";
             btnAddHeading.Size = new Size(54, 54);
             btnAddHeading.TabIndex = 9;
-            btnAddHeading.Text = "🔖";
+            btnAddHeading.Text = "📑";
             btnAddHeading.UseVisualStyleBackColor = true;
             btnAddHeading.Click += btnAddHeading_Click;
             toolTipMain.SetToolTip(btnAddHeading, "見出し設定 (本文選択範囲を見出しに設定)");
@@ -560,7 +554,7 @@ namespace OCR_Translator
             btnAddFootnote.Name = "btnAddFootnote";
             btnAddFootnote.Size = new Size(54, 54);
             btnAddFootnote.TabIndex = 10;
-            btnAddFootnote.Text = "📑";
+            btnAddFootnote.Text = "🔖";
             btnAddFootnote.UseVisualStyleBackColor = true;
             btnAddFootnote.Click += btnAddFootnote_Click;
             toolTipMain.SetToolTip(btnAddFootnote, "注釈文設定 (本文選択範囲を注釈文に設定＆番号リンク)");
@@ -612,6 +606,18 @@ namespace OCR_Translator
             btnOptions.UseVisualStyleBackColor = true;
             btnOptions.Click += btnOptions_Click;
             toolTipMain.SetToolTip(btnOptions, "オプション設定");
+            // 
+            // btnUserDict
+            // 
+            btnUserDict.Font = new Font("Segoe UI Emoji", 20F, FontStyle.Regular);
+            btnUserDict.Location = new Point(853, 13);
+            btnUserDict.Name = "btnUserDict";
+            btnUserDict.Size = new Size(54, 54);
+            btnUserDict.TabIndex = 15;
+            btnUserDict.Text = "📖";
+            btnUserDict.UseVisualStyleBackColor = true;
+            btnUserDict.Click += btnUserDict_Click;
+            toolTipMain.SetToolTip(btnUserDict, "📖 ユーザー辞書・置換ルールの管理 (単語登録・編集)");
             // 
             // lblOrientationBadge
             // 
@@ -705,6 +711,7 @@ namespace OCR_Translator
         private Button btnExportWord;
         private Button btnSearchBatch;
         private Button btnOptions;
+        private Button btnUserDict;
         private Label lblOrientationBadge;
         private Label lblDocTypeBadge;
         private Label lblDeckBadge;
